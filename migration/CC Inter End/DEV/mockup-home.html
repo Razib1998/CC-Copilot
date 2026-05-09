@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Mockup</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 30px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    gap: 26px;
+    flex-wrap: wrap;
+  }
+  .col { display:flex; flex-direction:column; align-items:center; gap:0; }
+  .label {
+    color: #aaa; font-size: 11px; text-align: center;
+    margin-bottom: 8px; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .phone {
+    width: 360px; background: #F2F2F7;
+    border-radius: 44px; border: 8px solid #1c1c1e;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 0 0 2px #3a3a3c;
+    overflow: hidden; position: relative;
+  }
+  .statusbar {
+    background: #fff; display: flex; justify-content: space-between;
+    align-items: center; padding: 14px 22px 10px;
+    font-size: 12px; font-weight: 600; color: #1c1c1e;
+  }
+  .statusbar .time { font-size: 15px; font-weight: 700; }
+  .statusbar .icons { display:flex; gap:5px; align-items:center; font-size:11px; }
+  .app-header {
+    background: #fff; padding: 8px 18px 14px;
+    border-bottom: 1px solid #E5E5EA;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .app-header .sub { font-size: 11px; color: #8E8E93; margin-bottom: 2px; }
+  .app-header .name { font-size: 18px; font-weight: 700; color: #1C1C1E; }
+  .app-header .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg,#007AFF,#5856D6);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+  }
+  .scroll {
+    padding: 12px 14px 80px; display: flex; flex-direction: column; gap: 10px;
+    max-height: 700px; overflow-y: auto; overflow-x: hidden;
+  }
+  .scroll::-webkit-scrollbar { display: none; }
+  .warn-banner {
+    background: #FFF3CD; border: 1px solid #FFCC02;
+    border-radius: 12px; padding: 10px 14px;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .warn-banner .icon { font-size: 16px; flex-shrink:0; margin-top:1px; }
+  .warn-banner .text .title { font-size: 12px; font-weight: 700; color: #856404; }
+  .warn-banner .text .sub { font-size: 11px; color: #856404; opacity:.85; margin-top:2px; }
+  .warn-banner.red { background: #FFEBEB; border-color: #FF3B30; }
+  .warn-banner.red .title, .warn-banner.red .sub { color: #c0392b; }
+  .warn-banner.purple { background: #F0EEFF; border-color: #5856D6; }
+  .warn-banner.purple .title { color: #3634A3; }
+  .warn-banner.purple .sub { color: #3634A3; opacity:.8; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .stat-card {
+    background: #fff; border-radius: 14px; padding: 12px 10px;
+    text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .stat-card .num { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-card .lbl { font-size: 10px; color: #8E8E93; margin-top: 4px; font-weight: 500; }
+  .stat-card.blue .num { color: #007AFF; }
+  .stat-card.orange .num { color: #FF9500; }
+  .stat-card.green .num { color: #34C759; }
+  .sec-header {
+    font-size: 11px; font-weight: 700; color: #8E8E93;
+    letter-spacing: .07em; text-transform: uppercase; padding: 2px 2px 0;
+  }
+  .zeit-block {
+    background: #fff; border-radius: 16px; padding: 14px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .zeit-block .row1 { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .zeit-block .row1 .ttl { font-size: 10px; font-weight:700; color: #8E8E93; letter-spacing:.07em; }
+  .zeit-block .row1 .uhr { font-size: 11px; color: #8E8E93; }
+  .zeit-block .big { font-size: 40px; font-weight: 300; color: #1C1C1E; text-align: center; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+  .zeit-block .btns { display: flex; gap: 8px; }
+  .zeit-block .btn-stop { flex:1; background:#FF3B30; color:#fff; border:none; border-radius:10px; padding:10px; font-weight:700; font-size:14px; }
+  .zeit-block .btn-pause { background:#F2F2F7; color:#1C1C1E; border:none; border-radius:10px; padding:10px 14px; font-weight:700; font-size:14px; }
+  .aktiv-card {
+    background: linear-gradient(135deg, #E8F9EE, #D4F5E0);
+    border: 1.5px solid #34C759; border-radius: 14px; padding: 12px 14px;
+  }
+  .aktiv-card .top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+  .aktiv-card .badge { background:#34C759; color:#fff; font-size:9px; font-weight:800; border-radius:6px; padding:2px 7px; letter-spacing:.06em; display:flex; align-items:center; gap:4px; }
+  .aktiv-card .badge .dot { width:6px; height:6px; background:#fff; border-radius:50%; }
+  .aktiv-card .timer { font-size:14px; font-weight:700; color:#1C7A3A; font-variant-numeric:tabular-nums; }
+  .aktiv-card .au-id { font-size:13px; font-weight:700; color:#1C1C1E; }
+  .aktiv-card .au-sub { font-size:11px; color:#5A7BA8; margin-top:2px; }
+  .aktiv-card .step-row { display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .aktiv-card .step-pill { background:#34C759; color:#fff; font-size:10px; font-weight:700; border-radius:20px; padding:3px 10px; }
+  .aktiv-card .weiter-btn { margin-left:auto; background:#1C1C1E; color:#fff; border:none; border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; }
+  .auftrag-card {
+    background: #fff; border-radius: 14px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .auftrag-card .color-bar { width:4px; height:44px; border-radius:3px; flex-shrink:0; }
+  .auftrag-card .info { flex:1; }
+  .auftrag-card .info .id { font-size:12px; font-weight:700; color:#1C1C1E; display:flex; align-items:center; gap:5px; }
+  .auftrag-card .info .kunde { font-size:11px; color:#8E8E93; margin-top:1px; }
+  .auftrag-card .right { text-align:right; }
+  .auftrag-card .right .step-tag { display:inline-block; font-size:10px; font-weight:700; border-radius:8px; padding:2px 8px; background:#EAF4FF; color:#007AFF; }
+  .auftrag-card .right .step-tag.orange { background:#FFF3E0; color:#FF9500; }
+  .auftrag-card .right .step-tag.red { background:#FFEBEB; color:#FF3B30; }
+  .auftrag-card .right .datum { font-size:10px; color:#C7C7CC; margin-top:3px; }
+  .chat-badge {
+    background: #5856D6; color: #fff; font-size: 9px; font-weight: 800;
+    border-radius: 10px; padding: 1px 6px; display:inline-flex; align-items:center; gap:3px;
+  }
+  /* Fragen-Block */
+  .fragen-block {
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .fragen-header {
+    background: #5856D6; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .fragen-header .title { font-size: 12px; font-weight: 700; color: #fff; }
+  .fragen-header .badge { background: #fff; color: #5856D6; font-size: 11px; font-weight: 800; border-radius: 10px; padding: 1px 8px; }
+  .frage-item {
+    padding: 10px 14px; border-bottom: 1px solid #F2F2F7;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .frage-item:last-child { border-bottom: none; }
+  .frage-item .ico { font-size: 18px; flex-shrink:0; }
+  .frage-item .content { flex:1; }
+  .frage-item .content .au { font-size: 11px; font-weight: 700; color: #1C1C1E; }
+  .frage-item .content .msg { font-size: 11px; color: #3C3C43; margin-top: 2px; font-style: italic; }
+  .frage-item .content .meta { font-size: 10px; color: #C7C7CC; margin-top: 3px; }
+  .frage-item .antwort-btn { background: #5856D6; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; font-size: 10px; font-weight: 700; flex-shrink:0; margin-top:2px; }
+
+  /* Detail screen */
+  .detail-scroll {
+    padding: 0 0 80px; display: flex; flex-direction: column;
+    max-height: 700px; overflow-y: auto; overflow-x: hidden;
+  }
+  .detail-scroll::-webkit-scrollbar { display: none; }
+  .detail-header {
+    background: #fff; padding: 10px 16px 14px;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .detail-header .back { font-size: 13px; color: #007AFF; margin-bottom: 6px; display:flex; align-items:center; gap:4px; }
+  .detail-header .au-id { font-size: 20px; font-weight: 800; color: #1C1C1E; }
+  .detail-header .au-sub { font-size: 13px; color: #8E8E93; margin-top: 2px; }
+  .detail-section {
+    margin: 10px 14px 0; background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .detail-section .sec-title {
+    font-size: 10px; font-weight: 700; color: #8E8E93; letter-spacing:.07em;
+    text-transform: uppercase; padding: 10px 14px 6px;
+    border-bottom: 1px solid #F2F2F7;
+  }
+  .chat-area { padding: 10px 14px; display:flex; flex-direction:column; gap:8px; }
+  .chat-msg {
+    display: flex; gap: 8px; align-items: flex-end;
+  }
+  .chat-msg.me { flex-direction: row-reverse; }
+  .chat-msg .avatar-sm {
+    width:28px; height:28px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; color:#fff;
+  }
+  .chat-msg .bubble {
+    max-width: 75%; background: #F2F2F7; border-radius: 16px 16px 16px 4px;
+    padding: 8px 12px;
+  }
+  .chat-msg.me .bubble { background: #007AFF; border-radius: 16px 16px 4px 16px; }
+  .chat-msg .bubble .text { font-size: 12px; color: #1C1C1E; line-height: 1.4; }
+  .chat-msg.me .bubble .text { color: #fff; }
+  .chat-msg .bubble .time { font-size: 10px; color: #C7C7CC; margin-top: 3px; }
+  .chat-msg.me .bubble .time { color: rgba(255,255,255,.6); text-align:right; }
+  .chat-msg .bubble.question { background: #FFF3E0; border: 1px solid #FF9500; border-radius: 16px 16px 16px 4px; }
+  .chat-msg .bubble.question .text { color: #7A4A00; }
+  .chat-input-row {
+    margin: 8px 14px 0; display:flex; gap:8px; align-items:center;
+    background: #fff; border-radius: 14px; padding: 8px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .chat-input {
+    flex:1; background: #F2F2F7; border:none; border-radius: 20px;
+    padding: 8px 14px; font-size: 13px; color: #1C1C1E;
+  }
+  .chat-send { background: #007AFF; border:none; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+
+  .bottom-nav {
+    position: sticky; bottom: 0;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(10px);
+    border-top: 1px solid #E5E5EA; display: flex; padding: 8px 0 20px;
+  }
+  .bottom-nav .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#8E8E93; font-weight:500; }
+  .bottom-nav .tab.active { color: #007AFF; }
+  .bottom-nav .tab .ico { font-size: 22px; }
+  .bottom-nav .tab.active .ico-wrap { background:#EAF4FF; border-radius:10px; padding:2px 16px; }
+</style>
+</head>
+<body>
+
+<!-- PHONE 1: Home mit Kommunikation -->
+<div class="col">
+  <div class="label">⭐ Home — mit Kommunikation</div>
+  <div class="phone">
+    <div class="statusbar">
+      <span class="time">09:41</span>
+      <div class="icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="app-header">
+      <div>
+        <div class="sub">Montag, 07. April 2026</div>
+        <div class="name">👋 Guten Morgen, Max</div>
+      </div>
+      <div class="avatar">MA</div>
+    </div>
+    <div class="scroll">
+
+      <!-- Warnungen -->
+      <div class="warn-banner red">
+        <div class="icon">🔴</div>
+        <div class="text">
+          <div class="title">1 Auftrag überfällig!</div>
+          <div class="sub">AU-2026-037 · Müller GmbH war gestern fällig</div>
+        </div>
+      </div>
+
+      <!-- NEU: Offene Fragen -->
+      <div class="warn-banner purple">
+        <div class="icon">💬</div>
+        <div class="text">
+          <div class="title">2 offene Fragen — Antwort erforderlich</div>
+          <div class="sub">AU-2026-038, AU-2026-039 warten auf dich</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="num">5</div><div class="lbl">Offen</div></div>
+        <div class="stat-card orange"><div class="num">2</div><div class="lbl">In Arbeit</div></div>
+        <div class="stat-card green"><div class="num">3</div><div class="lbl">Fertig heute</div></div>
+      </div>
+
+      <!-- Offene Fragen Block -->
+      <div class="sec-header">💬 OFFENE FRAGEN</div>
+      <div class="fragen-block">
+        <div class="fragen-header">
+          <div class="title">💬 Fragen an dich</div>
+          <div class="badge">2 offen</div>
+        </div>
+        <div class="frage-item">
+          <div class="ico">❓</div>
+          <div class="content">
+            <div class="au">AU-2026-038 · BMW X5</div>
+            <div class="msg">„Welche Folie nehmen wir — Schwarz Matt oder Glanz?"</div>
+            <div class="meta">Thomas · vor 23 Min.</div>
+          </div>
+          <button class="antwort-btn">Antworten</button>
+        </div>
+        <div class="frage-item">
+          <div class="ico">❓</div>
+          <div class="content">
+            <div class="au">AU-2026-039 · Schulze AG</div>
+            <div class="msg">„Logo-Datei fehlt, kannst du die nochmal schicken?"</div>
+            <div class="meta">Lisa · vor 1 Std.</div>
+          </div>
+          <button class="antwort-btn">Antworten</button>
+        </div>
+      </div>
+
+      <!-- Arbeitszeit -->
+      <div class="sec-header">⏱ ARBEITSZEIT HEUTE</div>
+      <div class="zeit-block">
+        <div class="row1">
+          <div class="ttl">ARBEITSZEIT HEUTE</div>
+          <div class="uhr">09:41</div>
+        </div>
+        <div class="big">02:15:33</div>
+        <div class="btns">
+          <button class="btn-pause">⏸</button>
+          <button class="btn-stop">⏹ Stop</button>
+        </div>
+      </div>
+
+      <!-- Aktiver Auftrag -->
+      <div class="sec-header">▶ LÄUFT GERADE</div>
+      <div class="aktiv-card">
+        <div class="top">
+          <div>
+            <div class="au-id">AU-2026-038</div>
+            <div class="au-sub">BMW X5 · Vollfolierung Schwarz</div>
+          </div>
+          <div>
+            <div class="badge"><div class="dot"></div>LÄUFT</div>
+            <div class="timer" style="margin-top:5px;">00:47:12</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-pill">✂ Produktion</div>
+          <button class="weiter-btn">Fertig →</button>
+        </div>
+      </div>
+
+      <!-- Meine Aufträge -->
+      <div class="sec-header">📋 MEINE AUFTRÄGE</div>
+
+      <div class="auftrag-card">
+        <div class="color-bar" style="background:#FF9500;"></div>
+        <div class="info">
+          <div class="id">AU-2026-039 <span class="chat-badge">💬 1</span></div>
+          <div class="kunde">Schulze AG · Audi A4</div>
+        </div>
+        <div class="right">
+          <div class="step-tag orange">🎨 Grafik</div>
+          <div class="datum">⚠ Heute fällig</div>
+        </div>
+      </div>
+
+      <div class="auftrag-card">
+        <div class="color-bar" style="background:#FF3B30;"></div>
+        <div class="info">
+          <div class="id">AU-2026-037</div>
+          <div class="kunde">Müller GmbH · VW Crafter</div>
+        </div>
+        <div class="right">
+          <div class="step-tag red">🖨 Druck</div>
+          <div class="datum">🔴 Überfällig</div>
+        </div>
+      </div>
+
+      <div class="auftrag-card">
+        <div class="color-bar" style="background:#007AFF;"></div>
+        <div class="info">
+          <div class="id">AU-2026-038 <span class="chat-badge">💬 2</span></div>
+          <div class="kunde">BMW X5 · Vollfolierung</div>
+        </div>
+        <div class="right">
+          <div class="step-tag">✂ Produktion</div>
+          <div class="datum">10. Apr</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="bottom-nav">
+      <div class="tab active"><div class="ico-wrap"><div class="ico">🏠</div></div><span>Home</span></div>
+      <div class="tab"><div class="ico">📋</div><span>Aufgaben</span></div>
+      <div class="tab"><div class="ico">📷</div><span>Fotos</span></div>
+      <div class="tab"><div class="ico">📦</div><span>Lager</span></div>
+      <div class="tab"><div class="ico">🏖</div><span>Urlaub</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PHONE 2: Auftrag Detail mit Chat -->
+<div class="col">
+  <div class="label">💬 Auftrag — Kommunikation</div>
+  <div class="phone">
+    <div class="statusbar">
+      <span class="time">09:41</span>
+      <div class="icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+
+    <div class="detail-scroll">
+      <div class="detail-header">
+        <div class="back">← Zurück</div>
+        <div class="au-id">AU-2026-038</div>
+        <div class="au-sub">BMW X5 · Vollfolierung Schwarz · Thomas</div>
+      </div>
+
+      <!-- Auftrag Info kurz -->
+      <div class="detail-section">
+        <div class="sec-title">📋 AUFTRAGSINFO</div>
+        <div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:12px;color:#8E8E93;">Status</span>
+            <span style="font-size:12px;font-weight:700;color:#34C759;">✂ Produktion</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:12px;color:#8E8E93;">Fällig</span>
+            <span style="font-size:12px;font-weight:600;color:#1C1C1E;">10. April 2026</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:12px;color:#8E8E93;">Leistung</span>
+            <span style="font-size:12px;font-weight:600;color:#1C1C1E;">🚗 Vollfolierung</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat / Kommunikation -->
+      <div class="detail-section" style="margin-bottom:10px;">
+        <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>💬 KOMMUNIKATION</span>
+          <span style="font-size:10px;background:#FF3B30;color:#fff;border-radius:8px;padding:1px 7px;">1 offen ❓</span>
+        </div>
+        <div class="chat-area">
+
+          <!-- Nachricht von Thomas -->
+          <div class="chat-msg">
+            <div class="avatar-sm" style="background:#FF9500;">TH</div>
+            <div class="bubble">
+              <div class="text">Auftrag ist angekommen, starte heute mit Grafik.</div>
+              <div class="time">Mo 08:15</div>
+            </div>
+          </div>
+
+          <!-- Frage von Thomas -->
+          <div class="chat-msg">
+            <div class="avatar-sm" style="background:#FF9500;">TH</div>
+            <div class="bubble question">
+              <div class="text">❓ Welche Folie nehmen wir — Schwarz Matt oder Glanz? Habe beide vorrätig.</div>
+              <div class="time">Mo 08:47</div>
+            </div>
+          </div>
+
+          <!-- Antwort von Max (ich) -->
+          <div class="chat-msg me">
+            <div class="avatar-sm" style="background:#5856D6;">MA</div>
+            <div class="bubble">
+              <div class="text">Nehmt Schwarz Matt, der Kunde hat das so bestätigt.</div>
+              <div class="time">Mo 09:02</div>
+            </div>
+          </div>
+
+          <!-- Neue Frage unbeantwortet -->
+          <div class="chat-msg">
+            <div class="avatar-sm" style="background:#FF9500;">TH</div>
+            <div class="bubble question">
+              <div class="text">❓ Soll ich die Türgriffe auch folieren oder nur die Hauptflächen?</div>
+              <div class="time">Mo 09:33</div>
+            </div>
+          </div>
+
+          <div style="font-size:10px;color:#FF9500;text-align:center;padding:2px 0;font-weight:600;">⬆ Diese Frage wartet auf Antwort</div>
+
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-row">
+        <input class="chat-input" placeholder="Nachricht oder Antwort schreiben…" readonly>
+        <button class="chat-send">➤</button>
+      </div>
+
+    </div>
+
+    <div class="bottom-nav">
+      <div class="tab"><div class="ico">🏠</div><span>Home</span></div>
+      <div class="tab active"><div class="ico-wrap"><div class="ico">📋</div></div><span>Aufgaben</span></div>
+      <div class="tab"><div class="ico">📷</div><span>Fotos</span></div>
+      <div class="tab"><div class="ico">📦</div><span>Lager</span></div>
+      <div class="tab"><div class="ico">🏖</div><span>Urlaub</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

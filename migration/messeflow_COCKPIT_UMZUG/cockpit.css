@@ -1,0 +1,154 @@
+/*
+ * CC Cockpit – MesseFlow Inhaltsmodul
+ * ─────────────────────────────────────────────────────────────────────────
+ * DIESES CSS = nur Overrides für den Modul-Betrieb (body.ckp-module).
+ * Topbar + Haupt-Sidebar kommen von CC Cockpit – wir bauen hier NICHTS davon.
+ *
+ * Unsere Fläche (die Mitte):
+ *   [MesseFlow Projektliste 200px] | [Projektinhalt – Restbreite]
+ *
+ * §1.1 Master: Sidebar position:relative im Grid · kein sticky · kein Schatten
+ * Layout-Preview NACHHER: var(--bg) Hintergrund · 200px · im Grid-Flow
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
+/* ── 1. MesseFlow-Topbar verstecken ──────────────────────────────────────
+   CC Cockpit liefert den echten Topbar.
+   DOM-IDs bleiben im HTML (messeflow-app.js braucht sie).         */
+body.ckp-module #topbar                    { display: none !important; }
+body.ckp-module #topbar[style*="display"]  { display: none !important; }
+
+/* ── 2. DEV-Leiste ───────────────────────────────────────────────────────
+   Schmale Info-/Test-Leiste oben im Modul (nur DEV, nicht Produktion).  */
+#mf-dev-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #fef3c7;
+  border-bottom: 1px solid #f59e0b;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.mf-dev-label {
+  font-weight: 800;
+  color: #92400e;
+  flex-shrink: 0;
+}
+#mf-dev-user {
+  padding: 3px 8px;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #fff;
+  color: #92400e;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mf-dev-btn {
+  padding: 3px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter .1s;
+}
+.mf-dev-btn:hover { filter: brightness(.93); }
+.mf-dev-btn.red   { color: #dc2626; border-color: #fca5a5; }
+.mf-dev-info {
+  margin-left: auto;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── 3. SHELL = Grid [Projektliste | Inhalt] ─────────────────────────────
+   Füllt die gesamte von CC Cockpit zugewiesene Fläche.
+   Höhe: 100% des Eltern-Containers (CC Cockpit Content-Area).
+   §1.1: Sidebar 200px · Main Restbreite.                          */
+body.ckp-module #shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: calc(100vh - 32px); /* 32px = DEV-Leiste; in Prod: 100% */
+  min-height: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ── 4. SIDEBAR: position:relative im Grid-Flow ──────────────────────────
+   layout-preview.html NACHHER:
+     position: relative  → normaler Grid-Flow, kein Viewport-Anker
+     background: var(--bg) → gleiche Farbe wie Arbeitsfläche
+     kein box-shadow → gehört zur Arbeitsfläche, nicht zum äußeren Chrome
+   (§1.1 Master · layout-preview NACHHER)                          */
+body.ckp-module #sidebar {
+  position: relative  !important;
+  top:      auto      !important;
+  height:   100%      !important;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);          /* = Arbeitsflächen-Hintergrund */
+  border-right: 1px solid var(--line);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  /* KEIN box-shadow */
+}
+
+/* ── 5. MAIN: scrollbar, volle Höhe ─────────────────────────────────────
+   §1.1: Padding Desktop 18px.                                     */
+body.ckp-module #main {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--bg);
+  outline: none; /* tabindex=-1, kein visueller Fokusring */
+}
+
+/* ── 6. Notif-Panel oben ─────────────────────────────────────────────── */
+body.ckp-module #notif-panel { top: 0; }
+
+/* ── 7. Ausgeblendete Elemente (Daten + Logik vollständig erhalten) ──── */
+body.ckp-module #mf-projekt-verlauf { display: none !important; }
+body.ckp-module #mf-projekt-team    { display: none !important; }
+
+/* Admin-Button in Sidebar – Einstieg kommt über CC Cockpit */
+body.ckp-module #sidebar .admin-btn,
+body.ckp-module #sidebar [onclick*="openAdminView"],
+body.ckp-module #sidebar [onclick*="adminView"],
+body.ckp-module #sidebar [onclick*="showAdmin"] { display: none !important; }
+
+/* ── 8. MOBILE §11 Master: Touch ≥ 44px, Sidebar = Overlay ─────────── */
+@media (max-width: 680px) {
+  body.ckp-module #shell {
+    grid-template-columns: 1fr;
+    height: 100%;
+  }
+  body.ckp-module #sidebar {
+    position: fixed   !important;
+    top:      0       !important;
+    left:     0;
+    width:    240px;
+    height:   100%    !important;
+    z-index:  150;
+    background: #fff;
+    box-shadow: 4px 0 16px rgba(0,0,0,.15);
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+  }
+  body.ckp-module #sidebar.open { transform: translateX(0); }
+  .mf-dev-btn, #mf-dev-user    { min-height: 44px; }
+}
+
+/* ── 9. Scrollbalken dezent ─────────────────────────────────────────── */
+body.ckp-module #sidebar::-webkit-scrollbar,
+body.ckp-module #main::-webkit-scrollbar   { width: 5px; }
+body.ckp-module #sidebar::-webkit-scrollbar-thumb,
+body.ckp-module #main::-webkit-scrollbar-thumb {
+  background: #d1d5db; border-radius: 3px;
+}

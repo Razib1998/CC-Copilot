@@ -1,0 +1,28 @@
+# Lokale Secrets / Umgebung
+.env
+.env.*
+!.env.example
+
+# SQLite & DB-Dateien
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime-Daten (DB-Ordner). Hinweis: kein globales "data/" — sonst würden
+# z. B. frontend/core/data und modules/*/data (Quellcode) fälschlich ignoriert.
+backend/data/
+
+# Uploads / Kundendaten
+uploads/
+
+# Server-Kopie, Kundenordner, Backups (lokal)
+SERVER/
+01_KUNDEN/
+
+# Dependencies
+node_modules/
+
+# Archive
+*.zip
+_BACKUP_ZIPS/

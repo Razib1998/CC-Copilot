@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cc-intern",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3002
+    },
+    {
+      "name": "fusa-app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["fusa_serve.js"],
+      "port": 3032,
+      "autoPort": false
+    }
+  ]
+}

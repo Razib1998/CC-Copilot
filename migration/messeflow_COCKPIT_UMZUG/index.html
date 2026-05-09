@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MesseFlow</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body>
+
+<div id="mf-invite-gate" style="display:none;position:fixed;inset:0;z-index:2147483000;background:linear-gradient(165deg,#f8fafc 0%,#eef2ff 100%);overflow:auto;">
+  <div id="mf-invite-gate-inner" style="max-width:440px;margin:48px auto;padding:28px 26px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 44px rgba(15,23,42,.1);"></div>
+</div>
+<div id="mf-login-gate" style="display:none;position:fixed;inset:0;z-index:2147483646;background:linear-gradient(165deg,#f8fafc 0%,#eef2ff 100%);overflow:auto;">
+  <div id="mf-login-gate-inner" style="position:relative;z-index:1;max-width:440px;margin:48px auto;padding:28px 26px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 44px rgba(15,23,42,.1);pointer-events:auto;"></div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <button id="mb-btn" style="display:none" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+  <div class="brand">Messe<span>Flow</span></div>
+  <div id="testmodus-badge" style="background:#fef3c7;border:1px solid #f59e0b;
+    border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;color:#92400e;"
+    title="Alle Rechte freigegeben · Sperren deaktiviert · Benutzer wechselbar">
+    🧪 TEST-MODUS
+  </div>
+  <div id="role-display" class="role-pill-active"></div>
+  <div id="mf-module-bar" class="mf-module-bar" aria-label="Module wechseln"></div>
+  <!-- Benutzer-Schnellwechsler – nur sichtbar wenn MF_TEST_MODE=true (wird in messeflowNormalBoot gesteuert) -->
+  <select id="role-sel" onchange="setUser(this.value)"
+    style="padding:4px 8px;border:1px solid #f59e0b;border-radius:6px;
+           font-size:12px;background:#fef3c7;color:#92400e;font-weight:600;cursor:pointer;"
+    title="Benutzer wechseln (Test-Modus)">
+  </select>
+  <div id="server-status-indicator"
+    style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fafafa;cursor:pointer;"
+    onclick="openServerConfig()"
+    title="Prüf-Server Konfiguration">
+    <span style="color:var(--muted);font-size:11px;">⏳ Server…</span>
+  </div>
+  <button class="btn ghost" id="notif-btn" onclick="toggleNotif()" style="padding:5px 10px;font-size:13px;">
+    🔔<span id="notif-badge">0</span>
+  </button>
+  <button type="button" class="btn ghost sm" id="mf-devices-btn" onclick="mfOpenMyDevicesModal()" style="display:none;padding:5px 10px;font-size:12px;" title="Angemeldete Geräte verwalten">🖥️ Geräte</button>
+  <button type="button" class="btn ghost sm" id="mf-logout-btn" onclick="mfLogout()" style="display:none;padding:5px 10px;font-size:12px;">Abmelden</button>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="notif-panel">
+  <div class="nh"><span>Benachrichtigungen</span><button class="btn sm ghost" onclick="markAllRead()">Gelesen</button></div>
+  <div id="notif-list"></div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+  <aside id="sidebar">
+    <h3>Projekte</h3>
+    <div id="proj-list"></div>
+    <button id="add-proj" onclick="openNewProjModal()">+ Neues Projekt</button>
+    <button class="btn ghost sm" style="margin-top:4px;text-align:center;border-style:dashed;"
+      onclick="document.getElementById('xl-sidebar-input').click()">
+      📊 Excel importieren
+    </button>
+    <input type="file" id="xl-sidebar-input" accept=".xlsx,.xls,.csv" style="display:none"
+      onchange="importExcel(event,'__new__')">
+  </aside>
+
+  <main id="main">
+    <div id="view">
+      <div style="color:var(--muted);text-align:center;padding:60px 0;font-size:15px;">← Projekt auswählen</div>
+    </div>
+  </main>
+</div>
+
+<div id="toasts"></div>
+<div id="modal-bg" onclick="closeMBG(event)"><div id="modal-box"><h2 id="modal-h"></h2><div id="modal-c"></div></div></div>
+
+<script src="js/utils/mass.js"></script>
+<script src="js/utils/dpi.js"></script>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/logic/invite.js"></script>
+<script src="js/logic/devices.js"></script>
+<script src="js/logic/auth.js"></script>
+<script src="js/logic/audit.js"></script>
+<script src="js/logic/errors.js"></script>
+<script src="js/logic/status.js"></script>
+<script src="js/logic/freigabe.js"></script>
+<script src="js/logic/uebergabe.js"></script>
+<script src="js/ui/modal.js"></script>
+<script src="js/ui/toast.js"></script>
+<script src="js/api/server.js"></script>
+<script src="js/import/excel.js"></script>
+<script src="js/ui/sidebar.js"></script>
+<script src="js/ui/wandCard.js"></script>
+<script src="js/ui/projectView.js"></script>
+<script src="js/ui/bettinaView.js"></script>
+<script src="js/ui/produktionView.js"></script>
+<script src="js/ui/adminView.js"></script>
+<script src="js/messeflow-app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4385 @@
+/* CC Cockpit — minimale UI-Grundstruktur (nur Layout, keine Design-Claims) */
+
+:root {
+  --ckp-content-padding-inline: 28px;
+  --ckp-content-padding-block: 24px;
+  --ckp-sidebar-panel-width: 360px;
+  --ckp-layout-gap: 20px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: #1a1a2e;
+  background: #f0f4f8;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Volle Viewport-Breite (kein max-width — nutzt gesamtes Fenster) */
+#cockpit-root,
+.ckp-shell-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+[data-ccw-ro='topbar'],
+.ckp-topbar,
+.ckp-topbar-modules.ccds-top-tabs {
+  flex-shrink: 0;
+}
+
+.cockpit-body,
+.ckp-shell-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#cockpit-sidebar:not(.cockpit-sidebar--styl-c) {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  background: #f8fafc;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+
+.ckp-topbar-modules:not(.ccds-top-tabs) {
+  display: flex;
+  flex-shrink: 0;
+  width: 100%;
+  border-bottom: 2px solid #ddd;
+}
+
+.ckp-mod-btn:not(.ccds-top-tab) {
+  flex: 1;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mod--cockpit:not(.ccds-top-tab) {
+  background: #f0faf5;
+  color: #2d7a5a;
+  border-bottom: 3px solid transparent;
+}
+
+.mod--cockpit.active:not(.ccds-top-tab) {
+  background: #d4f0e4;
+  color: #1a5c40;
+  border-bottom: 3px solid #2d7a5a;
+}
+
+.mod--fusa:not(.ccds-top-tab) {
+  background: #fef8f0;
+  color: #c87a20;
+  border-bottom: 3px solid transparent;
+}
+
+.mod--fusa.active:not(.ccds-top-tab) {
+  background: #fde8c8;
+  color: #a05e10;
+  border-bottom: 3px solid #c87a20;
+}
+
+.mod--ccintern:not(.ccds-top-tab) {
+  background: #f0f4fd;
+  color: #2a4db5;
+  border-bottom: 3px solid transparent;
+}
+
+.mod--ccintern.active:not(.ccds-top-tab) {
+  background: #d4dff8;
+  color: #1a3490;
+  border-bottom: 3px solid #2a4db5;
+}
+
+#cockpit-main:not(.cockpit-main--styl-c) {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  padding: var(--ckp-content-padding-block) var(--ckp-content-padding-inline);
+  background: #fff;
+}
+
+#cockpit-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cc-cockpit-nav-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #334155;
+  border-left: 3px solid transparent;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+#cockpit-sidebar[data-sidebar-module='cockpit'] .cc-cockpit-nav-btn:hover {
+  background: #e8f5f0;
+}
+
+#cockpit-sidebar[data-sidebar-module='fusa'] .cc-cockpit-nav-btn:hover {
+  background: #fef3e8;
+}
+
+#cockpit-sidebar[data-sidebar-module='ccintern'] .cc-cockpit-nav-btn:hover {
+  background: #eef1fc;
+}
+
+#cockpit-sidebar[data-sidebar-module='cockpit'] .cc-cockpit-nav-btn.cc-cockpit-nav--active {
+  background: #d4f0e4;
+  color: #1a5c40;
+  font-weight: 600;
+}
+
+#cockpit-sidebar[data-sidebar-module='cockpit'] .cc-cockpit-nav-btn.cc-cockpit-nav--active:hover {
+  background: #d4f0e4;
+  color: #1a5c40;
+}
+
+#cockpit-sidebar[data-sidebar-module='fusa'] .cc-cockpit-nav-btn.cc-cockpit-nav--active {
+  background: #fdddb0;
+  color: #a05e10;
+  font-weight: 600;
+}
+
+#cockpit-sidebar[data-sidebar-module='fusa'] .cc-cockpit-nav-btn.cc-cockpit-nav--active:hover {
+  background: #fdddb0;
+  color: #a05e10;
+}
+
+#cockpit-sidebar[data-sidebar-module='ccintern'] .cc-cockpit-nav-btn.cc-cockpit-nav--active {
+  background: #c8d4f5;
+  color: #1a3490;
+  font-weight: 600;
+}
+
+#cockpit-sidebar[data-sidebar-module='ccintern'] .cc-cockpit-nav-btn.cc-cockpit-nav--active:hover {
+  background: #c8d4f5;
+  color: #1a3490;
+}
+
+.cc-cockpit-placeholder {
+  padding: 24px 8px;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Pflicht-Layout: ckp-section / ckp-header / ckp-body — volle nutzbare Breite (Cockpit / FUSA / CC Intern) */
+.ckp-section {
+  margin-top: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.ckp-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ckp-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: system-ui, sans-serif;
+  color: #0f172a;
+}
+
+.ckp-header-action {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ckp-header-action:hover {
+  background: #cbd5e1;
+}
+
+/* Dashboard „+ Neu“: nur Navigation, kein Formular */
+.ckp-neu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ckp-neu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 220px;
+  padding: 6px 0;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+  z-index: 80;
+}
+
+.ckp-neu-menuitem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: #0f172a;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.ckp-neu-menuitem:hover,
+.ckp-neu-menuitem:focus {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.ckp-neu-menuitem:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: -2px;
+  background: #ecfdf5;
+}
+
+.ckp-body {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.ckp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.ckp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+}
+
+.ckp-table thead tr {
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.ckp-table th,
+.ckp-table td {
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+#cockpit-content tr.ckp-snapshot-row--highlight {
+  outline: 2px solid #2d7a5a;
+  outline-offset: -2px;
+  background: #ecfdf5;
+}
+
+/* Cockpit Benutzer (Phase 2, Snapshot, nur Lesen) */
+.ckp-users-empty {
+  margin: 0 0 var(--ckp-layout-gap);
+  padding: 16px;
+  font-size: 13px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.ckp-users-empty code {
+  font-size: 12px;
+  background: #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ckp-users-table-wrap {
+  margin-bottom: var(--ckp-layout-gap);
+}
+
+.ckp-users-table th,
+.ckp-users-table td {
+  white-space: nowrap;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ckp-users-table th:nth-child(5),
+.ckp-users-table th:nth-child(6),
+.ckp-users-table td:nth-child(5),
+.ckp-users-table td:nth-child(6) {
+  max-width: 18rem;
+}
+
+.ckp-users-row {
+  cursor: pointer;
+}
+
+.ckp-users-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-users-row:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: -2px;
+}
+
+.ckp-users-row--selected {
+  background: #ecfdf5;
+}
+
+.ckp-users-detail {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-users-detail--hidden {
+  display: none;
+}
+
+.ckp-users-detail__title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ckp-users-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-users-detail__dl > div {
+  display: contents;
+}
+
+.ckp-users-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-users-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-users-detail__hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ckp-users-detail__block {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.ckp-users-detail__h {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ckp-users-detail__p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.ckp-users-detail__ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+/* Cockpit Benutzer (Phase 2 — Liste + Filter + Detail) */
+.ckp-benutzer-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-benutzer-filterbar__label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-benutzer-filter-reset {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ckp-benutzer-filter-reset:hover {
+  background: #f8fafc;
+}
+
+.ckp-benutzer-row {
+  cursor: pointer;
+}
+
+.ckp-benutzer-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-benutzer-row:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: -2px;
+}
+
+.ckp-benutzer-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-benutzer-detail--hidden {
+  display: none;
+}
+
+.ckp-benutzer-detail__title {
+  margin: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ckp-benutzer-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-benutzer-detail__dl > div {
+  display: contents;
+}
+
+.ckp-benutzer-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-benutzer-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-benutzer-detail__h {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-benutzer-detail__p,
+.ckp-benutzer-detail__ul {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-benutzer-detail__ul {
+  padding-left: 1.2rem;
+}
+
+.ckp-benutzer-back {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+/* Cockpit Einladungen (Phase 2) */
+.ckp-einladungen-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-einladungen-filterbar__label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-einladungen-filter-reset {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ckp-einladungen-filter-reset:hover {
+  background: #f8fafc;
+}
+
+.ckp-einladungen-row {
+  cursor: pointer;
+}
+
+.ckp-einladungen-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-einladungen-row:focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: -2px;
+}
+
+.ckp-einladungen-table th,
+.ckp-einladungen-table td {
+  font-size: 12px;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ckp-einladungen-table th:nth-child(5),
+.ckp-einladungen-table td:nth-child(5) {
+  max-width: 14rem;
+}
+
+.ckp-einladungen-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-einladungen-detail--hidden {
+  display: none;
+}
+
+.ckp-einladungen-detail__title {
+  margin: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ckp-einladungen-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-einladungen-detail__dl > div {
+  display: contents;
+}
+
+.ckp-einladungen-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-einladungen-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-einladungen-detail__h {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-einladungen-detail__ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-einladungen-back {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+/* Cockpit Projekte (Liste + Filter + Detail) */
+.ckp-projekte-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-projekte-filterbar__label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-projekte-filter-reset {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ckp-projekte-filter-reset:hover {
+  background: #f8fafc;
+}
+
+.ckp-projekte-row {
+  cursor: pointer;
+}
+
+.ckp-projekte-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-projekte-row:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.ckp-projekte-table th,
+.ckp-projekte-table td {
+  font-size: 12px;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ckp-projekte-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ckp-projekte-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-projekte-detail--hidden {
+  display: none;
+}
+
+.ckp-projekte-detail__title {
+  margin: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ckp-projekte-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-projekte-detail__dl > div {
+  display: contents;
+}
+
+.ckp-projekte-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-projekte-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-projekte-detail__h {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-projekte-detail__p,
+.ckp-projekte-detail__ul {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-projekte-detail__ul {
+  padding-left: 1.2rem;
+}
+
+.ckp-projekte-back {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+/* Cockpit Firmen (Liste + Filter + Detail) */
+.ckp-firmen-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-firmen-filterbar__label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-firmen-filter-reset {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ckp-firmen-filter-reset:hover {
+  background: #f8fafc;
+}
+
+.ckp-firmen-row {
+  cursor: pointer;
+}
+
+.ckp-firmen-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-firmen-row:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: -2px;
+}
+
+.ckp-firmen-table th,
+.ckp-firmen-table td {
+  font-size: 12px;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ckp-firmen-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ckp-firmen-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-firmen-detail--hidden {
+  display: none;
+}
+
+.ckp-firmen-detail__title {
+  margin: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ckp-firmen-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-firmen-detail__dl > div {
+  display: contents;
+}
+
+.ckp-firmen-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-firmen-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-firmen-detail__h {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-firmen-detail__p,
+.ckp-firmen-detail__ul {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-firmen-detail__ul {
+  padding-left: 1.2rem;
+}
+
+.ckp-firmen-back {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.ckp-firma-nav-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #2563eb;
+  text-decoration: underline;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ckp-firma-nav-link:hover {
+  color: #1d4ed8;
+}
+
+/* Cockpit Rollen (Liste + Detail, ohne Filter) */
+.ckp-rollen-row {
+  cursor: pointer;
+}
+
+.ckp-rollen-row:hover {
+  background: #f8fafc;
+}
+
+.ckp-rollen-row:focus-visible {
+  outline: 2px solid #7c2d12;
+  outline-offset: -2px;
+}
+
+.ckp-rollen-table th,
+.ckp-rollen-table td {
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.ckp-rollen-table td:nth-child(2) {
+  max-width: 28rem;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.ckp-rollen-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ckp-rollen-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ckp-rollen-detail--hidden {
+  display: none;
+}
+
+.ckp-rollen-detail__title {
+  margin: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ckp-rollen-detail__dl {
+  margin: 0;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto 1fr;
+}
+
+.ckp-rollen-detail__dl > div {
+  display: contents;
+}
+
+.ckp-rollen-detail__dl dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ckp-rollen-detail__dl dd {
+  margin: 0;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.ckp-rollen-detail__h {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-rollen-detail__p,
+.ckp-rollen-detail__ul {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ckp-rollen-detail__ul {
+  padding-left: 1.2rem;
+}
+
+.ckp-rollen-detail__hint {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.ckp-rollen-detail__hint-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.ckp-rollen-detail__hint-body {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.ckp-rollen-back {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.ckp-rolle-nav-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #7c2d12;
+  text-decoration: underline;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ckp-rolle-nav-link:hover {
+  color: #9a3412;
+}
+
+.ckp-users-mock-fieldset {
+  margin-top: 18px;
+  padding: 14px 14px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.ckp-users-mock-fieldset:disabled {
+  opacity: 1;
+}
+
+.ckp-users-mock-legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 0 6px;
+}
+
+.ckp-users-mock-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #94a3b8;
+  color: #fff;
+  vertical-align: middle;
+}
+
+.ckp-users-mock-note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.ckp-users-mock-note code {
+  font-size: 11px;
+  background: #e2e8f0;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.ckp-users-mock-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ckp-users-mock-checks--rights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 8px 12px;
+}
+
+.ckp-users-mock-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  cursor: default;
+}
+
+.ckp-users-mock-check input {
+  cursor: not-allowed;
+  flex-shrink: 0;
+}
+
+.ckp-users-mock-check code {
+  font-size: 11px;
+}
+
+/* Phase 2 — Kennzeichnung: Vorbereitung UI; echte Durchsetzung erst Phase 3 (Backend) */
+.ckp-phase2-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: var(--ckp-layout-gap);
+  padding: 14px 16px;
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 10px;
+}
+
+.ckp-phase2-notice__badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #ca8a04;
+  color: #fff;
+}
+
+.ckp-phase2-notice__body {
+  flex: 1;
+  min-width: 12rem;
+  font-size: 13px;
+  color: #713f12;
+  line-height: 1.45;
+}
+
+.ckp-phase2-notice__body p {
+  margin: 0 0 8px;
+}
+
+.ckp-phase2-notice__body p:last-child {
+  margin-bottom: 0;
+}
+
+.ckp-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--ckp-layout-gap);
+}
+
+.ckp-roles-card {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ckp-roles-card__title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ckp-roles-card__desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.ckp-roles-card__block {
+  margin-top: 12px;
+}
+
+.ckp-roles-card__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.ckp-roles-card__text {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.ckp-roles-rights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ckp-roles-right-badge {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.ckp-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.ckp-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 12px;
+  text-align: center;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ckp-tile:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ckp-tile__label {
+  pointer-events: none;
+}
+
+.ckp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ckp-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.ckp-list-item:last-child {
+  border-bottom: none;
+}
+
+.ckp-list-item__main {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ckp-list-item__sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ckp-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.ckp-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ckp-card strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.ckp-card p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ckp-card__tag {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ckp-mock-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* FUSA — Mock „Neuer Kunde“ (Phase 2, nur UI) */
+.ckp-fusa-mock-kunde-wrap {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.ckp-fusa-mock-kunde-phase {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.ckp-fusa-mock-kunde-formfields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ckp-fusa-mock-kunde-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ckp-fusa-mock-kunde-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ckp-fusa-mock-kunde-input {
+  box-sizing: border-box;
+  max-width: 28rem;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.ckp-fusa-mock-kunde-input:focus {
+  outline: 2px solid #1a5c40;
+  outline-offset: 1px;
+}
+
+.ckp-fusa-mock-kunde-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.ckp-fusa-mock-kunde-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.ckp-fusa-mock-kunde-btn:hover {
+  background: #f1f5f9;
+}
+
+.ckp-fusa-mock-kunde-btn--primary {
+  border-color: #1a5c40;
+  background: #1a5c40;
+  color: #fff;
+}
+
+.ckp-fusa-mock-kunde-btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ckp-fusa-mock-kunde-list-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ── Dashboard (Phase 2, read-only) — kompaktere Dichte, mehr Above-the-fold ── */
+[data-ccw-ro='cockpit-dashboard'] .ckp-header {
+  margin-bottom: 8px;
+}
+
+[data-ccw-ro='cockpit-dashboard'] .ckp-body {
+  line-height: 1.4;
+}
+
+.ckp-dash {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ckp-dash-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ckp-dash-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.ckp-dash-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.ckp-dash-date {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.ckp-dash-kpi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .ckp-dash-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .ckp-dash-kpi {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ckp-dash-kpi-card {
+  padding: 11px 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: box-shadow 0.2s;
+}
+.ckp-dash-kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+}
+
+button.ckp-dash-kpi-card.ckp-dash-kpi-card--nav {
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button.ckp-dash-kpi-card.ckp-dash-kpi-card--nav:hover {
+  border-color: #cbd5e1;
+  background: #fafbfc;
+}
+
+button.ckp-dash-kpi-card.ckp-dash-kpi-card--nav:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: 2px;
+}
+
+/* KPI Icon */
+.ckp-dash-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  margin-bottom: 0;
+}
+.ckp-dash-kpi-icon--orange { background: rgba(232,160,32,0.15); }
+.ckp-dash-kpi-icon--blue   { background: rgba(59,130,246,0.12); }
+.ckp-dash-kpi-icon--green  { background: rgba(34,197,94,0.12); }
+.ckp-dash-kpi-icon--purple { background: rgba(139,92,246,0.12); }
+.ckp-dash-kpi-icon--teal { background: rgba(13,148,136,0.14); }
+
+.ckp-dash-inv-summary {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.ckp-dash-kpi-value {
+  display: block;
+  font-size: 1.6875rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.ckp-dash-kpi-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+/* Termine | Benutzer/Einladungen/System */
+.ckp-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(300px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.ckp-dash-grid > .ckp-dash-panel,
+.ckp-dash-grid > .ckp-dash-stack {
+  min-width: 0;
+}
+
+.ckp-dash-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 300px;
+}
+
+.ckp-dash-stack .ckp-dash-panel {
+  flex: 0 1 auto;
+}
+
+.ckp-dash-panel--termine {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.ckp-dash-panel__body--scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ckp-dash-stack .ckp-dash-panel__body--scroll {
+  max-height: 200px;
+}
+
+.ckp-dash-panel__body--termine {
+  flex: 1 1 auto;
+  min-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1000px) {
+  .ckp-dash-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  .ckp-dash-panel--termine {
+    min-height: 260px;
+  }
+
+  .ckp-dash-stack {
+    min-height: 0;
+  }
+}
+
+.ckp-dash-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ckp-dash-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 11px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.ckp-dash-panel__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+/* Panel ohne separaten __head (z. B. System-Status) */
+.ckp-dash-panel > .ckp-dash-panel__title:first-child {
+  padding: 8px 11px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.ckp-dash-panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.ckp-dash-all {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d7a5a;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ckp-dash-all:hover {
+  background: #ecfdf5;
+}
+
+.ckp-dash-panel__body {
+  padding: 0;
+}
+
+.ckp-dash-empty {
+  margin: 0;
+  padding: 11px 12px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.ckp-dash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ckp-dash-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 11px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+.ckp-dash-row:hover { background: #fafbfc; }
+.ckp-dash-row:last-child { border-bottom: none; }
+
+.ckp-dash-li-nav {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ckp-dash-li-nav:last-child {
+  border-bottom: none;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row {
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  background: #fff;
+  border: none;
+  border-bottom: none;
+  border-radius: 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row:hover {
+  background: #fafbfc;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: -2px;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row--proj {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+button.ckp-dash-nav-row.ckp-dash-row--h {
+  cursor: pointer;
+}
+
+/* Horizontal row variant (Aufträge, Benutzer) */
+.ckp-dash-row--h {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+.ckp-dash-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ckp-dash-row__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.ckp-dash-row__sub {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* Status-Dot */
+.ckp-dash-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ckp-dash-dot--orange { background: #e8a020; }
+.ckp-dash-dot--blue   { background: #3b82f6; }
+.ckp-dash-dot--green  { background: #22c55e; }
+.ckp-dash-dot--red    { background: #ef4444; }
+.ckp-dash-dot--gray   { background: #d1d5db; }
+
+/* Status-Chip */
+.ckp-dash-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ckp-dash-chip--orange { background: rgba(232,160,32,0.15); color: #b8770d; }
+.ckp-dash-chip--blue   { background: rgba(59,130,246,0.12); color: #2563eb; }
+.ckp-dash-chip--green  { background: rgba(34,197,94,0.12);  color: #16a34a; }
+.ckp-dash-chip--red    { background: rgba(239,68,68,0.12);  color: #dc2626; }
+.ckp-dash-chip--gray   { background: #f3f4f6; color: #6b7280; }
+
+/* Avatar */
+.ckp-dash-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+.ckp-dash-avatar--blue   { background: #3b82f6; }
+.ckp-dash-avatar--purple { background: #8b5cf6; }
+.ckp-dash-avatar--green  { background: #22c55e; }
+.ckp-dash-avatar--orange { background: #e8a020; }
+.ckp-dash-avatar--red    { background: #ef4444; }
+
+.ckp-dash-row__proj-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ckp-dash-row__pct-inline {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c87a20;
+  flex-shrink: 0;
+}
+
+.ckp-dash-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.ckp-dash-progress {
+  height: 4px;
+  margin-top: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ckp-dash-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #e8a020, #f5b840);
+}
+
+.ckp-dash-list--termin .ckp-dash-termin-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 11px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+.ckp-dash-list--termin .ckp-dash-termin-row:hover { background: #fafbfc; }
+.ckp-dash-list--termin .ckp-dash-termin-row:last-child { border-bottom: none; }
+
+/* Termin farbiger linker Balken */
+.ckp-dash-termin-bar {
+  width: 3px;
+  border-radius: 2px;
+  align-self: stretch;
+  flex-shrink: 0;
+  min-height: 26px;
+}
+.ckp-dash-termin-bar--orange { background: #e8a020; }
+.ckp-dash-termin-bar--blue   { background: #3b82f6; }
+.ckp-dash-termin-bar--green  { background: #22c55e; }
+
+.ckp-dash-termin-row--action {
+  cursor: pointer;
+}
+
+.ckp-dash-termin-row--action:hover {
+  background: #f8fafc;
+}
+
+.ckp-dash-termin-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c87a20;
+  min-width: 3rem;
+  flex-shrink: 0;
+}
+
+.ckp-dash-termin-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ckp-dash-termin-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.ckp-dash-sys {
+  padding: 6px 11px 9px;
+}
+
+.ckp-dash-sys-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+
+.ckp-dash-sys-row:last-child {
+  border-bottom: none;
+}
+
+.ckp-dash-sys-row span:first-child {
+  color: #64748b;
+}
+
+.ckp-dash-sys-row span:last-child {
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+}
+
+/* Kalender: fokussierbare Tabellenzeile — Hover / Fokus / Heute (Modal-„aktiv“-Klasse: nicht vorhanden, daher kein eigener Active-Stil) */
+.ccw-cockpit-kal-table tbody tr.ccw-cockpit-kal-event-row {
+  cursor: pointer;
+  background-color: #fff;
+  transition: background-color 0.12s ease;
+}
+
+.ccw-cockpit-kal-event-row:hover {
+  background-color: #f1f5f9;
+}
+
+.ccw-cockpit-kal-event-row:active {
+  background-color: #e8edf2;
+}
+
+.ccw-cockpit-kal-event-row:focus {
+  outline: none;
+}
+
+/* Fokus: Umriss + dezenter Schatten (unterscheidbar vom reinen Hover-Hintergrund) */
+.ccw-cockpit-kal-event-row:focus-visible {
+  outline: 2px solid #1a5c40;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(26, 92, 64, 0.18);
+}
+
+/* Heute-Markierung beibehalten; Hover darüber legen */
+.ccw-cockpit-kal-event-row--today {
+  background-color: #f8fafc;
+  box-shadow: inset 3px 0 0 0 #94a3b8;
+}
+
+.ccw-cockpit-kal-event-row--today:hover {
+  background-color: #eef2f6;
+}
+
+.ccw-cockpit-kal-event-row--today:active {
+  background-color: #e6ebf2;
+}
+
+.ccw-cockpit-kal-event-row--today:focus-visible {
+  box-shadow: inset 3px 0 0 0 #94a3b8, 0 0 0 3px rgba(26, 92, 64, 0.18);
+}
+
+.ccw-cockpit-kal-event-row--konflikt {
+  box-shadow: inset 3px 0 0 0 #e53e3e;
+}
+
+.ccw-cockpit-kal-event-row--konflikt.ccw-cockpit-kal-event-row--today {
+  box-shadow: inset 3px 0 0 0 #e53e3e;
+}
+
+.ccw-cockpit-kal-event-row--konflikt:focus-visible {
+  box-shadow: inset 3px 0 0 0 #e53e3e, 0 0 0 3px rgba(26, 92, 64, 0.18);
+}
+
+.ccw-cockpit-kal-event-row--konflikt.ccw-cockpit-kal-event-row--today:focus-visible {
+  box-shadow: inset 3px 0 0 0 #e53e3e, 0 0 0 3px rgba(26, 92, 64, 0.18);
+}
+
+.ccw-cockpit-kal-event-row--today .ccw-cockpit-kal-col-datetime {
+  color: #334155;
+}
+
+/* Kalender-Tabelle: ruhige Verdichtung, Typ-Badge, dezente „Start heute“-Zeile */
+.ccw-cockpit-kal-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Kalender-Tabelle: Wrapper — dockt unter dem Kopf an (kein border-top → keine Doppelkante) */
+.ccw-cockpit-kal-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+}
+
+.ccw-cockpit-kal-table {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12.5px;
+  font-family: system-ui, sans-serif;
+}
+
+/* Zweite Spalte (Titel): keine <col>-Breite — nimmt verbleibenden Platz ein */
+.ccw-cockpit-kal-w-col-datetime {
+  width: 11.25rem;
+}
+
+.ccw-cockpit-kal-w-col-typ {
+  width: 6.75rem;
+}
+
+.ccw-cockpit-kal-w-col-projekt {
+  width: 26%;
+  min-width: 8.5rem;
+}
+
+.ccw-cockpit-kal-w-col-konflikt {
+  width: 2rem;
+}
+
+.ccw-cockpit-kal-thead-row {
+  text-align: left;
+}
+
+.ccw-cockpit-kal-table thead th {
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-weight: 600;
+  font-size: 11.5px;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: #64748b;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: bottom;
+}
+
+.ccw-cockpit-kal-table tbody td {
+  box-sizing: border-box;
+  padding: 6px 10px;
+  vertical-align: middle;
+  line-height: 1.35;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ccw-cockpit-kal-col-datetime {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ccw-cockpit-kal-col-title {
+  font-weight: 600;
+  color: #0f172a;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccw-cockpit-kal-col-typ {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #475569;
+  font-size: 12px;
+}
+
+.ccw-cockpit-kal-col-projekt {
+  color: #475569;
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccw-cockpit-kal-col-konflikt {
+  width: 2rem;
+  max-width: 2.25rem;
+  text-align: center;
+  vertical-align: middle;
+  padding-left: 4px;
+  padding-right: 4px;
+  color: #e53e3e;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.ccw-cockpit-kal-konflikt-cell-icon {
+  display: inline-block;
+  font-weight: 700;
+}
+
+.ccw-cockpit-kal-typ-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  line-height: 1.3;
+}
+
+/* Kalenderkopf: oberer Teil eines gemeinsamen Blocks; untere Kante = Abschluss vor Tabelle/Empty State */
+.ccw-cockpit-kal-header {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 12px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal-header .ccw-cockpit-kal-view-toolbar {
+  margin: 0;
+  gap: 5px;
+}
+
+.ccw-cockpit-kal-header .ccw-cockpit-kal-filter-bar {
+  margin: 0;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  gap: 6px;
+}
+
+.ccw-cockpit-kal-header .ccw-cockpit-kal-filter-row {
+  gap: 8px;
+}
+
+.ccw-cockpit-kal-header .ccw-cockpit-kal-filter-field {
+  gap: 2px;
+}
+
+/* Letztes Element im Kopf: Trefferzähler; darunter endet der Kopf (eine Kante nach außen) */
+.ccw-cockpit-kal-header .ccw-cockpit-kal-hit-count {
+  margin: 4px 0 0;
+  padding: 5px 0 0;
+  border-top: 1px solid #e8edf2;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Kalender: Filterleiste (Desktop nebeneinander, Mobile gestapelt) */
+.ccw-cockpit-kal-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ccw-cockpit-kal-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ccw-cockpit-kal-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ccw-cockpit-kal-filter-field-label {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Typ / Status / Mitarbeiter-Chips + Mitarbeiter/Projekt in Zeile 4: dezentes Feldlabel */
+.ccw-cockpit-kal-filter-field--chips > .ccw-cockpit-kal-filter-field-label,
+.ccw-cockpit-kal-filter-row--selects > label > .ccw-cockpit-kal-filter-field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0.01em;
+}
+
+.ccw-cockpit-kal-filter-control {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  background: #fff;
+  color: #111827;
+}
+
+select.ccw-cockpit-kal-filter-control.ccw-cockpit-kal-filter-select-multi {
+  min-height: unset;
+  padding: 6px;
+  min-width: 160px;
+}
+
+select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) {
+  min-width: 220px;
+}
+
+.ccw-cockpit-kal-filter-field--grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.ccw-cockpit-kal-filter-field--grow .ccw-cockpit-kal-filter-control {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ccw-cockpit-kal-filter-reset {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal-filter-reset:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-filter-reset:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: 2px;
+}
+
+/* Kalender: Filter-Chips (Typ / Status / Mitarbeiter ≤8) — kein overflow:hidden, Wrap erlaubt */
+.ccw-cockpit-kal-filter-field--chips {
+  flex: 1 1 100%;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ccw-cockpit-kal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ccw-cockpit-kal-chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ccw-cockpit-kal-chip__label {
+  line-height: 1.2;
+}
+
+/* Gleiche Swatch-Klasse wie Legende; Zielgröße 8×8 im Chip-Kontext */
+.ccw-cockpit-kal-chip .ccw-cockpit-kal-legend-swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal-chip--active {
+  background: #52b788;
+  border-color: #52b788;
+  color: #fff;
+}
+
+.ccw-cockpit-kal-chip:not(.ccw-cockpit-kal-chip--active):hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.ccw-cockpit-kal-chip--active:hover {
+  background: #47a87a;
+  border-color: #47a87a;
+}
+
+.ccw-cockpit-kal-chip:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-chip:focus-visible {
+  outline: 2px solid #1a5c40;
+  outline-offset: 2px;
+}
+
+.ccw-cockpit-kal-chip--active:focus-visible {
+  outline-color: #0f5132;
+}
+
+.ccw-cockpit-kal-hit-count {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #64748b;
+  font-weight: 400;
+  font-family: system-ui, sans-serif;
+}
+
+.ccw-cockpit-kal-konflikt-status {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #b91c1c;
+  font-weight: 500;
+  font-family: system-ui, sans-serif;
+}
+
+/* Kalender: Hinweis bei 0 Treffern — nur Zusatz; Raster bleibt Hauptansicht */
+.ccw-cockpit-kal-empty-hint {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  font-family: system-ui, sans-serif;
+  text-align: left;
+}
+
+/* Gleicher Andockpunkt wie Tabellen-Wrapper: keine zweite Linie unter dem Kopf */
+.ccw-cockpit-kal-header + .ccw-cockpit-kal-empty-hint {
+  margin-top: 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.ccw-cockpit-kal-empty-hint__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #14532d;
+  line-height: 1.35;
+}
+
+.ccw-cockpit-kal-empty-hint__text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #166534;
+}
+
+@media (max-width: 767px) {
+  .ccw-cockpit-kal-filter-bar {
+    flex-direction: column;
+  }
+
+  .ccw-cockpit-kal-filter-row--dates,
+  .ccw-cockpit-kal-filter-row--search {
+    display: flex;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ccw-cockpit-kal-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ccw-cockpit-kal-filter-field,
+  .ccw-cockpit-kal-filter-field--grow {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ccw-cockpit-kal-filter-control,
+  select.ccw-cockpit-kal-filter-control.ccw-cockpit-kal-filter-select-multi,
+  select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .ccw-cockpit-kal-filter-reset {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Zeile 1: Zeitraum (2×) + Suche (flex) + Reset — ohne DOM-Umbau via display:contents */
+  .ccw-cockpit-kal-filter-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
+  }
+
+  .ccw-cockpit-kal-filter-row--dates,
+  .ccw-cockpit-kal-filter-row--search {
+    display: contents;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 14px;
+    align-items: end;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(1),
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects > .ccw-cockpit-kal-filter-field:nth-child(3),
+  .ccw-cockpit-kal-filter-row--selects > .ccw-cockpit-kal-filter-field:nth-child(4) {
+    align-self: end;
+    min-width: 0;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Mitarbeiter-Multi-Select einzeilig; Projekt gleiche Höhe — unterbündig eine Zeile */
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(3) select.ccw-cockpit-kal-filter-select-multi,
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(4) select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) {
+    height: 38px;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(3) .ccw-cockpit-kal-filter-control,
+  .ccw-cockpit-kal-filter-row--selects > :nth-child(4) .ccw-cockpit-kal-filter-control {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .ccw-cockpit-kal-filter-field--grow {
+    flex: 1 1 12rem;
+    min-width: 10rem;
+  }
+
+  .ccw-cockpit-kal-filter-field--chips {
+    flex: unset;
+  }
+
+  .ccw-cockpit-kal-filter-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+}
+
+/* Kalender: Tag / Woche / Monat (nur Darstellung) */
+.ccw-cockpit-kal-view-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ccw-cockpit-kal-view-toolbar-row--controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.ccw-cockpit-kal-view-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccw-cockpit-kal-view-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal-view-btn:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-view-btn:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: 2px;
+}
+
+.ccw-cockpit-kal-view-btn--active {
+  background: #d4f0e4;
+  border-color: #2d7a5a;
+  color: #1a5c40;
+}
+
+.ccw-cockpit-kal-view-headline {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+  font-family: system-ui, sans-serif;
+}
+
+.ccw-cockpit-kal-view-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccw-cockpit-kal-nav-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal-nav-btn:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-nav-btn:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: 2px;
+}
+
+/* Heute-Button: Zeitraum enthält heute (nicht nur Farbe: Rand + Schriftgewicht) */
+.ccw-cockpit-kal-nav-btn--in-range {
+  border-width: 2px;
+  border-color: #2d7a5a;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(45, 122, 90, 0.25);
+}
+
+.ccw-cockpit-kal-view-headline--today {
+  padding-left: 10px;
+  border-left: 3px solid #2d7a5a;
+}
+
+/* Kalender: Listen- vs. Raster-Darstellung (Desktop; sichtbar ab 768px) */
+.ccw-cockpit-kal-display-mode {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccw-cockpit-kal-display-mode-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal-display-mode-btn:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-display-mode-btn:focus-visible {
+  outline: 2px solid #2d7a5a;
+  outline-offset: 2px;
+}
+
+.ccw-cockpit-kal-display-mode-btn--active {
+  background: #d4f0e4;
+  border-color: #2d7a5a;
+  color: #1a5c40;
+}
+
+@media (max-width: 767px) {
+  .ccw-cockpit-kal-display-mode--desktop-only {
+    display: none !important;
+  }
+}
+
+/* Kalender: Wochenraster (nur Woche + Desktop-Effektivmodus) */
+.ccw-cockpit-kal-week-wrap.ccw-cockpit-kal-table-wrap {
+  overflow: hidden;
+}
+
+.ccw-cockpit-kal-week-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.ccw-cockpit-kal-week-grid {
+  --kal-row-height: 48px;
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(80px, 1fr));
+  grid-template-rows: auto auto auto;
+  box-sizing: border-box;
+  min-width: calc(52px + 7 * 80px);
+  background: #fff;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.ccw-cockpit-kal-week-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  min-height: 36px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal-week-dayhead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  padding: 8px 6px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 12px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal-week-dayhead--today {
+  background: #f0fdf4;
+}
+
+.ccw-cockpit-kal-week-allday-label {
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fafafa;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.ccw-cockpit-kal-week-allday-merge {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 28px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.ccw-cockpit-kal-week-allday-bgs {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ccw-cockpit-kal-week-allday-bg {
+  border-right: 1px solid #f1f5f9;
+}
+
+.ccw-cockpit-kal-week-allday-bg:last-child {
+  border-right: none;
+}
+
+.ccw-cockpit-kal-week-allday-bg--today {
+  background: #f0fdf4;
+}
+
+.ccw-cockpit-kal-week-allday-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+
+.ccw-cockpit-kal-week-allday-span {
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.ccw-cockpit-kal-week-times-col {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-right: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.ccw-cockpit-kal-week-time-slot {
+  box-sizing: border-box;
+  min-height: var(--kal-row-height, 48px);
+  height: var(--kal-row-height, 48px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 2px 6px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ccw-cockpit-kal-week-day-col {
+  box-sizing: border-box;
+  border-right: 1px solid #f1f5f9;
+  min-width: 0;
+}
+
+.ccw-cockpit-kal-week-day-col:last-child {
+  border-right: none;
+}
+
+.ccw-cockpit-kal-week-day-col--today .ccw-cockpit-kal-week-day-body {
+  background: #f0fdf4;
+}
+
+.ccw-cockpit-kal-week-day-body {
+  position: relative;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.ccw-cockpit-kal-week-hour-lines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.ccw-cockpit-kal-week-hour-line {
+  flex: 1 1 var(--kal-row-height, 48px);
+  min-height: var(--kal-row-height, 48px);
+  border-bottom: 1px solid #f1f5f9;
+  box-sizing: border-box;
+}
+
+.ccw-cockpit-kal-week-blocks-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ccw-cockpit-kal-week-block {
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #f1f5f9;
+  overflow: hidden;
+  text-align: left;
+  padding: 2px 4px;
+  line-height: 1.25;
+}
+
+.ccw-cockpit-kal-week-block:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal-week-block:focus-visible {
+  outline: 2px solid #1a5c40;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px rgba(26, 92, 64, 0.15);
+}
+
+.ccw-cockpit-kal-week-block--timed {
+  position: absolute;
+  margin: 0 2px;
+}
+
+.ccw-cockpit-kal-week-block--konflikt {
+  border-left: 3px solid #e53e3e;
+  padding-left: 3px;
+}
+
+.ccw-cockpit-kal-week-block--allday.ccw-cockpit-kal-week-block--konflikt {
+  position: relative;
+}
+
+.ccw-cockpit-kal-week-block__konflikt-icon {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 11px;
+  line-height: 1;
+  color: #e53e3e;
+  pointer-events: none;
+}
+
+.ccw-cockpit-kal-week-block__title {
+  display: block;
+  font-weight: 600;
+  font-size: 11px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ccw-cockpit-kal-week-block__time {
+  display: block;
+  font-size: 10px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ccw-cockpit-kal-week-block--allday .ccw-cockpit-kal-week-block__title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ccw-cockpit-kal-week-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  pointer-events: none;
+  border-top: 2px solid #e53e3e;
+}
+
+.ccw-cockpit-kal-week-fallback {
+  margin: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Typ-Farben: gleiche Schlüssel wie Filter/Legende (`data-ccw-kal-typ`) */
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='montage'] {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='demontage'] {
+  background: #fce7f3;
+  border-color: #db2777;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='produktion'] {
+  background: #fef3c7;
+  border-color: #d97706;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='druck'] {
+  background: #e0e7ff;
+  border-color: #4f46e5;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='plot'] {
+  background: #d1fae5;
+  border-color: #059669;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='laminat'] {
+  background: #ccfbf1;
+  border-color: #0d9488;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='abnahme'] {
+  background: #fecaca;
+  border-color: #dc2626;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='werkstatt'] {
+  background: #e5e5e5;
+  border-color: #525252;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='schaden'] {
+  background: #fed7aa;
+  border-color: #ea580c;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='kundentermin'] {
+  background: #ddd6fe;
+  border-color: #7c3aed;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='lieferung'] {
+  background: #cffafe;
+  border-color: #0891b2;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='besichtigung'] {
+  background: #ecfccb;
+  border-color: #65a30d;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='planung'] {
+  background: #fde68a;
+  border-color: #ca8a04;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='intern'] {
+  background: #f3e8ff;
+  border-color: #9333ea;
+}
+.ccw-cockpit-kal-week-block[data-ccw-kal-typ='sonstiges'] {
+  background: #f1f5f9;
+  border-color: #64748b;
+}
+
+/* Kalender: Legende (nur Anzeige) */
+.ccw-cockpit-kal-legend {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  font-size: 12px;
+  color: #475569;
+  font-family: system-ui, sans-serif;
+}
+
+.ccw-cockpit-kal-legend-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ccw-cockpit-kal-legend-intro {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.ccw-cockpit-kal-legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ccw-cockpit-kal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.ccw-cockpit-kal-legend-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #64748b;
+  border: 1px solid #475569;
+}
+
+.ccw-cockpit-kal-legend-dash {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ccw-cockpit-kal-legend-label {
+  line-height: 1.35;
+}
+
+.ccw-cockpit-kal-legend-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal-legend .ccw-cockpit-kal-legend-fake-btn {
+  cursor: default;
+  pointer-events: none;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.ccw-cockpit-kal-legend-fake-headline {
+  display: inline-block;
+  min-width: 2.5rem;
+  min-height: 1rem;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.ccw-cockpit-kal-legend-item--full {
+  flex-basis: 100%;
+}
+
+@media (max-width: 767px) {
+  .ccw-cockpit-kal-header {
+    padding: 8px 10px;
+  }
+
+  .ccw-cockpit-kal-view-toolbar-row--controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .ccw-cockpit-kal-view-switcher {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+
+  .ccw-cockpit-kal-view-btn {
+    flex: 0 0 auto;
+  }
+
+  .ccw-cockpit-kal-view-nav {
+    gap: 6px;
+    justify-content: flex-start;
+  }
+
+  .ccw-cockpit-kal-nav-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* —— Kalender Anweisung 20 (ccw-cockpit-kal20-*) —— */
+/* Cockpit-Kalender: ruhig, hell, Outlook-nah (nur UI; Raster-Maße kommen aus data-row-px / --kal20-row-height) */
+.ccw-cockpit-kal20-section {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+  box-sizing: border-box;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+}
+
+.ccw-cockpit-kal20-section > .ccw-cockpit-kal20-intro {
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal-dynamic-root > .ccw-cockpit-kal-header,
+.ccw-cockpit-kal-dynamic-root > .ccw-cockpit-kal-empty-hint {
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal20-section > .ccw-cockpit-kal-dynamic-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ccw-cockpit-kal20-section > .ccw-cockpit-kal20-body,
+.ccw-cockpit-kal-dynamic-root > .ccw-cockpit-kal20-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ccw-cockpit-kal20-section > .ccw-cockpit-kal20-footer,
+.ccw-cockpit-kal-dynamic-root > .ccw-cockpit-kal20-footer {
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal20-h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ccw-cockpit-kal20-intro {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ccw-cockpit-kal20-header.ccw-cockpit-kal-header {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 0;
+  padding: 10px 12px 12px;
+  margin-bottom: 10px;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.ccw-cockpit-kal20-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ccw-cockpit-kal20-nav-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ccw-cockpit-kal20-btn-heute {
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ccw-cockpit-kal20-btn-heute:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.ccw-cockpit-kal20-btn-general-neu {
+  margin-left: 4px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ccw-cockpit-kal20-btn-general-neu:hover {
+  background: #d1fae5;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+.ccw-cockpit-kal20-btn-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ccw-cockpit-kal20-btn-arrow:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.ccw-cockpit-kal20-kw-wrap {
+  margin-left: 4px;
+}
+
+.ccw-cockpit-kal20-kw-bold {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.ccw-cockpit-kal20-kw-sub {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.ccw-cockpit-kal20-view-switch {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal20-view-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal20-view-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.ccw-cockpit-kal20-view-btn--active {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+/* Zähler-Badge im Chrome entfernen (nicht im aktuellen Markup; falls später eingebunden: unsichtbar) */
+.ccw-cockpit-kal20-count-badge {
+  display: none;
+}
+
+/* Statisches Label: dezent, ohne farbige Fläche */
+.ccw-cockpit-kal20-view-badge {
+  margin-left: auto;
+  padding: 4px 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ccw-cockpit-kal20-chips-bar {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Kategorie-Chips: neutral wie Outlook-Segmente (keine farbigen Pills) */
+.ccw-cockpit-kal20-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  background: #ffffff;
+  color: #64748b;
+}
+
+.ccw-cockpit-kal20-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94a3b8;
+}
+
+.ccw-cockpit-kal20-chip--off {
+  background: #ffffff;
+  color: #64748b;
+  border-color: #e5e7eb;
+}
+
+.ccw-cockpit-kal20-chip--off .ccw-cockpit-kal20-chip-dot {
+  opacity: 0.4;
+}
+
+.ccw-cockpit-kal20-chip--kat-alle.ccw-cockpit-kal20-chip--off,
+.ccw-cockpit-kal20-chip--kat-montage.ccw-cockpit-kal20-chip--off,
+.ccw-cockpit-kal20-chip--kat-grafik.ccw-cockpit-kal20-chip--off,
+.ccw-cockpit-kal20-chip--kat-buero.ccw-cockpit-kal20-chip--off,
+.ccw-cockpit-kal20-chip--kat-planung.ccw-cockpit-kal20-chip--off,
+.ccw-cockpit-kal20-chip--kat-ausliefern.ccw-cockpit-kal20-chip--off {
+  color: #64748b;
+  border-color: #e5e7eb;
+}
+
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--an {
+  color: #334155;
+}
+
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--an .ccw-cockpit-kal20-chip-dot {
+  opacity: 1;
+}
+
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-alle.ccw-cockpit-kal20-chip--an,
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-montage.ccw-cockpit-kal20-chip--an,
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-grafik.ccw-cockpit-kal20-chip--an,
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-buero.ccw-cockpit-kal20-chip--an,
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-planung.ccw-cockpit-kal20-chip--an,
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-ausliefern.ccw-cockpit-kal20-chip--an {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-alle[aria-checked='true'] {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-alle[aria-checked='true'] .ccw-cockpit-kal20-chip-dot {
+  opacity: 1;
+}
+
+.ccw-cockpit-kal20-chip:focus-visible {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #94a3b8;
+}
+
+.ccw-cockpit-kal20-body {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Wochenkopf fix, Zeitbereich füllt Resthöhe und scrollt allein */
+.ccw-cockpit-kal20-week-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.ccw-cockpit-kal20-week-grid--head {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(72px, 1fr));
+  grid-template-rows: auto auto;
+  min-width: 640px;
+  width: 100%;
+  flex: 0 0 auto;
+  --kal20-row-height: 60px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.ccw-cockpit-kal20-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+}
+
+.ccw-cockpit-kal20-week-grid--time {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(72px, 1fr));
+  grid-template-rows: auto;
+  min-width: 640px;
+  width: 100%;
+  --kal20-row-height: 60px;
+}
+
+/* Legacy: ein Grid für ältere Einbindungen */
+.ccw-cockpit-kal20-week-grid:not(.ccw-cockpit-kal20-week-grid--head):not(.ccw-cockpit-kal20-week-grid--time) {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(72px, 1fr));
+  grid-template-rows: auto auto 1fr;
+  min-width: 640px;
+  --kal20-row-height: 60px;
+}
+
+.ccw-cockpit-kal20-corner {
+  border-bottom: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-dayhead {
+  text-align: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #eef2f6;
+  border-left: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-dayhead--weekend {
+  background: #f4f6f8;
+}
+
+.ccw-cockpit-kal20-dayhead--today {
+  background: #f1f5f9;
+  box-shadow: none;
+}
+
+.ccw-cockpit-kal20-wday-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ccw-cockpit-kal20-wday-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+.ccw-cockpit-kal20-wday-num--today {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.ccw-cockpit-kal20-allday-label {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 1px solid #eef2f6;
+  border-right: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-allday-merge {
+  position: relative;
+  min-height: 36px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-allday-bgs {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: absolute;
+  inset: 0;
+}
+
+.ccw-cockpit-kal20-allday-bg {
+  border-left: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-allday-bg--today {
+  background: #f1f5f9;
+}
+
+.ccw-cockpit-kal20-allday-stack {
+  position: relative;
+  z-index: 1;
+  padding: 6px 4px;
+  min-height: 36px;
+}
+
+.ccw-cockpit-kal20-time-col {
+  border-right: 1px solid #eef2f6;
+  border-top: 1px solid #eef2f6;
+}
+
+.ccw-cockpit-kal20-time-slot {
+  box-sizing: border-box;
+  height: var(--kal20-row-height, 60px);
+  min-height: var(--kal20-row-height, 60px);
+  border-bottom: 1px solid #eef2f6;
+  padding: 6px 8px 0 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.ccw-cockpit-kal20-time-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.ccw-cockpit-kal20-day-col {
+  border-left: 1px solid #eef2f6;
+  border-top: 1px solid #eef2f6;
+  min-width: 0;
+}
+
+.ccw-cockpit-kal20-day-col--weekend .ccw-cockpit-kal20-day-body {
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal20-day-col--today .ccw-cockpit-kal20-day-body {
+  background: #f1f5f9;
+}
+
+.ccw-cockpit-kal20-day-body {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.ccw-cockpit-kal20-hour-lines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ccw-cockpit-kal20-hour-line {
+  flex: 0 0 var(--kal20-row-height, 60px);
+  height: var(--kal20-row-height, 60px);
+  box-sizing: border-box;
+  border-bottom: 1px solid #eef2f6;
+  background-image: none;
+}
+
+.ccw-cockpit-kal20-blocks-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Raster-Termine: Pastell, leichte Rundung, dezenter Schatten (Outlook-nah) */
+.ccw-cockpit-kal20-evt {
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 7px;
+  overflow: hidden;
+  text-align: left;
+  line-height: 1.3;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 0.14s ease, filter 0.14s ease;
+}
+
+.ccw-cockpit-kal20-evt:focus {
+  outline: none;
+}
+
+.ccw-cockpit-kal20-evt:focus-visible {
+  outline: 2px solid #64748b;
+  outline-offset: 1px;
+  z-index: 4;
+}
+
+.ccw-cockpit-kal20-evt:hover {
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.1);
+}
+
+.ccw-cockpit-kal20-evt--dragging {
+  opacity: 0.55;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  z-index: 5;
+}
+
+.ccw-cockpit-kal20-evt--drag-ghost {
+  opacity: 0.92;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22);
+}
+
+.ccw-cockpit-kal20-day-col--drag-target {
+  outline: 2px dashed rgba(22, 163, 74, 0.55);
+  outline-offset: -2px;
+}
+
+.ccw-cockpit-kal20-day-body--drag-target {
+  box-shadow: inset 0 0 0 2px rgba(22, 163, 74, 0.28);
+}
+
+.ccw-cockpit-kal20-evt--timed {
+  position: absolute;
+  margin: 1px 5px;
+}
+
+.ccw-cockpit-kal20-evt--allday {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.ccw-cockpit-kal20-allday-span {
+  box-sizing: border-box;
+}
+
+.ccw-cockpit-kal20-evt__title {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccw-cockpit-kal20-evt__time {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccw-cockpit-kal20-evt__warn {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.ckp-cal-block.ckp-cal-block--timed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.ckp-cal-block.ckp-cal-block--timed .ckp-cal-block__title {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ckp-cal-block__title {
+  font-weight: 700;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ckp-cal-block__range {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ccw-cockpit-kal20-evt--konflikt {
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+
+/* Kategorie: einheitliche Pastelltöne, gedämpfte Ränder, gut lesbar */
+.ckp-cal-block.ckp-cal-block--kat-montage {
+  background: #eef6f1;
+  border-color: #b8d0c4;
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-grafik {
+  background: #f5f0e6;
+  border-color: #d8ccb0;
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-buero {
+  background: #f0eef8;
+  border-color: #c9c0df;
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-planung {
+  background: #e9f5ef;
+  border-color: #a8d4bf;
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-ausliefern {
+  background: #f7eded;
+  border-color: #d9bdbd;
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-montage .ccw-cockpit-kal20-evt__title,
+.ckp-cal-block.ckp-cal-block--kat-montage .ccw-cockpit-kal20-evt__time {
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-grafik .ccw-cockpit-kal20-evt__title,
+.ckp-cal-block.ckp-cal-block--kat-grafik .ccw-cockpit-kal20-evt__time {
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-buero .ccw-cockpit-kal20-evt__title,
+.ckp-cal-block.ckp-cal-block--kat-buero .ccw-cockpit-kal20-evt__time {
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-planung .ccw-cockpit-kal20-evt__title,
+.ckp-cal-block.ckp-cal-block--kat-planung .ccw-cockpit-kal20-evt__time {
+  color: #1e293b;
+}
+
+.ckp-cal-block.ckp-cal-block--kat-ausliefern .ccw-cockpit-kal20-evt__title,
+.ckp-cal-block.ckp-cal-block--kat-ausliefern .ccw-cockpit-kal20-evt__time {
+  color: #1e293b;
+}
+
+.ccw-cockpit-kal20-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-top: 2px solid #64748b;
+}
+
+.ccw-cockpit-kal20-now-dot {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64748b;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.ccw-cockpit-kal20-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ccw-cockpit-kal20-foot-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccw-cockpit-kal20-foot-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ccw-cockpit-kal20-foot-dot--montage {
+  background: #94a3b8;
+}
+.ccw-cockpit-kal20-foot-dot--grafik {
+  background: #a8b4c4;
+}
+.ccw-cockpit-kal20-foot-dot--buero {
+  background: #b6bcc8;
+}
+.ccw-cockpit-kal20-foot-dot--planung {
+  background: #9aa6b2;
+}
+.ccw-cockpit-kal20-foot-dot--ausliefern {
+  background: #b0a8a8;
+}
+
+.ccw-cockpit-kal20-foot-konflikt {
+  margin-left: auto;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Monatsraster (gleiche Datenbasis wie Woche) */
+.ccw-cockpit-kal20-body--month {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin-bottom: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ccw-cockpit-kal20-month-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.ccw-cockpit-kal20-month-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ccw-cockpit-kal20-month-dow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 8px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ccw-cockpit-kal20-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: #eef2f6;
+}
+
+.ccw-cockpit-kal20-month-cell {
+  min-height: 92px;
+  background: #fff;
+  padding: 4px 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ccw-cockpit-kal20-month-cell--pad {
+  opacity: 0.42;
+}
+
+.ccw-cockpit-kal20-month-cell--weekend:not(.ccw-cockpit-kal20-month-cell--pad) {
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal20-month-cell--today {
+  box-shadow: none;
+  background: #f1f5f9;
+}
+
+.ccw-cockpit-kal20-month-daynum {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.ccw-cockpit-kal20-month-cell--today .ccw-cockpit-kal20-month-daynum {
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.ccw-cockpit-kal20-month-evts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+}
+
+.ccw-cockpit-kal20-month-evt {
+  min-height: 22px;
+  padding: 3px 6px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+.ccw-cockpit-kal20-month-evt__t {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.ccw-cockpit-kal20-month-more {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  text-align: left;
+  font-family: inherit;
+}
+
+.ccw-cockpit-kal20-month-more:hover {
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+/* Cockpit-Kalender: allgemeine Termine anlegen (Dock) + Drag nur für lokale Allgemein-Termine */
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock[hidden] {
+  display: none !important;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.22);
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__panel {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  padding: 14px 16px 16px;
+  box-sizing: border-box;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__row label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__row input,
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__row textarea {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__submit,
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__cancel {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__submit {
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__cancel {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal20-evt--timed[data-ccw-kal-draggable='0'],
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal20-evt--timed.ccw-cockpit-kal20-evt--drag-disabled {
+  cursor: default;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal20-evt--timed.ccw-cockpit-kal20-evt--drag-disabled {
+  opacity: 0.88;
+  filter: saturate(0.92);
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal20-evt--timed[data-ccw-kal-draggable='1'] {
+  cursor: grab;
+}
+
+[data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal20-evt--timed[data-ccw-kal-draggable='1']:active {
+  cursor: grabbing;
+}
+
+.ccw-cockpit-kal20-list-wrap {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.ccw-cockpit-kal20-list-table {
+  width: 100%;
+}
+
+.ccw-cockpit-kal20-list-row {
+  cursor: pointer;
+}
+
+.ccw-cockpit-kal20-list-row:hover {
+  background: #f8fafc;
+}
+
+.ccw-cockpit-kal20-list-row--today {
+  background: #f1f5f9;
+}
+
+.ccw-cockpit-kal-week-fallback {
+  margin: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Phase 8 — API-Login / Einladung / Formulare */
+.ckp-api-login-panel {
+  max-width: 420px;
+  margin: 24px auto;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.ckp-api-login-panel__title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+}
+
+.ckp-api-login-panel__hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ckp-api-login-form__row {
+  margin-bottom: 12px;
+}
+
+.ckp-api-login-form__row label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ckp-api-login-form__row input,
+.ckp-api-login-form__row select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.ckp-api-login-submit {
+  margin-top: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.ckp-api-invite-dl {
+  margin: 0 0 16px;
+}
+
+.ckp-api-invite-dismiss {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.ckp-api-error {
+  margin-top: 12px;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.ckp-api-auftrag-form {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.ckp-api-auftrag-form__title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.ckp-api-auftrag-form__row {
+  margin-bottom: 10px;
+}
+
+.ckp-api-auftrag-form__row label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ckp-api-auftrag-form__row input,
+.ckp-api-auftrag-form__row select {
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.ckp-api-auftrag-submit {
+  margin-top: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.ckp-einladungen-api-invite-toggle {
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  font-weight: 600;
+  border: 1px solid #0f766e;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.ckp-einladungen-api-form {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.ckp-einladungen-api-form__title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.ckp-einladungen-api-form__row {
+  margin-bottom: 10px;
+}
+
+.ckp-einladungen-api-form__row label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ckp-einladungen-api-form__row input,
+.ckp-einladungen-api-form__row select {
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.ckp-einladungen-api-invite-submit {
+  margin-top: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* FUSA CLEAN: iframe-Einbettung (Original-UI) */
+.fusa-clean-embed {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.fusa-clean-embed__frame {
+  display: block;
+  flex: 1;
+  min-height: 480px;
+}

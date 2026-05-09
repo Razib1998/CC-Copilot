@@ -1,0 +1,138 @@
+{
+  "projects": [
+    {
+      "id": "a0000001-0000-4000-8000-000000000001",
+      "name": "Messebau Nord 2026",
+      "kunde": "Nordic Trade GmbH",
+      "status": "In Planung",
+      "prioritaet": "Normal",
+      "waende": [],
+      "auftragsInfo": {
+        "kunde": "Nordic Trade GmbH",
+        "projektname": "Messebau Nord 2026",
+        "bestelldatum": "2026-01-10"
+      },
+      "auftraege": [
+        {
+          "id": "auf-dev-uuid-001",
+          "name": "Montage Standfläche Halle A",
+          "typ": "Montage",
+          "status": "geplant",
+          "termin": "2026-05-18T08:00:00",
+          "terminEnde": "2026-05-18T12:00:00"
+        }
+      ]
+    },
+    {
+      "id": "a0000002-0000-4000-8000-000000000002",
+      "name": "Roadshow Fahrzeug branding",
+      "kunde": "AutoShow Partner AG",
+      "status": "Neu",
+      "prioritaet": "Hoch",
+      "waende": [],
+      "auftragsInfo": {
+        "kunde": "AutoShow Partner AG",
+        "projektname": "Roadshow Fahrzeug branding"
+      },
+      "auftraege": [
+        {
+          "id": "auf-dev-uuid-002",
+          "name": "Folierung Termin Werkstatt",
+          "typ": "Montage",
+          "status": "bestätigt",
+          "termin": "2026-05-25T14:00:00",
+          "terminEnde": "2026-05-25T17:00:00"
+        }
+      ]
+    }
+  ],
+  "auftraege": [
+    {
+      "id": "auf-dev-uuid-001",
+      "projektId": "a0000001-0000-4000-8000-000000000001",
+      "name": "Montage Standfläche Halle A",
+      "typ": "FUSA",
+      "status": "geplant",
+      "termin": "2026-05-18T08:00:00",
+      "terminEnde": "2026-05-18T12:00:00",
+      "statusFusa": "freigegeben",
+      "produktionsStatus": "in_planung",
+      "uebergabeStatus": "übergeben"
+    },
+    {
+      "id": "auf-dev-uuid-002",
+      "projektId": "a0000002-0000-4000-8000-000000000002",
+      "name": "Folierung Termin Werkstatt",
+      "typ": "FUSA",
+      "status": "bestätigt",
+      "termin": "2026-05-25T14:00:00",
+      "terminEnde": "2026-05-25T17:00:00"
+    }
+  ],
+  "companies": [
+    {
+      "id": "firma-cc-intern-001",
+      "name": "CC Digital GmbH",
+      "type": "intern"
+    }
+  ],
+  "kunden": [
+    {
+      "id": "kunde-nordic-001",
+      "name": "Nordic Trade GmbH"
+    },
+    {
+      "id": "kunde-autoshow-001",
+      "name": "AutoShow Partner AG"
+    }
+  ],
+  "benutzer": [
+    {
+      "id": "demo-benutzer-001",
+      "name": "Alex Intern",
+      "email": "alex@cc-digital.de",
+      "roleId": "intern"
+    }
+  ],
+  "einladungen": [
+    {
+      "id": "inv-demo-001",
+      "email": "extern@beispiel.de",
+      "companyName": "Nordic Trade GmbH",
+      "projectId": "a0000001-0000-4000-8000-000000000001",
+      "roleId": "kunde",
+      "intendedAccess": { "hasCockpitAccess": true, "hasCcInternAccess": true },
+      "status": "offen",
+      "createdAt": "2026-04-01T10:00:00.000Z",
+      "expiresAt": "2026-05-01T23:59:59.000Z"
+    },
+    {
+      "id": "inv-demo-002",
+      "email": "werkstatt@partner.ag",
+      "firma": "AutoShow Partner AG",
+      "status": "angenommen",
+      "createdAt": "2026-03-15T08:30:00.000Z",
+      "expiresAt": "2026-04-15T23:59:59.000Z",
+      "statusHistory": [
+        { "at": "2026-03-15T08:30:00.000Z", "status": "offen" },
+        { "at": "2026-03-20T14:00:00.000Z", "status": "angenommen" }
+      ]
+    },
+    {
+      "id": "inv-demo-003",
+      "email": "alt@firma.de",
+      "companyName": "Demo KG",
+      "status": "abgelaufen",
+      "createdAt": "2025-12-01T12:00:00.000Z",
+      "expiresAt": "2026-01-01T23:59:59.000Z"
+    },
+    {
+      "id": "inv-demo-004",
+      "email": "widerrufen@test.de",
+      "companyName": "Nordic Trade GmbH",
+      "status": "widerrufen",
+      "createdAt": "2026-02-10T09:00:00.000Z",
+      "expiresAt": "2026-03-10T23:59:59.000Z"
+    }
+  ]
+}

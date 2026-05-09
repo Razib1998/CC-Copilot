@@ -1,0 +1,25 @@
+# Phase 1 — PostgreSQL für CC Cockpit (nur lokale Entwicklung)
+# DB-Name: cc_cockpit | Port Host: 5433 (vermeidet Konflikt mit lokalem PostgreSQL auf 5432)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cc-cockpit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cc
+      POSTGRES_PASSWORD: cc_dev_change_me
+      POSTGRES_DB: cc_cockpit
+    ports:
+      - '5433:5432'
+    volumes:
+      - cc_cockpit_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cc -d cc_cockpit']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  cc_cockpit_pgdata:

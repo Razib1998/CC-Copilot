@@ -1,0 +1,21 @@
+# CC Cockpit — Projektregeln für Cursor
+
+## Pflichtlektüre
+- UI/Layout/Stil: `docs/CC-DESIGN-MASTER.md` und `.cursor/rules/cc-design-master.mdc` (Dashboard-Referenz, Stil C, Modulfarben, bestehende `ccds-*` / `ckp-dash-*` — keine neuen Layout-Muster ohne Freigabe).
+- Projektstand, Ports, API-Konventionen: `docs/CC-COCKPIT-PROJEKTSTAND.md`.
+
+## Backend / Betrieb
+- Backend: Node.js, SQLite, typisch Port 5371; DB `backend/data/cc-cockpit.db`.
+- sql.js arbeitet in-memory: Server stoppen, bevor die DB-Datei direkt bearbeitet wird.
+
+## API (/api/v1/*)
+- Antworten: `{ success, data }`. `apiFetch` (z. B. in `cc-auth-session.js`) liefert bereits **data** — Zugriff z. B. `res.auftraege`, nicht `res.data.auftraege`.
+- Header **`x-project-id`** bei allen `/api/v1/*`-Requests mitschicken.
+- Projekt-Kontext: `getCurrentProjectId()`; falls leer: `hydrateCockpitAccessibleProjectsAndEnsureContext()` (ein Projekt in der DB).
+
+## Frontend (Vite / klassische Scripts)
+- CC Intern: `window.CCIntern.auth.apiFetch` verwenden — kein dynamisches `import()` für Auth/Fetch in klassischen Script-Dateien (Vite-Konflikt).
+- `auftraege-detail-view.js` überschreibt globale Funktionen — Änderungen nur hinter `if (!window.__CCINTERN_COCKPIT_MOUNT__) { ... }` schützen.
+
+## Änderungen am Code
+- Nur das umsetzen, was die Aufgabe verlangt; vorhandene Konventionen (Namensgebung, Struktur) beibehalten.

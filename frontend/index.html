@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>CC Cockpit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="cc-api-base" content="https://api.cc-werbung-data.de" />
+  <link rel="stylesheet" href="./cockpit-shell.css" />
+  <link rel="stylesheet" href="./cc-design-styl-c.css" />
+</head>
+<body>
+  <div id="cockpit-root" class="ckp-shell-layout" data-app-module="cockpit">
+    <div
+      class="ckp-topbar ckp-topbar-modules ccds-top-tabs"
+      data-ccw-ro="topbar"
+      aria-label="Module"
+    >
+      <button type="button" data-module="cockpit" class="ccds-top-tab ckp-mod-btn mod--cockpit active" aria-current="true">
+        <span class="ccds-t-icon-box" aria-hidden="true">⊞</span>
+        Cockpit
+      </button>
+      <button type="button" data-module="fusa" class="ccds-top-tab ckp-mod-btn mod--fusa">
+        <span class="ccds-t-icon-box" aria-hidden="true">📋</span>
+        FUSA
+      </button>
+      <button type="button" data-module="ccintern" class="ccds-top-tab ckp-mod-btn mod--ccintern">
+        <span class="ccds-t-icon-box" aria-hidden="true">🏭</span>
+        CC Intern
+      </button>
+      <button
+        type="button"
+        id="ccw-logout-btn"
+        class="ccds-top-tab"
+        style="margin-left:auto;"
+        hidden
+      >
+        Abmelden
+      </button>
+    </div>
+    <div class="cockpit-body ckp-shell-body">
+      <nav id="cockpit-sidebar" class="cockpit-sidebar cockpit-sidebar--styl-c" aria-label="Hauptnavigation"></nav>
+      <main id="cockpit-main" class="cockpit-main--styl-c">
+        <div id="cockpit-content" data-ccw-region="app-main" aria-live="polite"></div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

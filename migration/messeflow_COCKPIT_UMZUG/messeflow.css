@@ -1,0 +1,459 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MESSEFLOW.CSS  ←  Quellen: Cockpit/styles.css + Cockpit/cockpit.css
+   Ziel: messeflow.css (_COCKPIT_UMZUG/)
+
+   Struktur:
+     §1  BASE STYLES       (aus styles.css) — CSS-Variablen, Topbar, Shell,
+                           Sidebar, Buttons, Cards, Status-Pills, Modals, Mobile
+     §2  COCKPIT-OVERRIDES (aus cockpit.css) — Overrides für body.ckp-module,
+                           DEV-Leiste, Grid-Layout im Cockpit-Kontext
+
+   TODO Cockpit-Umzug:
+     - §1 Topbar/Shell-Styles werden von CC Cockpit überschrieben (body.ckp-module)
+     - §1 kann auf messflow-spezifische Klassen reduziert werden
+     - §2 cockpit.css direkt einbinden oder weiter als Override verwenden
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── §1  BASE STYLES  ────────────────────────────────────────────────────────
+   Quelle: Cockpit/styles.css                                                 */
+
+:root {
+  --bg:     #f4f6fa;
+  --card:   #ffffff;
+  --line:   #e5e7eb;
+  --text:   #111827;
+  --muted:  #6b7280;
+  --blue:   #2563eb;
+  --green:  #16a34a;
+  --yellow: #d97706;
+  --red:    #dc2626;
+  --sb:#eff6ff; --sg:#f0fdf4; --sy:#fffbeb; --sr:#fef2f2; --sp:#faf5ff;
+  --r:12px;
+  --shadow:0 1px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+
+/* ── TOPBAR ── (Standalone only — im Cockpit von body.ckp-module überschrieben) */
+body:not(.ckp-module) #topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100;}
+body.ckp-module #topbar{display:none;}
+.brand{font-size:18px;font-weight:800;margin-right:auto;letter-spacing:-.3px;}
+.brand span{color:var(--blue);}
+.role-pill-active{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;}
+.btn,.sel{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;transition:filter .12s;}
+.btn:hover{filter:brightness(.95);}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.btn.green-btn{background:var(--green);color:#fff;border-color:var(--green);}
+.btn.yellow-btn{background:var(--yellow);color:#fff;border-color:var(--yellow);}
+.btn.ghost{background:#fff;color:var(--text);}
+.btn.sm{padding:4px 10px;font-size:12px;}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+#notif-btn{position:relative;}
+#notif-badge{display:none;align-items:center;justify-content:center;background:var(--red);color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:700;position:absolute;top:-3px;right:-3px;}
+
+/* ── SHELL ── (Standalone only — im Cockpit liefert Cockpit die Shell) */
+body:not(.ckp-module) #shell{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 47px);}
+body.ckp-module #shell{display:contents;}
+
+/* ── SIDEBAR ── (Standalone only — im Cockpit übernimmt Cockpit-Sidebar) */
+body:not(.ckp-module) #sidebar{background:#fff;border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:5px;position:sticky;top:47px;height:calc(100vh - 47px);overflow-y:auto;}
+body.ckp-module #sidebar{display:none;}
+#sidebar h3{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:0 4px;margin:8px 0 4px;}
+.proj-item{padding:9px 11px;border:1px solid var(--line);border-radius:9px;cursor:pointer;transition:all .12s;}
+.proj-item:hover{background:var(--sb);}
+.proj-item.active{border-color:var(--blue);background:var(--sb);}
+.proj-item .pi-name{font-weight:700;font-size:13px;}
+.proj-item .pi-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.proj-item .pi-alert{font-size:11px;color:var(--red);margin-top:2px;}
+#add-proj{margin-top:auto;background:none;border:1px dashed var(--line);color:var(--muted);padding:8px;border-radius:9px;cursor:pointer;font-family:inherit;font-size:12px;text-align:center;transition:all .12s;}
+#add-proj:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── MesseFlow als Cockpit-Modul (mf-module-mode) ── */
+body.mf-module-mode #topbar  { display: none !important; }
+body.mf-module-mode #sidebar { display: none !important; }
+body.mf-module-mode #shell   { display: block !important; grid-template-columns: 1fr; min-height: 100%; }
+body.mf-module-mode #view    { min-height: 0; height: 100%; }
+
+/* ── MAIN ── */
+#main{padding:18px;display:flex;flex-direction:column;gap:14px;}
+
+/* ── STATUS BANNER ── */
+.status-banner{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;}
+.sb-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.sb-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+.overall-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-weight:700;font-size:12px;margin-bottom:8px;}
+.ob-red{background:var(--sr);color:var(--red);border:1px solid #fecaca;}
+.ob-yellow{background:var(--sy);color:var(--yellow);border:1px solid #fde68a;}
+.ob-green{background:var(--sg);color:var(--green);border:1px solid #86efac;}
+.deadline-box{min-width:190px;background:var(--sy);border:1px solid #fde68a;padding:12px 14px;border-radius:10px;flex-shrink:0;}
+.deadline-box.urgent{background:var(--sr);border-color:#fecaca;}
+.dl-label{font-size:10px;text-transform:uppercase;font-weight:700;color:#92400e;margin-bottom:2px;}
+.deadline-box.urgent .dl-label{color:var(--red);}
+.dl-time{font-size:15px;font-weight:800;color:#78350f;}
+.deadline-box.urgent .dl-time{color:var(--red);}
+.dl-diff{font-size:11px;color:#92400e;margin-top:1px;}
+.deadline-box.urgent .dl-diff{color:var(--red);}
+
+/* progress bar */
+.prog-row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.prog-bar{flex:1;background:var(--line);border-radius:999px;height:6px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--green);transition:width .3s;}
+.prog-label{font-size:12px;color:var(--muted);white-space:nowrap;}
+
+/* ── ROLE NOTICE ── */
+.role-notice{border-radius:9px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.rn-agentur{background:var(--sb);border:1px solid #93c5fd;color:#1e40af;}
+.rn-norbert{background:var(--sy);border:1px solid #fde68a;color:#78350f;}
+.rn-bettina{background:var(--sp);border:1px solid #c4b5fd;color:#5b21b6;}
+.rn-melanie{background:var(--sg);border:1px solid #86efac;color:#166534;}
+.rn-produktion{background:#f9fafb;border:1px solid var(--line);color:var(--muted);}
+.rn-cc-intern{background:#faf5ff;border:1px solid #d8b4fe;color:#6b21a8;}
+
+/* ── FLÄCHEN CARDS ── */
+.flaechen-grid{display:flex;flex-direction:column;gap:8px;}
+
+.flaeche-card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+
+/* card body */
+.fc-body{padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.fc-name{font-size:15px;font-weight:800;min-width:70px;}
+.fc-col{display:flex;flex-direction:column;gap:3px;min-width:120px;}
+.fc-col-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.fc-col-val{font-size:13px;}
+.fc-col-val.missing{color:var(--red);font-style:italic;}
+.fc-col-val.ok{color:var(--green);font-weight:600;}
+.fc-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto;}
+
+/* status pill */
+.st-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;}
+.st-1{background:#f9fafb;color:var(--muted);border:1px solid var(--line);}
+.st-2{background:var(--sb);color:var(--blue);border:1px solid #93c5fd;}
+.st-3{background:var(--sy);color:var(--yellow);border:1px solid #fde68a;}
+.st-6{background:var(--sr);color:var(--red);border:1px solid #fecaca;animation:pulse-red 1.8s ease-in-out infinite;}
+.st-7{background:var(--sy);color:var(--yellow);border:1px solid #fde68a;animation:pulse-yellow 1.8s ease-in-out infinite;}
+.st-8{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;}
+.st-4{background:var(--sp);color:#7c3aed;border:1px solid #c4b5fd;}
+.st-5{background:var(--sg);color:var(--green);border:1px solid #86efac;}
+.st-9{background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.25)}50%{box-shadow:0 0 0 4px rgba(220,38,38,0)}}
+@keyframes pulse-yellow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,.2)}50%{box-shadow:0 0 0 4px rgba(217,119,6,0)}}
+
+/* ampel dot */
+.ampel{width:13px;height:13px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.ampel.rot{background:var(--red);}
+.ampel.gelb{background:var(--yellow);}
+.ampel.gruen{background:var(--green);}
+.ampel.lila{background:#7c3aed;}
+
+/* masse input inline */
+.masse-input{border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:13px;font-family:inherit;width:160px;background:#fff;}
+.masse-input:focus{outline:none;border-color:var(--blue);}
+.masse-input.warn{border-color:#fde68a;background:var(--sy);}
+
+/* file chip */
+.file-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:#f3f4f6;border:1px solid var(--line);border-radius:6px;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── BETTINA VIEW ── (#bettina-view und .bv-table sitzen auf demselben <table>) */
+#bettina-view.bv-table{width:100%;border-collapse:collapse;table-layout:auto;}
+#bettina-view.bv-table th{text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--line);}
+#bettina-view.bv-table td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+#bettina-view.bv-table thead tr:hover td{background:transparent;}
+#bettina-view.bv-table > tbody > tr:hover > td{background:#fafafa;}
+#bettina-view.bv-table th:first-child,
+#bettina-view.bv-table td:first-child{min-width:min(220px,45vw);}
+.bv-proj-name{font-weight:700;font-size:14px;display:block;line-height:1.35;color:var(--text);}
+.bv-proj-deadline{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ── PRODUKTION VIEW ── */
+.prod-card{background:#fff;border:1px solid #86efac;border-left:4px solid var(--green);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.prod-card .pc-name{font-size:15px;font-weight:800;}
+.prod-card .pc-file{font-size:12px;color:var(--muted);}
+.prod-card .pc-masse{font-size:12px;color:var(--green);font-weight:600;}
+
+/* ── NOTIFICATIONS ── */
+#notif-panel{position:fixed;top:48px;right:14px;width:280px;background:#fff;border:1px solid var(--line);border-radius:var(--r);z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden;}
+#notif-panel.open{display:block;}
+.nh{padding:10px 13px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+.ni{padding:10px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s;}
+.ni:hover{background:var(--sb);}
+.ni .ni-t{font-size:12px;font-weight:700;}
+.ni .ni-b{font-size:12px;color:var(--muted);}
+.ni .ni-d{font-size:10px;color:var(--muted);margin-top:2px;}
+.ni.unread{border-left:3px solid var(--blue);}
+.n-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px;}
+
+/* ── TOAST ── */
+#toasts{position:fixed;bottom:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);padding:10px 13px;border-radius:10px;min-width:200px;box-shadow:var(--shadow);animation:tin .15s ease;pointer-events:all;}
+.toast.tg{border-left-color:var(--green);}
+.toast.ty{border-left-color:var(--yellow);}
+.toast .tt{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:1px;}
+.toast.tg .tt{color:var(--green);}
+.toast.ty .tt{color:var(--yellow);}
+.toast .tb{font-size:12px;}
+@keyframes tin{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── MODAL ── */
+#modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;}
+#modal-bg.open{display:flex;}
+#modal-box{background:#fff;border-radius:var(--r);padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.15);}
+#modal-box.wide{max-width:720px;}
+#modal-box h2{font-size:17px;font-weight:800;margin-bottom:14px;}
+.fg{margin-bottom:11px;}
+.fg label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{width:100%;background:#fff;border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:7px;font-family:inherit;font-size:13px;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--blue);}
+.fg textarea{min-height:55px;resize:vertical;}
+.ma{display:flex;gap:8px;margin-top:14px;}
+
+/* ── MOBILE ── */
+@media(max-width:800px){
+  #shell{grid-template-columns:1fr;}
+  #sidebar{display:none;position:fixed;inset:47px 0 0 0;z-index:150;width:260px;border-right:1px solid var(--line);}
+  #sidebar.open{display:flex;}
+  #main{padding:12px;}
+  #mb-btn{display:flex !important;}
+  .fc-body{flex-direction:column;gap:10px;}
+  .fc-actions{margin-left:0;}
+}
+#mb-btn{display:none;background:var(--sb);border:1px solid #93c5fd;color:var(--blue);padding:5px 10px;border-radius:7px;cursor:pointer;font-size:17px;align-items:center;}
+
+/* ── ADMIN-ZENTRALE ── */
+.admin-section{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;}
+.admin-section-head{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+
+/* ── CC INTERN – Mobile-optimierte Ansicht ── */
+body.role-cc-intern .btn{min-height:44px;padding:10px 18px;font-size:15px;}
+body.role-cc-intern .fc-actions .btn{min-height:48px;font-size:15px;padding:12px 20px;}
+body.role-cc-intern .wand-card{padding:16px;}
+body.role-cc-intern .fc-meta{font-size:14px;}
+body.role-cc-intern .fc-name{font-size:16px;font-weight:700;}
+body.role-cc-intern .st-pill{font-size:13px;padding:5px 12px;}
+@media(max-width:900px){
+  body.role-cc-intern .btn{min-height:52px;font-size:16px;}
+  body.role-cc-intern .fc-actions{display:flex;flex-direction:column;gap:8px;width:100%;}
+  body.role-cc-intern .fc-actions .btn{width:100%;justify-content:center;}
+}
+
+/* ── MOBILE (alle Rollen, bedienbare Flächen) ── */
+@media(max-width:800px){
+  #topbar{flex-wrap:wrap;gap:8px;padding:8px 12px;row-gap:8px;}
+  .brand{font-size:16px;margin-right:0;width:100%;order:0;}
+  #role-display{max-width:100%;flex:1;min-width:0;font-size:11px;}
+  #role-sel,#server-status-indicator,#notif-btn,#mf-devices-btn,#mf-logout-btn,.mf-mod-btn{min-height:44px;touch-action:manipulation;}
+  .mf-module-bar{width:100%;order:3;justify-content:flex-start;}
+  .btn,.sel{min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  .proj-item{padding:12px 12px;min-height:48px;}
+  #add-proj{min-height:48px;padding:12px;}
+  .fc-actions .btn,.fc-actions a.btn{min-height:48px;padding:10px 14px;width:100%;justify-content:center;}
+  .fc-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch !important;width:100%;}
+  #modal-bg{padding:12px;align-items:flex-end;}
+  #modal-box{max-height:92vh;border-radius:12px 12px 0 0;padding:18px 16px;}
+  #notif-panel{max-width:100vw;right:0;left:0;}
+}
+
+/* ── Modul-Umschalter (Topbar) ── */
+.mf-module-bar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mf-mod-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 36px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.mf-mod-btn--on {
+  background: #1e1b4b;
+  color: #fff;
+  border-color: #1e1b4b;
+}
+
+/* ── CC-INTERN AUFTRAG – Lieferung Mobile ─────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Geliefert-Button auf Mobile gut tippbar */
+  .mf-cc-lieferung-btn {
+    width: 100%;
+    min-height: 56px;
+    font-size: 17px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ── ADMIN-ZENTRALE ── */
+#az-main { display: flex; flex: 1; overflow: hidden; }
+#az-detail { transition: transform .25s ease; }
+
+@media (max-width: 700px) {
+  #az-main { flex-direction: column !important; }
+  #az-main > div { flex: none !important; overflow-y: auto; max-height: 50vh; border-right: none !important; border-bottom: 1px solid var(--line); }
+  #az-detail { width: 100vw !important; }
+  #az-detail-content .btn { min-height: 44px; }
+}
+
+/* ── §2  COCKPIT-OVERRIDES  ─────────────────────────────────────────────────
+   Quelle: Cockpit/cockpit.css                                                 */
+
+/*
+ * CC Cockpit – MesseFlow Inhaltsmodul
+ * ─────────────────────────────────────────────────────────────────────────
+ * DIESES CSS = nur Overrides für den Modul-Betrieb (body.ckp-module).
+ * Topbar + Haupt-Sidebar kommen von CC Cockpit – wir bauen hier NICHTS davon.
+ *
+ * Unsere Fläche (die Mitte):
+ *   [MesseFlow Projektliste 200px] | [Projektinhalt – Restbreite]
+ *
+ * §1.1 Master: Sidebar position:relative im Grid · kein sticky · kein Schatten
+ * Layout-Preview NACHHER: var(--bg) Hintergrund · 200px · im Grid-Flow
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
+/* ── 1. MesseFlow-Topbar verstecken ──────────────────────────────────────
+   CC Cockpit liefert den echten Topbar.
+   DOM-IDs bleiben im HTML (messeflow-app.js braucht sie).         */
+body.ckp-module #topbar                    { display: none !important; }
+body.ckp-module #topbar[style*="display"]  { display: none !important; }
+
+/* ── 2. DEV-Leiste ───────────────────────────────────────────────────────
+   Schmale Info-/Test-Leiste oben im Modul (nur DEV, nicht Produktion).  */
+#mf-dev-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #fef3c7;
+  border-bottom: 1px solid #f59e0b;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.mf-dev-label {
+  font-weight: 800;
+  color: #92400e;
+  flex-shrink: 0;
+}
+#mf-dev-user {
+  padding: 3px 8px;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #fff;
+  color: #92400e;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mf-dev-btn {
+  padding: 3px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter .1s;
+}
+.mf-dev-btn:hover { filter: brightness(.93); }
+.mf-dev-btn.red   { color: #dc2626; border-color: #fca5a5; }
+.mf-dev-info {
+  margin-left: auto;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── 3. SHELL = Grid [Projektliste | Inhalt] ─────────────────────────────
+   Füllt die gesamte von CC Cockpit zugewiesene Fläche.
+   Höhe: 100% des Eltern-Containers (CC Cockpit Content-Area).
+   §1.1: Sidebar 200px · Main Restbreite.                          */
+body.ckp-module #shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: calc(100vh - 32px); /* 32px = DEV-Leiste; in Prod: 100% */
+  min-height: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ── 4. SIDEBAR: position:relative im Grid-Flow ──────────────────────────
+   layout-preview.html NACHHER:
+     position: relative  → normaler Grid-Flow, kein Viewport-Anker
+     background: var(--bg) → gleiche Farbe wie Arbeitsfläche
+     kein box-shadow → gehört zur Arbeitsfläche, nicht zum äußeren Chrome
+   (§1.1 Master · layout-preview NACHHER)                          */
+body.ckp-module #sidebar {
+  position: relative  !important;
+  top:      auto      !important;
+  height:   100%      !important;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);          /* = Arbeitsflächen-Hintergrund */
+  border-right: 1px solid var(--line);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  /* KEIN box-shadow */
+}
+
+/* ── 5. MAIN: scrollbar, volle Höhe ─────────────────────────────────────
+   §1.1: Padding Desktop 18px.                                     */
+body.ckp-module #main {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--bg);
+  outline: none; /* tabindex=-1, kein visueller Fokusring */
+}
+
+/* ── 6. Notif-Panel oben ─────────────────────────────────────────────── */
+body.ckp-module #notif-panel { top: 0; }
+
+/* ── 7. Ausgeblendete Elemente (Daten + Logik vollständig erhalten) ──── */
+body.ckp-module #mf-projekt-verlauf { display: none !important; }
+body.ckp-module #mf-projekt-team    { display: none !important; }
+
+/* Admin-Button in Sidebar – Einstieg kommt über CC Cockpit */
+body.ckp-module #sidebar .admin-btn,
+body.ckp-module #sidebar [onclick*="openAdminView"],
+body.ckp-module #sidebar [onclick*="adminView"],
+body.ckp-module #sidebar [onclick*="showAdmin"] { display: none !important; }
+
+/* ── 8. MOBILE §11 Master: Touch ≥ 44px, Sidebar = Overlay ─────────── */
+@media (max-width: 680px) {
+  body.ckp-module #shell {
+    grid-template-columns: 1fr;
+    height: 100%;
+  }
+  body.ckp-module #sidebar {
+    position: fixed   !important;
+    top:      0       !important;
+    left:     0;
+    width:    240px;
+    height:   100%    !important;
+    z-index:  150;
+    background: #fff;
+    box-shadow: 4px 0 16px rgba(0,0,0,.15);
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+  }
+  body.ckp-module #sidebar.open { transform: translateX(0); }
+  .mf-dev-btn, #mf-dev-user    { min-height: 44px; }
+}
+
+/* ── 9. Scrollbalken dezent ─────────────────────────────────────────── */
+body.ckp-module #sidebar::-webkit-scrollbar,
+body.ckp-module #main::-webkit-scrollbar   { width: 5px; }
+body.ckp-module #sidebar::-webkit-scrollbar-thumb,
+body.ckp-module #main::-webkit-scrollbar-thumb {
+  background: #d1d5db; border-radius: 3px;
+}

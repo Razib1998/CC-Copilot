@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ANF-2026-001",
+    "kunde": "Bäckerei Schmidt",
+    "kontakt": "0201/123456",
+    "kanal": "Telefon",
+    "leistung": "schild",
+    "leistungLabel": "📋 Schild",
+    "beschr": "Türschild 60×30cm",
+    "params": {
+      "leistung": "schild",
+      "b": 0.6,
+      "h": 0.3,
+      "stueck": 2,
+      "grafik_std": 1,
+      "aufwand": "einfach",
+      "montage_std": null,
+      "liefertage": 5,
+      "mit_reinigung": false,
+      "mit_vorbereitung": false,
+      "anfahrt": "zone1",
+      "mit_demontage": "",
+      "mit_altfolie": false,
+      "mit_plot": false,
+      "mit_daten": false,
+      "hoehe": "",
+      "rabatt": 0
+    },
+    "erstellt": "18.03.2026",
+    "status": "offen"
+  },
+  {
+    "id": "ANF-2026-002",
+    "kunde": "Autohaus Meier",
+    "kontakt": "meier@auto.de",
+    "kanal": "E-Mail",
+    "leistung": "fenster",
+    "leistungLabel": "🪟 Fenster",
+    "beschr": "Schaufenster 4×1.8m milchig",
+    "params": {
+      "leistung": "fenster",
+      "b": 4,
+      "h": 1.8,
+      "stueck": 1,
+      "grafik_std": 2,
+      "aufwand": "mittel",
+      "montage_std": null,
+      "liefertage": 5,
+      "mit_reinigung": false,
+      "mit_vorbereitung": false,
+      "anfahrt": "zone2",
+      "mit_demontage": "",
+      "mit_altfolie": false,
+      "mit_plot": false,
+      "mit_daten": false,
+      "hoehe": "",
+      "rabatt": 0
+    },
+    "erstellt": "17.03.2026",
+    "status": "offen"
+  }
+]

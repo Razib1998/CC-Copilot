@@ -1,0 +1,19 @@
+---
+description: Master Design — Dashboard als Referenz, Stil C, Modul-Farben, Grid/Karten
+globs: frontend/**/*.js, frontend/**/*.css, frontend/**/*.html
+alwaysApply: true
+---
+
+# CC Cockpit — Master Design (verbindlich)
+
+Vollständige Spezifikation: `docs/CC-DESIGN-MASTER.md`.
+
+**Kurzfassung:**
+
+1. **Referenz:** Aktuelles **Dashboard** (4 KPI oben, darunter **gleichmäßiges Grid** — keine breite Hauptspalte + schmale rechte Sidebar).
+2. **Stil:** Stil C (`cc-design-styl-c.css`) — kompakt, pastellige Modulflächen, Token an `#cockpit-root[data-app-module]`.
+3. **Module:** Cockpit = Grün, FUSA = Orange, CC Intern = Blau — keine neuen Farben ohne Freigabe.
+4. **Komponenten:** Bestehende KPI-/Panel-/Chip-/Button-Klassen wiederverwenden (`ccds-*`, `ckp-dash-*`); keine Sonderkarten oder neuen Layout-Muster ohne Freigabe.
+5. **Verboten:** Abweichende Raster, alte Sidebar-Haupt-Layouts, frei erfundene Card-Varianten.
+
+Vor Merge/Umsetzung: Prüfliste in `docs/CC-DESIGN-MASTER.md` Abschnitt 11.

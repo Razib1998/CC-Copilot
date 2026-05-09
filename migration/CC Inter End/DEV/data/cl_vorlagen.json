@@ -1,0 +1,498 @@
+[
+  {
+    "id": "cl-001",
+    "name": "Busbeklebung Standard",
+    "art": "busbeklebung",
+    "ico": "🚌",
+    "farbe": "var(--blue)",
+    "aktiv": true,
+    "beschr": "Standardprüfung für alle Fahrzeugbeklebungen",
+    "punkte": [
+      {
+        "text": "Fahrzeug-Template vorhanden und aktuell",
+        "kat": "pflicht",
+        "hinweis": "Im Ordner Templates prüfen"
+      },
+      {
+        "text": "Druckdatei im richtigen Format (PDF/Corel)",
+        "kat": "pflicht",
+        "hinweis": "Mindestauflösung 72 dpi @ Ausgabegröße"
+      },
+      {
+        "text": "Farbprofil ISO Coated v2 eingestellt",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Randabfall (Bleed) min. 5mm vorhanden",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Schriften in Kurven konvertiert",
+        "kat": "pflicht",
+        "hinweis": "Oder als Outlines exportiert"
+      },
+      {
+        "text": "Kundengrafik / Logo in Vektorformat",
+        "kat": "pflicht",
+        "hinweis": "SVG, AI oder EPS bevorzugt"
+      },
+      {
+        "text": "Fahrzeug gereinigt (Reinigungsprotokoll)",
+        "kat": "foto",
+        "hinweis": "Foto vor Montage erforderlich"
+      },
+      {
+        "text": "Folie 24h akklimatisiert (bei unter 10°C)",
+        "kat": "pflicht",
+        "hinweis": "Lagertemperatur prüfen"
+      },
+      {
+        "text": "Oberfläche entfettet mit IPA 70%",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Folie blasenfrei und kantengenau verklebt",
+        "kat": "foto",
+        "hinweis": "Detailfotos an Kanten und Kurven"
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt",
+        "kat": "pflicht",
+        "hinweis": "Besonders an Türkanten und Radläufen"
+      },
+      {
+        "text": "Laminat vollflächig ohne Luftblasen",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Qualitätskontrolle vor Ort abgenommen",
+        "kat": "foto",
+        "hinweis": "Abschlussfoto Gesamtansicht"
+      },
+      {
+        "text": "Lieferschein unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Original ins Büro, Kopie beim Kunden"
+      }
+    ]
+  },
+  {
+    "id": "cl-002",
+    "name": "Ganzgestaltung (Vollfolierung)",
+    "art": "ganzgestaltung",
+    "ico": "🚌",
+    "farbe": "var(--purple)",
+    "aktiv": true,
+    "beschr": "Erweiterte Checkliste für komplette Fahrzeugfolierungen",
+    "punkte": [
+      {
+        "text": "3D-Scan oder Maßnahme vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Scan im Depot oder Werkstatt"
+      },
+      {
+        "text": "Alle Karosserie-Seiten als Template geprüft",
+        "kat": "pflicht",
+        "hinweis": "Front, Heck, beide Seiten, Dach"
+      },
+      {
+        "text": "Schwierige Bereiche markiert (Wölbungen)",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "CAST-Folie für Ganzgestaltung verwendet",
+        "kat": "pflicht",
+        "hinweis": "ORAJET 3162 oder gleichwertig"
+      },
+      {
+        "text": "Druckdaten in Segmente gesplittet",
+        "kat": "pflicht",
+        "hinweis": "Segmentierung für Wickelprofil"
+      },
+      {
+        "text": "Übergänge der Segmente geplant",
+        "kat": "pflicht",
+        "hinweis": "Überlappung mind. 5mm"
+      },
+      {
+        "text": "Fahrzeug komplett entwachst",
+        "kat": "pflicht",
+        "hinweis": "Speziell alte Wachsreste entfernen"
+      },
+      {
+        "text": "Alle Anbauteile demontiert (Spiegel etc.)",
+        "kat": "optional",
+        "hinweis": "Je nach Auftragsumfang"
+      },
+      {
+        "text": "Fenster abgeklebt oder demontiert",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Alle Segmente ausgerichtet vor Verkleben",
+        "kat": "foto",
+        "hinweis": "Foto vor endgültigem Verkleben"
+      },
+      {
+        "text": "Nassmontage korrekt durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gleitmittel vollständig ausgequetscht"
+      },
+      {
+        "text": "Hinterfolie an kritischen Punkten",
+        "kat": "pflicht",
+        "hinweis": "Türkanten, Antennen, Beschläge"
+      },
+      {
+        "text": "Gesamtansicht nach Abschluss fotografiert",
+        "kat": "foto",
+        "hinweis": "Rundumsicht: alle 4 Seiten + Details"
+      },
+      {
+        "text": "Kundenseitige Abnahme vor Ort erfolgt",
+        "kat": "pflicht",
+        "hinweis": "Unterschrift auf Abnahmeprotokoll"
+      }
+    ]
+  },
+  {
+    "id": "cl-003",
+    "name": "Abnahme und Dokumentation",
+    "art": "montage_only",
+    "ico": "✅",
+    "farbe": "var(--green)",
+    "aktiv": true,
+    "beschr": "Montageabnahme und Fotodokumentation nach Fertigstellung",
+    "punkte": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA"
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": ""
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt"
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse"
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr."
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA"
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": ""
+      }
+    ]
+  },
+  {
+    "id": "cl-004",
+    "name": "Digitaldruck und Schilder",
+    "art": "digitaldruck",
+    "ico": "🖨️",
+    "farbe": "var(--blue)",
+    "aktiv": true,
+    "beschr": "Qualitätsprüfung für Druckerzeugnisse und Schilder",
+    "punkte": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi"
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen"
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben"
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt"
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre"
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": ""
+      }
+    ]
+  },
+  {
+    "id": "cl-005",
+    "name": "Grafik Freigabe",
+    "art": "busbeklebung",
+    "ico": "🎨",
+    "farbe": "var(--purple)",
+    "aktiv": true,
+    "beschr": "Interne Freigabeprüfung vor Druckstart",
+    "punkte": [
+      {
+        "text": "Kundenlogo und CI-Farben laut Vorgabe",
+        "kat": "pflicht",
+        "hinweis": "Pantone oder HEX-Wert vom Kunden"
+      },
+      {
+        "text": "Texte auf Rechtschreibfehler geprüft",
+        "kat": "pflicht",
+        "hinweis": "Besonders Telefonnummern und URLs"
+      },
+      {
+        "text": "Telefonnummer und Website korrekt",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Entwurf per Mail an Kunden gesendet",
+        "kat": "pflicht",
+        "hinweis": "E-Mail mit Vorschau-PDF"
+      },
+      {
+        "text": "Schriftliche Freigabe vom Kunden erhalten",
+        "kat": "pflicht",
+        "hinweis": "E-Mail oder unterschriebenes PDF"
+      },
+      {
+        "text": "Freigabe-Datum im Auftrag vermerkt",
+        "kat": "pflicht",
+        "hinweis": ""
+      },
+      {
+        "text": "Druckdatei aus Entwurfsdatei exportiert",
+        "kat": "pflicht",
+        "hinweis": "Separate Druckdatei erstellen"
+      }
+    ]
+  },
+  {
+    "id": "cl-006",
+    "name": "Montage Busbeklebung",
+    "art": "busbeklebung",
+    "ico": "🚌",
+    "farbe": "var(--amber)",
+    "aktiv": true,
+    "beschr": "Vollständige Montagecheckliste für alle Typen Busbeklebung — Vorbereitung bis Dokumentation",
+    "punkte": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen"
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen"
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?"
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart"
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen"
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche"
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen"
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen"
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen"
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren"
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen"
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen"
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln"
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig"
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich"
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack"
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden"
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras"
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben"
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen"
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT"
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen"
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer"
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren"
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden"
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung"
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren"
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs"
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START"
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt"
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern"
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?"
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail"
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt"
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten"
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen"
+      }
+    ]
+  }
+]

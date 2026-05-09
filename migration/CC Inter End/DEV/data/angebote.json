@@ -1,0 +1,150 @@
+[
+  {
+    "id": "AG-2026-019",
+    "kunde": "Neue Ruhr Zeitung",
+    "ap": "Hr. Weber",
+    "betreff": "Ganzgestaltung Bus + Fenster",
+    "datum": "15.03.2026",
+    "gueltig": "15.04.2026",
+    "zahlung": "30 Tage netto",
+    "einleitung": "Sehr geehrter Herr Weber, gerne unterbreiten wir Ihnen folgendes Angebot.",
+    "schluss": "Bei Fragen stehen wir Ihnen gerne zur Verfügung.",
+    "inotiz": "",
+    "positionen": [
+      {
+        "bez": "Digitaldruckfolie ORAJET® 3551",
+        "eh": "m²",
+        "menge": 42,
+        "ep": 65,
+        "beschr": "inkl. Laminat"
+      },
+      {
+        "bez": "Fensterfolie perforiert 50/50",
+        "eh": "m²",
+        "menge": 8,
+        "ep": 48,
+        "beschr": ""
+      },
+      {
+        "bez": "Grafik / Design",
+        "eh": "pauschal",
+        "menge": 1,
+        "ep": 180,
+        "beschr": "Layout 2 Seiten"
+      },
+      {
+        "bez": "Montage Bus + Fenster",
+        "eh": "pauschal",
+        "menge": 1,
+        "ep": 380,
+        "beschr": "inkl. Reinigung"
+      }
+    ],
+    "rabatt": 0,
+    "mwst": 19,
+    "status": "versendet",
+    "erstellt": "15.03.2026",
+    "vonAnfrage": null
+  },
+  {
+    "id": "AG-2026-018",
+    "kunde": "Essen Marketing GmbH",
+    "ap": "Fr. Koch",
+    "betreff": "3× Teilgestaltung Tram",
+    "datum": "12.03.2026",
+    "gueltig": "12.04.2026",
+    "zahlung": "30 Tage netto",
+    "einleitung": "",
+    "schluss": "",
+    "inotiz": "Folgeauftrag wenn erste 3 gut laufen",
+    "positionen": [
+      {
+        "bez": "Digitaldruckfolie ORAJET® 3551",
+        "eh": "m²",
+        "menge": 36,
+        "ep": 65,
+        "beschr": "3 Fahrzeuge à 12m²"
+      },
+      {
+        "bez": "Laminat ORAGUARD® 215G",
+        "eh": "m²",
+        "menge": 36,
+        "ep": 18,
+        "beschr": ""
+      },
+      {
+        "bez": "Grafik / Design",
+        "eh": "pauschal",
+        "menge": 1,
+        "ep": 240,
+        "beschr": "3 Layouts"
+      },
+      {
+        "bez": "Montage (3 Fahrzeuge)",
+        "eh": "pauschal",
+        "menge": 3,
+        "ep": 220,
+        "beschr": ""
+      },
+      {
+        "bez": "Fahrzeugreinigung",
+        "eh": "pauschal",
+        "menge": 3,
+        "ep": 55,
+        "beschr": ""
+      },
+      {
+        "bez": "Express-Aufschlag",
+        "eh": "pauschal",
+        "menge": 1,
+        "ep": 120,
+        "beschr": "Lieferzeit 3 Werktage"
+      }
+    ],
+    "rabatt": 5,
+    "mwst": 19,
+    "status": "entwurf",
+    "erstellt": "12.03.2026",
+    "vonAnfrage": null
+  },
+  {
+    "id": "AG-2026-017",
+    "kunde": "Sparkasse Essen",
+    "ap": "Hr. Schulz",
+    "betreff": "Heckwerbung 5 Busse",
+    "datum": "08.03.2026",
+    "gueltig": "08.04.2026",
+    "zahlung": "30 Tage netto",
+    "einleitung": "",
+    "schluss": "",
+    "inotiz": "",
+    "positionen": [
+      {
+        "bez": "Digitaldruckfolie ORAJET® 3551 Heck",
+        "eh": "m²",
+        "menge": 21,
+        "ep": 65,
+        "beschr": "5× 4,2m²"
+      },
+      {
+        "bez": "Grafik / Design Heckwerbung",
+        "eh": "pauschal",
+        "menge": 1,
+        "ep": 150,
+        "beschr": ""
+      },
+      {
+        "bez": "Montage (5 Fahrzeuge)",
+        "eh": "pauschal",
+        "menge": 5,
+        "ep": 95,
+        "beschr": ""
+      }
+    ],
+    "rabatt": 0,
+    "mwst": 19,
+    "status": "angenommen",
+    "erstellt": "08.03.2026",
+    "vonAnfrage": null
+  }
+]

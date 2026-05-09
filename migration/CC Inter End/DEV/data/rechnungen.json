@@ -1,0 +1,138 @@
+[
+  {
+    "id": "RE-2026-014",
+    "datum": "2026-01-15",
+    "kunde": "DVG Duisburg",
+    "auftragId": "AU-2026-038",
+    "betreff": "Quartalsrechnung Q1 2026 · Fahrzeugwerbung Bus 412",
+    "positionen": [
+      {
+        "bez": "Folienbeschriftung Bus 412 Außenwerbung",
+        "menge": 1,
+        "ep": 3200,
+        "einheit": "pauschal"
+      },
+      {
+        "bez": "Material Folie + Laminat",
+        "menge": 1,
+        "ep": 1650,
+        "einheit": "pauschal"
+      },
+      {
+        "bez": "Montage vor Ort Depot Mülheim",
+        "menge": 8,
+        "ep": 45,
+        "einheit": "Std."
+      }
+    ],
+    "zahltage": 14,
+    "faellig": "2026-02-01",
+    "status": "ueberfaellig",
+    "notiz": "Bankverbindung: DE12 3456 7890 1234 5678 · BIC: DEUTDEDB · Bitte RE-Nr. angeben."
+  },
+  {
+    "id": "RE-2026-013",
+    "datum": "2026-03-01",
+    "kunde": "Bogestra AG",
+    "auftragId": "AU-2026-039",
+    "betreff": "Quartalsrechnung Q1 2026 · Teilgestaltung Bus 309, 501",
+    "positionen": [
+      {
+        "bez": "Teilgestaltung Außenwerbung Bus 309",
+        "menge": 1,
+        "ep": 3800,
+        "einheit": "pauschal"
+      },
+      {
+        "bez": "Teilgestaltung Außenwerbung Bus 501",
+        "menge": 1,
+        "ep": 3500,
+        "einheit": "pauschal"
+      },
+      {
+        "bez": "Material Folie (45 lm)",
+        "menge": 45,
+        "ep": 8.5,
+        "einheit": "lm"
+      },
+      {
+        "bez": "Laminat (45 lm)",
+        "menge": 45,
+        "ep": 2.8,
+        "einheit": "lm"
+      }
+    ],
+    "zahltage": 30,
+    "faellig": "2026-03-31",
+    "status": "versendet",
+    "notiz": ""
+  },
+  {
+    "id": "RE-2026-012",
+    "datum": "2026-03-10",
+    "kunde": "Radio Essen",
+    "auftragId": "AU-2026-041",
+    "betreff": "Q1/Q2 2026 anteilig · Bus 1789 Seitenwand + Heck",
+    "positionen": [
+      {
+        "bez": "Seitenwand + Heck Beklebung Bus 1789",
+        "menge": 1,
+        "ep": 2600,
+        "einheit": "pauschal"
+      },
+      {
+        "bez": "Grafik & Reinzeichnung",
+        "menge": 4,
+        "ep": 95,
+        "einheit": "Std."
+      },
+      {
+        "bez": "Material Folie",
+        "menge": 1,
+        "ep": 820,
+        "einheit": "pauschal"
+      }
+    ],
+    "zahltage": 60,
+    "faellig": "2026-06-30",
+    "status": "entwurf",
+    "notiz": "Rechnungsstellung nach Abnahme Endmontage."
+  },
+  {
+    "id": "RE-2025-042",
+    "datum": "2025-12-20",
+    "kunde": "Ruhrbahn GmbH",
+    "auftragId": null,
+    "betreff": "Q4 2025 · Rahmenvertrag Fahrzeugwerbung Quartalsabrechnung",
+    "positionen": [
+      {
+        "bez": "Beklebungen Oktober 2025 (7 Fahrzeuge)",
+        "menge": 7,
+        "ep": 1850,
+        "einheit": "Fzg."
+      },
+      {
+        "bez": "Beklebungen November 2025 (6 Fahrzeuge)",
+        "menge": 6,
+        "ep": 1850,
+        "einheit": "Fzg."
+      },
+      {
+        "bez": "Beklebungen Dezember 2025 (5 Fahrzeuge)",
+        "menge": 5,
+        "ep": 1850,
+        "einheit": "Fzg."
+      },
+      {
+        "bez": "Material pauschale Q4",
+        "menge": 1,
+        "ep": 2800,
+        "einheit": "pauschal"
+      }
+    ],
+    "zahltage": 14,
+    "faellig": "2026-01-31",
+    "status": "bezahlt",
+    "notiz": "Bezahlt am 28.01.2026. Danke!"
+  }
+]

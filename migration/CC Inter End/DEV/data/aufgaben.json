@@ -1,0 +1,3436 @@
+[
+  {
+    "id": "IA-2026-001",
+    "auftragId": "AU-2026-041",
+    "fz": "Bus 1789",
+    "kunde": "Radio Essen",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 1789",
+    "maId": "ME",
+    "ma": "Melanie",
+    "maIds": [
+      "ME"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-18",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.253Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-002",
+    "auftragId": "AU-2026-041",
+    "fz": "Bus 1789",
+    "kunde": "Radio Essen",
+    "schritt": "druck",
+    "typ": "optional",
+    "titel": "Druck / Plot — Bus 1789",
+    "maId": "MO",
+    "ma": "Mohammed",
+    "maIds": [
+      "MO"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-18",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.253Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-003",
+    "auftragId": "AU-2026-041",
+    "fz": "Bus 1789",
+    "kunde": "Radio Essen",
+    "schritt": "laminat",
+    "typ": "optional",
+    "titel": "Laminat / Schnitt — Bus 1789",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-03-18",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.253Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-004",
+    "auftragId": "AU-2026-041",
+    "fz": "Bus 1789",
+    "kunde": "Radio Essen",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 1789",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK"
+    ],
+    "dauer": 8,
+    "dauerGesamt": 8,
+    "tagBlock": null,
+    "datum": "2026-03-18",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.253Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-005",
+    "auftragId": "AU-2026-041",
+    "fz": "Bus 1789",
+    "kunde": "Radio Essen",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 1789",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK"
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-03-19",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.253Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-006",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 412",
+    "maId": "IL",
+    "ma": "Ilayda",
+    "maIds": [
+      "IL"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-20",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Kundenlogo und CI-Farben laut Vorgabe",
+        "kat": "pflicht",
+        "hinweis": "Pantone oder HEX-Wert vom Kunden",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Texte auf Rechtschreibfehler geprüft",
+        "kat": "pflicht",
+        "hinweis": "Besonders Telefonnummern und URLs",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Telefonnummer und Website korrekt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Entwurf per Mail an Kunden gesendet",
+        "kat": "pflicht",
+        "hinweis": "E-Mail mit Vorschau-PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Schriftliche Freigabe vom Kunden erhalten",
+        "kat": "pflicht",
+        "hinweis": "E-Mail oder unterschriebenes PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Freigabe-Datum im Auftrag vermerkt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei aus Entwurfsdatei exportiert",
+        "kat": "pflicht",
+        "hinweis": "Separate Druckdatei erstellen",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-007",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "druck",
+    "typ": "optional",
+    "titel": "Druck / Plot — Bus 412",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 6,
+    "dauerGesamt": 6,
+    "tagBlock": null,
+    "datum": "2026-03-20",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-008",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "laminat",
+    "typ": "optional",
+    "titel": "Laminat / Schnitt — Bus 412",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-009",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 412 · Okan (Tag 1/2)",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK",
+      "MT"
+    ],
+    "dauer": 8,
+    "dauerGesamt": 10,
+    "tagBlock": "1/2",
+    "datum": "2026-03-20",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-010",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 412 · Okan (Tag 2/2)",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK",
+      "MT"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 10,
+    "tagBlock": "2/2",
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-011",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 412 · Mete (Tag 1/2)",
+    "maId": "MT",
+    "ma": "Mete",
+    "maIds": [
+      "OK",
+      "MT"
+    ],
+    "dauer": 8,
+    "dauerGesamt": 10,
+    "tagBlock": "1/2",
+    "datum": "2026-03-20",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-012",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 412 · Mete (Tag 2/2)",
+    "maId": "MT",
+    "ma": "Mete",
+    "maIds": [
+      "OK",
+      "MT"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 10,
+    "tagBlock": "2/2",
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-013",
+    "auftragId": "AU-2026-040",
+    "fz": "Bus 412",
+    "kunde": "DVG Duisburg",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 412",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK"
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.256Z",
+    "checkliste": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-014",
+    "auftragId": "AU-2026-039",
+    "fz": "Bus 309, 501",
+    "kunde": "Bogestra AG",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 309, 501",
+    "maId": "ME",
+    "ma": "Melanie",
+    "maIds": [
+      "ME"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.261Z",
+    "checkliste": [
+      {
+        "text": "Kundenlogo und CI-Farben laut Vorgabe",
+        "kat": "pflicht",
+        "hinweis": "Pantone oder HEX-Wert vom Kunden",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Texte auf Rechtschreibfehler geprüft",
+        "kat": "pflicht",
+        "hinweis": "Besonders Telefonnummern und URLs",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Telefonnummer und Website korrekt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Entwurf per Mail an Kunden gesendet",
+        "kat": "pflicht",
+        "hinweis": "E-Mail mit Vorschau-PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Schriftliche Freigabe vom Kunden erhalten",
+        "kat": "pflicht",
+        "hinweis": "E-Mail oder unterschriebenes PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Freigabe-Datum im Auftrag vermerkt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei aus Entwurfsdatei exportiert",
+        "kat": "pflicht",
+        "hinweis": "Separate Druckdatei erstellen",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-015",
+    "auftragId": "AU-2026-039",
+    "fz": "Bus 309, 501",
+    "kunde": "Bogestra AG",
+    "schritt": "druck",
+    "typ": "optional",
+    "titel": "Druck / Plot — Bus 309, 501",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.261Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-016",
+    "auftragId": "AU-2026-039",
+    "fz": "Bus 309, 501",
+    "kunde": "Bogestra AG",
+    "schritt": "laminat",
+    "typ": "optional",
+    "titel": "Laminat / Schnitt — Bus 309, 501",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-03-24",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.261Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-017",
+    "auftragId": "AU-2026-039",
+    "fz": "Bus 309, 501",
+    "kunde": "Bogestra AG",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 309, 501",
+    "maId": "MO",
+    "ma": "Mohammed",
+    "maIds": [
+      "MO"
+    ],
+    "dauer": 6,
+    "dauerGesamt": 6,
+    "tagBlock": null,
+    "datum": "2026-03-23",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.261Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-018",
+    "auftragId": "AU-2026-039",
+    "fz": "Bus 309, 501",
+    "kunde": "Bogestra AG",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 309, 501",
+    "maId": "MO",
+    "ma": "Mohammed",
+    "maIds": [
+      "MO"
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-03-24",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.261Z",
+    "checkliste": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-019",
+    "auftragId": "AU-2026-038",
+    "fz": "Tram 103",
+    "kunde": "Stadt Essen",
+    "schritt": "grafik",
+    "typ": "optional",
+    "titel": "Grafik / Entwurf — Tram 103",
+    "maId": "IL",
+    "ma": "Ilayda",
+    "maIds": [
+      "IL"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-25",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.267Z",
+    "checkliste": [
+      {
+        "text": "Kundenlogo und CI-Farben laut Vorgabe",
+        "kat": "pflicht",
+        "hinweis": "Pantone oder HEX-Wert vom Kunden",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Texte auf Rechtschreibfehler geprüft",
+        "kat": "pflicht",
+        "hinweis": "Besonders Telefonnummern und URLs",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Telefonnummer und Website korrekt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Entwurf per Mail an Kunden gesendet",
+        "kat": "pflicht",
+        "hinweis": "E-Mail mit Vorschau-PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Schriftliche Freigabe vom Kunden erhalten",
+        "kat": "pflicht",
+        "hinweis": "E-Mail oder unterschriebenes PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Freigabe-Datum im Auftrag vermerkt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei aus Entwurfsdatei exportiert",
+        "kat": "pflicht",
+        "hinweis": "Separate Druckdatei erstellen",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-020",
+    "auftragId": "AU-2026-038",
+    "fz": "Tram 103",
+    "kunde": "Stadt Essen",
+    "schritt": "druck",
+    "typ": "optional",
+    "titel": "Druck / Plot — Tram 103",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 3,
+    "dauerGesamt": 3,
+    "tagBlock": null,
+    "datum": "2026-03-25",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.267Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-021",
+    "auftragId": "AU-2026-038",
+    "fz": "Tram 103",
+    "kunde": "Stadt Essen",
+    "schritt": "laminat",
+    "typ": "optional",
+    "titel": "Laminat / Schnitt — Tram 103",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-25",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.267Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-022",
+    "auftragId": "AU-2026-038",
+    "fz": "Tram 103",
+    "kunde": "Stadt Essen",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Tram 103",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK"
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-03-25",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.267Z",
+    "checkliste": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-023",
+    "auftragId": "AU-2026-038",
+    "fz": "Tram 103",
+    "kunde": "Stadt Essen",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Tram 103",
+    "maId": "OK",
+    "ma": "Okan",
+    "maIds": [
+      "OK"
+    ],
+    "dauer": 0.5,
+    "dauerGesamt": 0.5,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.267Z",
+    "checkliste": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-024",
+    "auftragId": "AU-2026-037",
+    "fz": "Bus 501",
+    "kunde": "NRZ",
+    "schritt": "grafik",
+    "typ": "optional",
+    "titel": "Grafik / Entwurf — Bus 501",
+    "maId": "ME",
+    "ma": "Melanie",
+    "maIds": [
+      "ME"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.274Z",
+    "checkliste": [
+      {
+        "text": "Kundenlogo und CI-Farben laut Vorgabe",
+        "kat": "pflicht",
+        "hinweis": "Pantone oder HEX-Wert vom Kunden",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Texte auf Rechtschreibfehler geprüft",
+        "kat": "pflicht",
+        "hinweis": "Besonders Telefonnummern und URLs",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Telefonnummer und Website korrekt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Entwurf per Mail an Kunden gesendet",
+        "kat": "pflicht",
+        "hinweis": "E-Mail mit Vorschau-PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Schriftliche Freigabe vom Kunden erhalten",
+        "kat": "pflicht",
+        "hinweis": "E-Mail oder unterschriebenes PDF",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Freigabe-Datum im Auftrag vermerkt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei aus Entwurfsdatei exportiert",
+        "kat": "pflicht",
+        "hinweis": "Separate Druckdatei erstellen",
+        "quelle": "Grafik Freigabe",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-025",
+    "auftragId": "AU-2026-037",
+    "fz": "Bus 501",
+    "kunde": "NRZ",
+    "schritt": "druck",
+    "typ": "optional",
+    "titel": "Druck / Plot — Bus 501",
+    "maId": "MO",
+    "ma": "Mohammed",
+    "maIds": [
+      "MO"
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.274Z",
+    "checkliste": [
+      {
+        "text": "Druckdatei: Auflösung min. 72 dpi bei 100%",
+        "kat": "pflicht",
+        "hinweis": "Für Schilder min. 150 dpi",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckdatei: Farbraum CMYK oder RGB geprüft",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Maße korrekt (Breite x Höhe bestätigt)",
+        "kat": "pflicht",
+        "hinweis": "Mit Kundenanfrage abgleichen",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Druckergebnisse farblich geprüft",
+        "kat": "pflicht",
+        "hinweis": "Probeabzug bei kritischen Farben",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Schnitt und Zuschnitt korrekt",
+        "kat": "pflicht",
+        "hinweis": "Randabfall entfernt",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Ware unbeschädigt verpackt",
+        "kat": "pflicht",
+        "hinweis": "Schutzfolie, Karton oder Röhre",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      },
+      {
+        "text": "Lieferschein mit Ware beiliegend",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Digitaldruck und Schilder",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-026",
+    "auftragId": "AU-2026-037",
+    "fz": "Bus 501",
+    "kunde": "NRZ",
+    "schritt": "laminat",
+    "typ": "optional",
+    "titel": "Laminat / Schnitt — Bus 501",
+    "maId": "SE",
+    "ma": "Selim",
+    "maIds": [
+      "SE"
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.274Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-027",
+    "auftragId": "AU-2026-037",
+    "fz": "Bus 501",
+    "kunde": "NRZ",
+    "schritt": "montage",
+    "typ": "multi",
+    "titel": "Montage — Bus 501",
+    "maId": "MT",
+    "ma": "Mete",
+    "maIds": [
+      "MT"
+    ],
+    "dauer": 3,
+    "dauerGesamt": 3,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.274Z",
+    "checkliste": [
+      {
+        "text": "Material und Auftrag geprüft und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Auftragsnummer, Menge und Material vor Ort bestätigen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeuge vollständig (Rakel, Messer, Heißluft, Leiter)",
+        "kat": "pflicht",
+        "hinweis": "Alle Werkzeuge vor Fahrt prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeugdaten geprüft (Busnummer / Typ / Seiten)",
+        "kat": "pflicht",
+        "hinweis": "Stimmt der Bus mit dem Auftrag überein?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden dokumentiert (Fotos gemacht)",
+        "kat": "foto",
+        "hinweis": "Pflichtfotos aller Vorschäden vor Montagestart",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug grob gereinigt",
+        "kat": "pflicht",
+        "hinweis": "Staub, Schmutz und lose Partikel entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Oberfläche entfettet (IPA)",
+        "kat": "pflicht",
+        "hinweis": "IPA 70% vollflächig auf alle Montagebereiche",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Drucke vollständig eingepackt / vorhanden",
+        "kat": "pflicht",
+        "hinweis": "Alle Bahnen, Sektionen und Folienrollen prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bauteile geprüft (alle Teile vorhanden und beschriftet)",
+        "kat": "pflicht",
+        "hinweis": "Beschriftung mit Auftragsplan abgleichen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Montageplan klar (Reihenfolge / Aufteilung)",
+        "kat": "pflicht",
+        "hinweis": "Welche Seite zuerst? Reihenfolge mit Team besprechen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Bezugspunkte festgelegt (gerade Ausrichtung)",
+        "kat": "pflicht",
+        "hinweis": "Horizontale und vertikale Referenzlinien markieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fensterfolie (OWV) zuerst montiert (Sichtseite beachten!)",
+        "kat": "pflicht",
+        "hinweis": "Sichtseite nach außen — Druckseite nach innen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folie korrekt positioniert (keine Schiefstellung)",
+        "kat": "pflicht",
+        "hinweis": "Ausrichtung vor endgültigem Verkleben prüfen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Schrittweise verklebt (keine Spannung / keine Überdehnung)",
+        "kat": "pflicht",
+        "hinweis": "Von der Mitte nach außen rakeln",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Luftblasen sauber ausgerakelt",
+        "kat": "pflicht",
+        "hinweis": "Kleinstblasen mit Nadel stechen falls nötig",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Überlappungen korrekt gesetzt",
+        "kat": "pflicht",
+        "hinweis": "Mind. 5mm Überlapp, Richtung immer gleich",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Türbereiche sauber geschnitten (Spaltmaß beachten)",
+        "kat": "pflicht",
+        "hinweis": "Schnittiefe: nur Folie, nicht Lack",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Gummis und Dichtungen sauber verarbeitet",
+        "kat": "pflicht",
+        "hinweis": "Folie unter Gummi schieben oder sauber einschneiden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kameras, Sensoren und Displays freigelassen",
+        "kat": "pflicht",
+        "hinweis": "Keine Folie über Sensorik oder Kameras",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Lüftungsgitter NICHT beklebt",
+        "kat": "pflicht",
+        "hinweis": "Luftzirkulation muss gewährleistet bleiben",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten sauber nachgeschnitten",
+        "kat": "pflicht",
+        "hinweis": "Alle überstehenden Folienränder entfernen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kanten mit Heißluft nachversiegelt (Post-Heaten!)",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten und Übergänge heiß nachversiegeln — PFLICHT",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Folienübergänge geprüft",
+        "kat": "pflicht",
+        "hinweis": "Keine Ablösung, keine Falten an Übergängen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Piktogramme und Hinweise freigelegt",
+        "kat": "pflicht",
+        "hinweis": "Hebezeichen, Luftmenge, Batterieanzeige, Fahrzeugnummer",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Fahrzeug gereinigt (keine Klebereste / Fingerabdrücke)",
+        "kat": "pflicht",
+        "hinweis": "Oberfläche mit sauberem Mikrofasertuch nachpolieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorher-Fotos vorhanden (inkl. Vorschäden)",
+        "kat": "foto",
+        "hinweis": "Vor Montagestart: alle Seiten + Vorschäden",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Nachher-Fotos komplett (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Seiten nach Fertigstellung",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos (Kanten, Übergänge, kritische Stellen)",
+        "kat": "foto",
+        "hinweis": "Türkanten, Dachkanten, Übergänge fotografieren",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfoto Gesamtansicht",
+        "kat": "foto",
+        "hinweis": "1 vollständiges Rundum-Foto des fertigen Fahrzeugs",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Vorschäden-Foto vor Montage hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern unter Fotos hochladen — PFLICHT VOR START",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Post-Heaten durchgeführt und bestätigt",
+        "kat": "pflicht",
+        "hinweis": "Alle Kanten wurden heiß nachversiegelt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abschlussfotos vollständig hochgeladen",
+        "kat": "pflicht",
+        "hinweis": "Alle Seiten und Detailfotos in CC Intern",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Qualitätskontrolle durchgeführt",
+        "kat": "pflicht",
+        "hinweis": "Gesamtbild aus 5m Abstand — keine Fehler sichtbar?",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Abnahmeprotokoll digital unterschrieben",
+        "kat": "pflicht",
+        "hinweis": "Digitale Unterschrift in CC Intern oder per E-Mail",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Kunde informiert (Fertigmeldung)",
+        "kat": "pflicht",
+        "hinweis": "Telefonisch oder per WhatsApp — Übergabezeitpunkt",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Startzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage starten",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      },
+      {
+        "text": "Endzeit erfasst",
+        "kat": "pflicht",
+        "hinweis": "In CC Intern Zeiterfassung: Montage stoppen",
+        "quelle": "Montage Busbeklebung",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-028",
+    "auftragId": "AU-2026-037",
+    "fz": "Bus 501",
+    "kunde": "NRZ",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 501",
+    "maId": "MT",
+    "ma": "Mete",
+    "maIds": [
+      "MT"
+    ],
+    "dauer": 0.5,
+    "dauerGesamt": 0.5,
+    "tagBlock": null,
+    "datum": "2026-03-26",
+    "status": "offen",
+    "erstellt": "2026-04-06T20:56:23.274Z",
+    "checkliste": [
+      {
+        "text": "Montagefotos Gesamtansicht (alle Seiten)",
+        "kat": "foto",
+        "hinweis": "Mindestens 4 Fotos für FUSA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Detailfotos Kanten und Übergänge",
+        "kat": "foto",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Nummernschild oder Kennzeichen lesbar",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugidentifikation sichergestellt",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Depot-E-Mail mit Fotos versandt",
+        "kat": "pflicht",
+        "hinweis": "An die zuständige Depot-Adresse",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Abrechnungsdaten an Zint gesendet",
+        "kat": "pflicht",
+        "hinweis": "Fahrzeugnummer, Datum, Auftragsnr.",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Werkzeug vollständig eingepackt",
+        "kat": "pflicht",
+        "hinweis": "Rakeln, Cutter, Heißluft, IPA",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Arbeitsbereich gereinigt",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      },
+      {
+        "text": "Auftrag in CC Intern als Fertig markiert",
+        "kat": "pflicht",
+        "hinweis": "",
+        "quelle": "Abnahme und Dokumentation",
+        "erledigt": false
+      }
+    ]
+  },
+  {
+    "id": "IA-2026-029",
+    "auftragId": "AU-2026-042",
+    "fz": "Bus 100",
+    "kunde": "Kunde A",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 100",
+    "maId": null,
+    "ma": "Okan",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.493Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-030",
+    "auftragId": "AU-2026-042",
+    "fz": "Bus 100",
+    "kunde": "Kunde A",
+    "schritt": "druck",
+    "typ": "single",
+    "titel": "Druck / Plot — Bus 100",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.493Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-031",
+    "auftragId": "AU-2026-042",
+    "fz": "Bus 100",
+    "kunde": "Kunde A",
+    "schritt": "laminat",
+    "typ": "single",
+    "titel": "Laminat / Schnitt — Bus 100",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.493Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-032",
+    "auftragId": "AU-2026-042",
+    "fz": "Bus 100",
+    "kunde": "Kunde A",
+    "schritt": "montage",
+    "typ": "single",
+    "titel": "Montage — Bus 100",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.493Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-033",
+    "auftragId": "AU-2026-042",
+    "fz": "Bus 100",
+    "kunde": "Kunde A",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 100",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.493Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-034",
+    "auftragId": "AU-2026-043",
+    "fz": "Bus 200",
+    "kunde": "Kunde B",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 200",
+    "maId": null,
+    "ma": "Mete",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.497Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-035",
+    "auftragId": "AU-2026-043",
+    "fz": "Bus 200",
+    "kunde": "Kunde B",
+    "schritt": "druck",
+    "typ": "single",
+    "titel": "Druck / Plot — Bus 200",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.497Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-036",
+    "auftragId": "AU-2026-043",
+    "fz": "Bus 200",
+    "kunde": "Kunde B",
+    "schritt": "laminat",
+    "typ": "single",
+    "titel": "Laminat / Schnitt — Bus 200",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.497Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-037",
+    "auftragId": "AU-2026-043",
+    "fz": "Bus 200",
+    "kunde": "Kunde B",
+    "schritt": "montage",
+    "typ": "single",
+    "titel": "Montage — Bus 200",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.497Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-038",
+    "auftragId": "AU-2026-043",
+    "fz": "Bus 200",
+    "kunde": "Kunde B",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 200",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.497Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-039",
+    "auftragId": "AU-2026-044",
+    "fz": "Bus 300",
+    "kunde": "Kunde C",
+    "schritt": "grafik",
+    "typ": "single",
+    "titel": "Grafik / Entwurf — Bus 300",
+    "maId": null,
+    "ma": "Ilayda",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.500Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-040",
+    "auftragId": "AU-2026-044",
+    "fz": "Bus 300",
+    "kunde": "Kunde C",
+    "schritt": "druck",
+    "typ": "single",
+    "titel": "Druck / Plot — Bus 300",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 2,
+    "dauerGesamt": 2,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.500Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-041",
+    "auftragId": "AU-2026-044",
+    "fz": "Bus 300",
+    "kunde": "Kunde C",
+    "schritt": "laminat",
+    "typ": "single",
+    "titel": "Laminat / Schnitt — Bus 300",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.500Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-042",
+    "auftragId": "AU-2026-044",
+    "fz": "Bus 300",
+    "kunde": "Kunde C",
+    "schritt": "montage",
+    "typ": "single",
+    "titel": "Montage — Bus 300",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 4,
+    "dauerGesamt": 4,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.500Z",
+    "checkliste": []
+  },
+  {
+    "id": "IA-2026-043",
+    "auftragId": "AU-2026-044",
+    "fz": "Bus 300",
+    "kunde": "Kunde C",
+    "schritt": "doku",
+    "typ": "single",
+    "titel": "Dokumentation — Bus 300",
+    "maId": null,
+    "ma": "—",
+    "maIds": [
+      null
+    ],
+    "dauer": 1,
+    "dauerGesamt": 1,
+    "tagBlock": null,
+    "datum": "2026-04-07",
+    "status": "offen",
+    "erstellt": "2026-04-07T09:43:38.500Z",
+    "checkliste": []
+  }
+]

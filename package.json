@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "cc-cockpit",
+  "type": "module",
+  "scripts": {
+    "serve:frontend": "npx --yes serve frontend -l 5370"
+  }
+}
