@@ -13,10 +13,231 @@ var MOB_AUFTRAG_UI_IV = null;
 var MOB_AKTIV_TAB = 'home';
 var MOB_AKTIV_AUF = null; // aktuell geöffneter Auftrag
 
+/** Echter App-only-Login (kein Desktop-Test-Dropdown). */
+function mobIsRealMaAppSession() {
+  try {
+    if (typeof window !== 'undefined') {
+      if (window.__CCINTERN_MITARBEITER_APP_BOOT__ === true) return true;
+      if (window.CC_SHELL_UI_ACCESS && window.CC_SHELL_UI_ACCESS.isMitarbeiterAppOnlyShell === true) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+function mobNormalizeEmail(em) {
+  return String(em || '').trim().toLowerCase();
+}
+
+/**
+ * Eingeloggten Cockpit-User → MA_DATA-Eintrag (für MOB_MA_ID / Aufgabenfilter).
+ * @param {string|null|undefined} cockpitUserId
+ * @returns {{ userId: string, email: string, name: string, matched: object|null, matchVia: string, workingMaId: string, matchedName: string, matchedKuerzel: string, ok: boolean }}
+ */
+function mobResolveLoggedInMitarbeiter(cockpitUserId) {
+  var userId = cockpitUserId != null ? String(cockpitUserId).trim() : '';
+  if (!userId && typeof window !== 'undefined' && window.CURRENT_USER_ID != null) {
+    userId = String(window.CURRENT_USER_ID).trim();
+  }
+  var email = '';
+  var name = '';
+  if (typeof window !== 'undefined' && window.CURRENT_USER_NAME != null) {
+    name = String(window.CURRENT_USER_NAME).trim();
+  }
+  if (typeof window !== 'undefined' && window.COCKPIT_USERS && Array.isArray(window.COCKPIT_USERS)) {
+    for (var ui = 0; ui < window.COCKPIT_USERS.length; ui++) {
+      var u = window.COCKPIT_USERS[ui];
+      if (!u || u.id == null || String(u.id).trim() !== userId) continue;
+      if (u.email != null && String(u.email).trim() !== '') email = String(u.email).trim();
+      if (u.name != null && String(u.name).trim() !== '') name = String(u.name).trim();
+      break;
+    }
+  }
+  var matched = null;
+  var matchVia = '';
+  if (typeof MA_DATA !== 'undefined' && MA_DATA && MA_DATA.length && userId) {
+    var j;
+    var m;
+    for (j = 0; j < MA_DATA.length; j++) {
+      m = MA_DATA[j];
+      if (!m) continue;
+      if (m.id != null && String(m.id).trim() === userId) {
+        matched = m;
+        matchVia = 'user_id';
+        break;
+      }
+      if (m.user_id != null && String(m.user_id).trim() === userId) {
+        matched = m;
+        matchVia = 'user_id';
+        break;
+      }
+    }
+    if (!matched && email) {
+      var emL = mobNormalizeEmail(email);
+      for (j = 0; j < MA_DATA.length; j++) {
+        m = MA_DATA[j];
+        if (!m || !m.email) continue;
+        if (mobNormalizeEmail(m.email) === emL) {
+          matched = m;
+          matchVia = 'email';
+          break;
+        }
+      }
+    }
+    if (!matched && name) {
+      var nL = name.toLowerCase();
+      for (j = 0; j < MA_DATA.length; j++) {
+        m = MA_DATA[j];
+        if (!m || !m.n) continue;
+        if (String(m.n).trim().toLowerCase() === nL) {
+          matched = m;
+          matchVia = 'name';
+          break;
+        }
+      }
+    }
+    if (!matched && typeof maDataFindByWorkflowKey === 'function') {
+      var hit = maDataFindByWorkflowKey(userId);
+      if (hit) {
+        matched = hit;
+        matchVia = 'workflow_key';
+      }
+    }
+    if (!matched && email && typeof maDataFindByWorkflowKey === 'function') {
+      var local = email.split('@')[0];
+      if (local) {
+        hit = maDataFindByWorkflowKey(local);
+        if (hit) {
+          matched = hit;
+          matchVia = 'email_local';
+        }
+      }
+    }
+  }
+  if (!matched && userId && typeof window !== 'undefined' && window.COCKPIT_USERS && Array.isArray(window.COCKPIT_USERS)) {
+    for (var cu = 0; cu < window.COCKPIT_USERS.length; cu++) {
+      var row = window.COCKPIT_USERS[cu];
+      if (!row || row.id == null || String(row.id).trim() !== userId) continue;
+      var disp =
+        row.name != null && String(row.name).trim() !== ''
+          ? String(row.name).trim()
+          : name || (email && email.indexOf('@') > 0 ? email.split('@')[0] : 'Mitarbeiter');
+      var k0 = row.kuerzel != null ? String(row.kuerzel).trim().toUpperCase() : '';
+      matched = {
+        id: row.id,
+        maId: String(row.id),
+        n: disp,
+        name: disp,
+        k: k0,
+        email: row.email != null ? String(row.email) : email,
+        av: k0 || '?',
+        col: '#1565C0',
+      };
+      matchVia = 'cockpit_users';
+      break;
+    }
+  }
+  // Führend: users.id (wie Desktop / ARCHITEKTUR_REGEL §14) — kein Stamm-UUID/Kürzel als MOB_MA_ID.
+  var workingMaId = '';
+  if (matched) {
+    if (matched.id != null && String(matched.id).trim() !== '') {
+      workingMaId = String(matched.id).trim();
+    } else if (matched.maId != null && String(matched.maId).trim() !== '') {
+      workingMaId = String(matched.maId).trim();
+    } else if (matched.k != null && String(matched.k).trim() !== '') {
+      workingMaId = String(matched.k).trim().toUpperCase();
+    } else if (matched.mitarbeiter_id != null && String(matched.mitarbeiter_id).trim() !== '') {
+      workingMaId = String(matched.mitarbeiter_id).trim();
+    }
+  } else if (userId) {
+    workingMaId = userId;
+  }
+  var matchedName = matched ? String(matched.n || matched.name || '').trim() : name;
+  var matchedKuerzel = matched && matched.k != null ? String(matched.k).trim() : '';
+  return {
+    userId: userId,
+    email: email,
+    name: name,
+    matched: matched,
+    matchVia: matchVia,
+    workingMaId: workingMaId,
+    matchedName: matchedName,
+    matchedKuerzel: matchedKuerzel,
+    ok: !!(userId && workingMaId),
+  };
+}
+
+/** Nur Diagnose-Logs: Stamm-`mitarbeiter_id` aus MA_DATA (API nutzt `postUrlaubAntragFromUi` → users.id). */
+function mobMaStammIdForApi() {
+  var mid = MOB_MA_ID;
+  if (mid == null || String(mid).trim() === '') return '';
+  var m = typeof maByID === 'function' ? maByID(String(mid).trim()) : null;
+  if (m && m.mitarbeiter_id != null && String(m.mitarbeiter_id).trim() !== '') {
+    return String(m.mitarbeiter_id).trim();
+  }
+  if (typeof maDataFindByWorkflowKey === 'function') {
+    var hit = maDataFindByWorkflowKey(String(mid).trim());
+    if (hit && hit.mitarbeiter_id != null && String(hit.mitarbeiter_id).trim() !== '') {
+      return String(hit.mitarbeiter_id).trim();
+    }
+  }
+  return String(mid).trim();
+}
+
+/** Nur geänderten Auftrag speichern (gleicher Pfad wie Desktop: persistAuftraegeImmediate / runSaveAuftraege mit auftragId). */
+function mobSaveAuftrag(auId, showToast){
+  if(auId == null || String(auId).trim() === '') return Promise.resolve();
+  var api = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+  if(api && typeof api.persistAuftraegeImmediate === 'function'){
+    return api.persistAuftraegeImmediate(showToast || null, auId);
+  }
+  if(typeof saveAuftraege === 'function'){
+    saveAuftraege(showToast || null, auId);
+  }
+  return Promise.resolve();
+}
+
+function mobSyncMaAppTestBarVisibility() {
+  var row = typeof document !== 'undefined' ? document.getElementById('cc-mob-testrow') : null;
+  if (!(row instanceof HTMLElement)) return;
+  if (mobIsRealMaAppSession()) {
+    row.style.display = 'none';
+    row.setAttribute('aria-hidden', 'true');
+  } else {
+    row.style.display = '';
+    row.removeAttribute('aria-hidden');
+  }
+}
+
 // ── Init beim Seitenwechsel ──────────────────────
 function mobInit(){
   mobUhrStart();
   mobDatum();
+  mobSyncMaAppTestBarVisibility();
+  if (mobIsRealMaAppSession()) {
+    if (typeof window !== 'undefined') window.__MOB_MOB_INIT_ACTIVE__ = true;
+    if (typeof ccMobTestClear === 'function') ccMobTestClear();
+    var appUid =
+      typeof window !== 'undefined' && window.CURRENT_USER_ID != null
+        ? String(window.CURRENT_USER_ID).trim()
+        : '';
+    if (appUid && typeof mobApplyCockpitUser === 'function') {
+      mobApplyCockpitUser(appUid);
+    }
+    if (MOB_MA_ID) {
+      if (typeof window !== 'undefined') window.__MOB_AUFTRAG_RESTORE_TRIGGERED__ = true;
+      mobZeitRestore(function () {
+        mobRestoreAuftragArbeitszeit(function () {
+          mobRenderHome();
+          mobTab('home');
+        });
+      });
+      if (typeof window !== 'undefined') window.__MOB_MOB_INIT_ACTIVE__ = false;
+      return;
+    }
+    if (typeof window !== 'undefined') window.__MOB_MOB_INIT_ACTIVE__ = false;
+    mobZeigeLogin();
+    return;
+  }
   if (typeof ccMobTestRestoreFromSession === 'function') {
     ccMobTestRestoreFromSession();
   }
@@ -31,15 +252,31 @@ function mobInit(){
     mobZeigeLogin(); return;
   }
   mobSetMA(MOB_MA_ID);
-  mobZeitRestore(); // Timer-Status nach Reload wiederherstellen
-  mobRenderHome();
-  mobTab('home');
+  if (typeof window !== 'undefined') window.__MOB_AUFTRAG_RESTORE_TRIGGERED__ = true;
+  mobZeitRestore(function () {
+    mobRestoreAuftragArbeitszeit(function () {
+      mobRenderHome();
+      mobTab('home');
+    });
+  });
   setTimeout(function () { if (typeof window.ccMobTestBarPopulate === 'function') { window.ccMobTestBarPopulate(0); } }, 0);
 }
 
 // ── Login: MA-Auswahl beim ersten Start ─────────
 function mobZeigeLogin(){
   var hEl=document.getElementById('mob-hallo');
+  if (mobIsRealMaAppSession()) {
+    if (hEl) hEl.textContent = 'Mitarbeiter-Zuordnung fehlt';
+    var homeDivApp = document.getElementById('mob-auftraege');
+    if (homeDivApp) {
+      homeDivApp.innerHTML =
+        '<div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">'
+        + '<p style="margin:0;font-size:14px;color:#1C1C1E;line-height:1.45;">Dein Zugang konnte keinem Mitarbeiter-Stammdatensatz zugeordnet werden. Bitte Administrator kontaktieren (Stamm / Kürzel / user_id).</p>'
+        + '<p style="margin:10px 0 0;font-size:12px;color:#8E8E93;">Konsole: <code>[MA-APP USER MATCH FEHLT]</code></p>'
+        + '</div>';
+    }
+    return;
+  }
   if(hEl) hEl.textContent='Wer bist du? 👋';
   var avEl=document.getElementById('mob-avatar');
   if(avEl){ avEl.textContent='?'; avEl.style.background='rgba(255,255,255,.2)'; }
@@ -117,6 +354,99 @@ function mobAuftragIdsGleich(aid1, aid2){
   return aid1 == aid2 || String(aid1) === String(aid2);
 }
 
+/** Auftrag in RAM (id / ccApiId / auftragsnummer-tolerant). */
+function mobFindAuftragInRam(auId){
+  if(auId == null || typeof AUFTRAEGE === 'undefined' || !Array.isArray(AUFTRAEGE) || !AUFTRAEGE.length) return null;
+  var key = String(auId).trim();
+  if(!key) return null;
+  var found = AUFTRAEGE.find(function(x){
+    return x && mobAuftragIdsGleich(x.id, auId);
+  });
+  if(found) return found;
+  var byApi = AUFTRAEGE.find(function(x){
+    if(!x || !x.ccApiId) return false;
+    return String(x.ccApiId).trim() === key;
+  });
+  if(byApi) return byApi;
+  return AUFTRAEGE.find(function(x){
+    if(!x) return false;
+    var nr = x.auftragsnummer != null ? String(x.auftragsnummer).trim() : '';
+    return nr && nr === key;
+  }) || null;
+}
+
+/** Stamm-, User-UUID und Kürzel für Schritt-Zuordnung (MOB_MA_ID kann Stamm-UUID sein). */
+function mobWorkflowMaMatchKeys(maId){
+  var keys = [];
+  var seen = {};
+  function add(k){
+    var s = k != null ? String(k).trim() : '';
+    if(!s || seen[s]) return;
+    seen[s] = true;
+    keys.push(s);
+  }
+  add(maId);
+  if(typeof ccInternCollectMaMatchKeys === 'function'){
+    var ext = ccInternCollectMaMatchKeys(maId);
+    if(ext && ext.length){
+      for(var ei = 0; ei < ext.length; ei++) add(ext[ei]);
+    }
+  } else if(typeof maByID === 'function'){
+    var m = maByID(maId);
+    if(m){
+      add(m.id);
+      add(m.maId);
+      add(m.mitarbeiter_id);
+      if(m.k) add(String(m.k).trim().toUpperCase());
+    }
+  }
+  try {
+    if(typeof window !== 'undefined' && window.CURRENT_USER_ID != null){
+      add(window.CURRENT_USER_ID);
+    }
+  } catch(eUid){ void eUid; }
+  return keys;
+}
+
+/** Diagnose: warum ein Auftrag in mobMeineWorkflowAufgaben enthalten ist oder nicht. */
+function maAssignMatchEvaluate(a, maId){
+  if(!a) return { included: false, reason: 'no-auftrag' };
+  var pool = !!mobAuftragIstCcInternProduktionsPool(a);
+  if(!pool){
+    var reason = 'not-in-pool';
+    if(a.archiv) reason = 'archiv';
+    else if(!a.step || mobCanonicalWorkflowStep(a.step) === '') reason = 'no-step';
+    else if(!a.schritte || typeof a.schritte !== 'object') reason = 'no-schritte';
+    else reason = 'no-schritt-objekt';
+    return {
+      auftragId: a.id,
+      ccApiId: a.ccApiId || null,
+      included: false,
+      reason: reason,
+      step: a.step,
+      schritteKeys: a.schritte ? Object.keys(a.schritte) : [],
+    };
+  }
+  var sch = mobSchrittObjektFuerAuftragUndStep(a, a.step);
+  var roh = (sch && typeof ccInternSchrittSammleMitarbeiterRohwerte === 'function')
+    ? ccInternSchrittSammleMitarbeiterRohwerte(sch) : [];
+  var match = !!(typeof mobAuftragSchrittIstFuerMa === 'function' && mobAuftragSchrittIstFuerMa(a, a.step, maId));
+  return {
+    auftragId: a.id,
+    ccApiId: a.ccApiId || null,
+    included: match,
+    reason: match ? 'step-match' : 'step-no-match',
+    mobMaId: maId,
+    matchKeys: mobWorkflowMaMatchKeys(maId),
+    step: a.step,
+    schRohwerte: roh,
+    schMaId: sch && sch.maId != null ? sch.maId : null,
+    schWer: sch && sch.wer != null ? sch.wer : null,
+    schMaIds: sch && Array.isArray(sch.maIds) ? sch.maIds : [],
+    kommentareLength: Array.isArray(a.kommentare) ? a.kommentare.length : 0,
+  };
+}
+
 function mobTaskStatusNorm(status){
   var s = status != null ? String(status).trim() : '';
   if(s === 'erledigt') return 'fertig';
@@ -136,6 +466,23 @@ function mobCcinternCockpitMount(){
   } catch (e) {
     return false;
   }
+}
+
+/** MA-App (Cockpit-Mount): INTERN_AUFGABEN-Bulk-POST ist deaktiviert — Aufgaben aus AUFTRAEGE-Workflow. */
+function mobShouldSkipInternAufgabenBulkPost(){
+  return mobIsRealMaAppSession() && mobCcinternCockpitMount();
+}
+
+function mobAuftragRestoreSetRunning(on){
+  if(typeof window === 'undefined') return;
+  if(on) window.__MOB_AUFTRAG_RESTORE_RUNNING__ = true;
+  else window.__MOB_AUFTRAG_RESTORE_RUNNING__ = false;
+}
+
+/** @param {function(): void} [done] */
+function mobAuftragRestoreFinish(done){
+  mobAuftragRestoreSetRunning(false);
+  if(typeof done === 'function') done();
 }
 
 function mobWorkflowSchrittReihenfolge(){
@@ -258,6 +605,141 @@ function mobRefreshNachInternZeit(auId){
   }
 }
 
+/** Server-Auftrags-Arbeit (Phase 2B) — Cache für Restore / Karten. */
+function mobGetAuftragArbeitsSessionCached(){
+  return typeof window !== 'undefined' ? window.__MOB_AUFTRAG_ARBEITS_SESSION__ : null;
+}
+
+function mobClearAuftragArbeitsSessionCache(){
+  if(typeof window !== 'undefined') window.__MOB_AUFTRAG_ARBEITS_SESSION__ = null;
+}
+
+function mobCcApiIdForAuftrag(auId){
+  var a = typeof AUFTRAEGE !== 'undefined'
+    ? AUFTRAEGE.find(function(x){ return mobAuftragIdsGleich(x.id, auId); })
+    : null;
+  if(a && a.ccApiId != null && String(a.ccApiId).trim() !== '') return String(a.ccApiId).trim();
+  return auId != null ? String(auId).trim() : '';
+}
+
+function mobResolveUiAuftragIdFromApiId(apiAuftragId){
+  var key = apiAuftragId != null ? String(apiAuftragId).trim() : '';
+  if(!key) return '';
+  var hit = mobFindAuftragInRam(key);
+  if(hit && hit.id != null) return String(hit.id).trim();
+  return key;
+}
+
+/** Session-Auftrag_id (UUID) ↔ Karten-id / ccApiId / Auftragsnummer. */
+function mobSessionPasstZuAuftragSchritt(auId, stepRaw, sess){
+  if(!sess || (sess.status !== 'running' && sess.status !== 'paused')) return false;
+  var sc = mobCanonicalWorkflowStep(stepRaw || '');
+  if(mobCanonicalWorkflowStep(sess.schritt_key) !== sc) return false;
+  var apiId = sess.auftrag_id != null ? String(sess.auftrag_id).trim() : '';
+  if(!apiId) return false;
+  if(mobAuftragIdsGleich(auId, apiId)) return true;
+  var aCard = mobFindAuftragInRam(auId);
+  var aSess = mobFindAuftragInRam(apiId);
+  if(aCard && aSess && mobAuftragIdsGleich(aCard.id, aSess.id)) return true;
+  if(aCard && aCard.ccApiId != null && mobAuftragIdsGleich(String(aCard.ccApiId).trim(), apiId)) return true;
+  if(aSess && mobAuftragIdsGleich(aSess.id, auId)) return true;
+  return false;
+}
+
+function mobClearZeitAktivForMobMa(){
+  if(typeof ZEIT_AKTIV === 'undefined' || !ZEIT_AKTIV) return;
+  var parseFn = typeof window.zeitAktivParseAnyKey === 'function' ? window.zeitAktivParseAnyKey : null;
+  var mob = MOB_MA_ID ? String(MOB_MA_ID).trim() : '';
+  Object.keys(ZEIT_AKTIV).forEach(function(k){
+    var parsed = parseFn ? parseFn(k) : null;
+    if(!parsed) return;
+    if(mob && parsed.maId !== mob) return;
+    if(!mob && parsed.maId != null) return;
+    delete ZEIT_AKTIV[k];
+  });
+  if(typeof ZEIT_TICK_IV !== 'undefined' && ZEIT_TICK_IV && Object.keys(ZEIT_AKTIV).length === 0){
+    clearInterval(ZEIT_TICK_IV);
+    ZEIT_TICK_IV = null;
+  }
+}
+
+function mobAuftragArbeitsApiFail(action, err){
+  console.warn('[AUFTRAG_ARBEITSZEIT_' + String(action || 'API').toUpperCase() + '_FAIL]', err);
+  if(typeof showToast === 'function') showToast('⚠ Auftrags-Arbeit konnte nicht gespeichert werden');
+}
+
+/** Laufzeit ms für Anzeige (berücksichtigt Server-Pause). */
+function mobAuftragArbeitsElapsedMs(entry, sessionOpt){
+  if(!entry || !entry.start) return 0;
+  var gross = Math.max(0, Date.now() - entry.start.getTime());
+  var sess = sessionOpt || mobGetAuftragArbeitsSessionCached();
+  if(!sess) return gross;
+  var pauseSec = Math.max(0, Number(sess.pause_seconds) || 0);
+  if(sess.status === 'paused' && sess.pause_started_at){
+    var pAt = new Date(String(sess.pause_started_at));
+    if(!isNaN(pAt.getTime())) pauseSec += Math.floor((Date.now() - pAt.getTime()) / 1000);
+  }
+  return Math.max(0, gross - pauseSec * 1000);
+}
+
+/** Session vom Server → ZEIT_AKTIV + Cache (ohne zeitStart-Toast). */
+function mobApplyAuftragArbeitsSessionFromServer(session){
+  if(!session || (session.status !== 'running' && session.status !== 'paused')){
+    mobClearAuftragArbeitsSessionCache();
+    return false;
+  }
+  if(typeof window !== 'undefined') window.__MOB_AUFTRAG_ARBEITS_SESSION__ = session;
+  mobClearZeitAktivForMobMa();
+  var hit = mobFindAuftragInRam(session.auftrag_id);
+  var uiAuId = hit && hit.id != null
+    ? String(hit.id).trim()
+    : mobResolveUiAuftragIdFromApiId(session.auftrag_id);
+  var step = session.schritt_key != null ? String(session.schritt_key) : '';
+  if(!uiAuId || !step || typeof zeitAktivKey !== 'function') return false;
+  var started = new Date(String(session.started_at));
+  if(isNaN(started.getTime())) return;
+  var werMaId = MOB_MA_ID ? String(MOB_MA_ID).trim() : '';
+  var werName = werMaId;
+  if(typeof maByID === 'function'){
+    var mb = maByID(werMaId);
+    if(mb && mb.n) werName = String(mb.n).trim();
+  }
+  var key = zeitAktivKey(uiAuId, step);
+  ZEIT_AKTIV[key] = {
+    start: started,
+    wer: werName,
+    maId: werMaId,
+    alleWer: [werName],
+    auId: uiAuId,
+    step: step,
+  };
+  if(!ZEIT_TICK_IV && typeof zeitTick === 'function'){
+    ZEIT_TICK_IV = setInterval(zeitTick, 1000);
+  }
+  return true;
+}
+
+function mobInternZeitAfterStartLocal(auId, stepRaw){
+  if(mobCcinternCockpitMount()){
+    var a = typeof AUFTRAEGE !== 'undefined' ? AUFTRAEGE.find(function(x){ return mobAuftragIdsGleich(x.id, auId); }) : null;
+    var sch = a && mobSchrittObjektFuerAuftragUndStep(a, stepRaw);
+    if(sch && !mobSchrittIstErledigtFuerWorkflow(sch)){
+      sch.status = 'in_bearbeitung';
+      mobSaveAuftrag(auId);
+    }
+  } else {
+    var rows = mobInternAufgabenZeilenFuerMaUndSchritt(auId, stepRaw);
+    var changed = false;
+    rows.forEach(function(g){
+      if(mobTaskIstFertig(g)) return;
+      g.status = 'in_arbeit';
+      changed = true;
+    });
+    if(changed && typeof saveAufgaben === 'function') saveAufgaben();
+  }
+  mobRefreshNachInternZeit(auId);
+}
+
 /**
  * Auftrags-Zeiterfassung (ZEIT_AKTIV / zeitStart) + eigene INTERN-Aufgabe(n) des MA auf in_arbeit.
  * Nur Zeilen mit mobMaAufgabeIstFuerMa — Team bleibt unverändert.
@@ -268,33 +750,78 @@ function mobInternZeitStart(auId, stepRaw){
     if(typeof showToast === 'function') showToast('⛔ ' + (gate.grund || 'Wartet auf vorherige Schritte'));
     return false;
   }
-  if(typeof zeitStart === 'function') zeitStart(auId, stepRaw);
-  if(mobCcinternCockpitMount()){
-    var a = typeof AUFTRAEGE !== 'undefined' ? AUFTRAEGE.find(function(x){ return mobAuftragIdsGleich(x.id, auId); }) : null;
-    var sch = a && mobSchrittObjektFuerAuftragUndStep(a, stepRaw);
-    if(sch && !mobSchrittIstErledigtFuerWorkflow(sch)){
-      sch.status = 'in_bearbeitung';
-      if(typeof saveAuftraege === 'function') saveAuftraege();
-    }
-    mobRefreshNachInternZeit(auId);
+  var api = mobZeitApi();
+  var ccId = mobCcApiIdForAuftrag(auId);
+  var schrittKey = mobCanonicalWorkflowStep(stepRaw || '');
+  if(api && typeof api.postAuftragArbeitszeitStart === 'function' && ccId && schrittKey){
+    api.postAuftragArbeitszeitStart(ccId, schrittKey).then(function(session){
+      mobApplyAuftragArbeitsSessionFromServer(session);
+      mobInternZeitAfterStartLocal(auId, stepRaw);
+    }).catch(function(e){ mobAuftragArbeitsApiFail('start', e); });
     return true;
   }
-  var rows = mobInternAufgabenZeilenFuerMaUndSchritt(auId, stepRaw);
-  var changed = false;
-  rows.forEach(function(g){
-    if(mobTaskIstFertig(g)) return;
-    g.status = 'in_arbeit';
-    changed = true;
-  });
-  if(changed && typeof saveAufgaben === 'function') saveAufgaben();
-  mobRefreshNachInternZeit(auId);
+  if(typeof zeitStart === 'function') zeitStart(auId, stepRaw);
+  mobInternZeitAfterStartLocal(auId, stepRaw);
   return true;
+}
+
+/** Server-Zeitbuchung in RAM (AUFTRAEGE.zeiten) — gleiche Quelle wie Mitarbeiter-Detail. */
+function mobMergeZeitbuchungInRam(auId, zeitbuchung){
+  if(!zeitbuchung || typeof zeitbuchung !== 'object') return;
+  var a = mobFindAuftragInRam(auId);
+  if(!a) return;
+  if(!Array.isArray(a.zeiten)) a.zeiten = [];
+  var step = mobCanonicalWorkflowStep(zeitbuchung.step || '');
+  var maId = zeitbuchung.maId != null ? String(zeitbuchung.maId).trim() : '';
+  var dup = a.zeiten.some(function(z){
+    return z && mobCanonicalWorkflowStep(z.step) === step
+      && String(z.start || '') === String(zeitbuchung.start || '')
+      && String(z.end || '') === String(zeitbuchung.end || '')
+      && (maId ? String(z.maId || '') === maId : true);
+  });
+  if(dup) return;
+  a.zeiten.push({
+    step: step,
+    wer: zeitbuchung.wer != null ? String(zeitbuchung.wer) : '',
+    maId: maId,
+    start: zeitbuchung.start != null ? String(zeitbuchung.start) : '',
+    end: zeitbuchung.end != null ? String(zeitbuchung.end) : '',
+    dauer: Math.max(1, Math.round(Number(zeitbuchung.dauer) || 1)),
+  });
+  console.info('[AUFTRAG_ZEIT_LOCAL_WRITE]', { auId: a.id, zeiten_count: a.zeiten.length, step: step, maId: maId });
 }
 
 /** Stop: nur Timer stoppen; Aufgaben-Status bleibt in_arbeit (Regel). */
 function mobInternZeitStop(auId, stepRaw){
-  mobStopAuftragsZeitFallsLaeuft(auId, stepRaw);
-  mobRefreshNachInternZeit(auId);
+  console.info('[AUFTRAG_ZEIT_STOP_START]', { auId: auId, step: stepRaw, maId: typeof MOB_MA_ID !== 'undefined' ? MOB_MA_ID : null });
+  var api = mobZeitApi();
+  var ccId = mobCcApiIdForAuftrag(auId);
+  var schrittKey = mobCanonicalWorkflowStep(stepRaw || '');
+  function finishLocal(stopResult){
+    var zb = stopResult && stopResult.zeitbuchung;
+    if(zb){
+      console.info('[AUFTRAG_ZEIT_STOP_SERVER_OK]', { auId: auId, dauer: zb.dauer });
+      mobMergeZeitbuchungInRam(auId, zb);
+      mobClearZeitAktivForMobMa();
+      var hit = mobFindAuftragInRam(auId);
+      if(hit && typeof mobSaveAuftrag === 'function'){
+        mobSaveAuftrag(hit.id).then(function(){
+          console.info('[AUFTRAG_ZEIT_SAVE_OK]', { auId: hit.id, zeiten_count: (hit.zeiten || []).length });
+        }).catch(function(e){ console.warn('[AUFTRAG_ZEIT_SAVE_OK]', { ok: false, err: e }); });
+      }
+    } else {
+      mobStopAuftragsZeitFallsLaeuft(auId, stepRaw);
+    }
+    mobClearAuftragArbeitsSessionCache();
+    mobRefreshNachInternZeit(auId);
+  }
+  if(api && typeof api.postAuftragArbeitszeitStop === 'function' && ccId && schrittKey){
+    api.postAuftragArbeitszeitStop(ccId, schrittKey).then(function(stopResult){
+      finishLocal(stopResult);
+    }).catch(function(e){ mobAuftragArbeitsApiFail('stop', e); });
+    return;
+  }
+  finishLocal(null);
 }
 
 /** Laufende Auftragszeit zu Auftrag + Schritt stoppen (Schritt kanonisch vergleichen). */
@@ -319,8 +846,10 @@ function mobStopAuftragsZeitFallsLaeuft(auId, stepRaw){
 }
 
 function mobIstAuftragsZeitAktivFuerSchritt(auId, stepRaw){
-  if(typeof ZEIT_AKTIV === 'undefined' || !ZEIT_AKTIV) return false;
   var sc = mobCanonicalWorkflowStep(stepRaw || '');
+  var sess = mobGetAuftragArbeitsSessionCached();
+  if(sess && mobSessionPasstZuAuftragSchritt(auId, stepRaw, sess)) return true;
+  if(typeof ZEIT_AKTIV === 'undefined' || !ZEIT_AKTIV) return false;
   var parseFn = (typeof window !== 'undefined' && typeof window.zeitAktivParseAnyKey === 'function')
     ? window.zeitAktivParseAnyKey
     : null;
@@ -484,6 +1013,7 @@ function mobMaIdGleichCompat(a, b){
 
 function mobMaAufgabeIstFuerMa(g, maId){
   if(!g || maId == null || String(maId).trim() === '') return false;
+  if(typeof maAufgabeIstFuerMa === 'function') return maAufgabeIstFuerMa(g, maId);
   var target = String(maId).trim();
   if (g.maId != null && mobMaIdGleichCompat(g.maId, target)) return true;
   if (Array.isArray(g.maIds)) {
@@ -762,6 +1292,9 @@ function mobDesktopProduktionTaskKeysFuerMa(maId){
 
 function mobSchrittMaIdsResolved(sch){
   if(!sch) return [];
+  if(typeof ccInternSchrittSammleMitarbeiterRohwerte === 'function'){
+    return ccInternSchrittSammleMitarbeiterRohwerte(sch);
+  }
   var maIds = [];
   function addId(v){
     var s = v != null ? String(v).trim() : '';
@@ -782,9 +1315,15 @@ function mobSchrittMaIdsResolved(sch){
   return maIds || [];
 }
 
-/** Nur User-IDs: maId / maIds / teamMaIds (UUID-tolerant via mobMaIdGleichCompat). Keine Namens-/Kürzel-Fallbacks. */
+/**
+ * Schritt-Zuordnung wie Desktop (`ccInternAggregiereAktuelleAufgabenProMa` / ccInternSchrittIstFuerMitarbeiterCompat):
+ * maId, verantwortlicher, werId, maIds, teamMaIds, zusatzMa, Namen, wer-Listen, …
+ */
 function mobSchrittIstFuerMa(sch, targetMaId){
   if(!sch || targetMaId==null || String(targetMaId).trim()==='') return false;
+  if(typeof ccInternSchrittIstFuerMitarbeiterCompat === 'function'){
+    return ccInternSchrittIstFuerMitarbeiterCompat(sch, targetMaId);
+  }
   var target = String(targetMaId).trim();
   if (sch.maId != null && mobMaIdGleichCompat(sch.maId, target)) return true;
   if (Array.isArray(sch.maIds)) {
@@ -1026,14 +1565,7 @@ function mobMeineWorkflowAufgaben(maId){
     var stepRaw = a.step;
     var stepCanon = mobCanonicalWorkflowStep(stepRaw || '');
     var sch = mobSchrittObjektFuerAuftragUndStep(a, stepRaw);
-    var tid = String(maId).trim();
-    var match = false;
-    if (sch) {
-      if (sch.maId != null && mobMaIdGleichCompat(sch.maId, tid)) match = true;
-      else if (Array.isArray(sch.maIds) && sch.maIds.some(function(x){ return x != null && mobMaIdGleichCompat(x, tid); })) match = true;
-      else if (Array.isArray(sch.teamMaIds) && sch.teamMaIds.some(function(x){ return x != null && mobMaIdGleichCompat(x, tid); })) match = true;
-    }
-    if (!match) match = !!mobAuftragSchrittIstFuerMa(a, stepRaw, maId);
+    var match = typeof mobAuftragSchrittIstFuerMa === 'function' && mobAuftragSchrittIstFuerMa(a, stepRaw, maId);
     if(dbg && typeof console !== 'undefined' && console.log){
       console.log('[ccintern_mob_gate_debug]', {
         auftrag: a.id,
@@ -1042,6 +1574,7 @@ function mobMeineWorkflowAufgaben(maId){
         schMaId: sch && sch.maId != null ? sch.maId : null,
         schMaIds: sch && Array.isArray(sch.maIds) ? sch.maIds : [],
         schTeamMaIds: sch && Array.isArray(sch.teamMaIds) ? sch.teamMaIds : [],
+        schRohwerte: (typeof ccInternSchrittSammleMitarbeiterRohwerte === 'function' && sch) ? ccInternSchrittSammleMitarbeiterRohwerte(sch) : [],
         aktuelleMaId: maId,
         match: match,
       });
@@ -1400,8 +1933,38 @@ function mobOpenAuftragDetailCard(ev, auId, schritt){
   mobOpenAuftragDetail(auId, { schritt: schritt || null });
 }
 
+/**
+ * Aktuelle Aufträge vom Server nachladen (Kommunikation Desktop ↔ App).
+ * @param {() => void} done
+ */
+function mobReloadAuftraegeThen(done){
+  var api = typeof window !== 'undefined' && window.CCIntern && window.CCIntern.cockpitApi;
+  if (api && typeof api.reloadAuftraegeFromApiIntoMemory === 'function') {
+    api.reloadAuftraegeFromApiIntoMemory(null).then(function(){ done(); }).catch(function(){ done(); });
+    return;
+  }
+  if(typeof loadAuftraege === 'function'){
+    loadAuftraege(function(){ done(); });
+    return;
+  }
+  done();
+}
+
+/**
+ * Aufträge in RAM, dann Callback (Restore wartet auf vollständigen Load).
+ * @param {() => void} done
+ */
+function mobEnsureAuftraegeLoadedThen(done){
+  mobReloadAuftraegeThen(done);
+}
+
 function mobOpenAuftragDetail(auId, opt){
   if(!auId) return;
+  opt = opt || {};
+  mobReloadAuftraegeThen(function(){ mobOpenAuftragDetailAfterReload(auId, opt); });
+}
+
+function mobOpenAuftragDetailAfterReload(auId, opt){
   opt = opt || {};
   var a = AUFTRAEGE.find(function(x){ return x.id === auId; });
   if(!a) return;
@@ -1413,7 +1976,7 @@ function mobOpenAuftragDetail(auId, opt){
     var sch = a.schritte && a.schritte[g.schritt];
     if(sch && (!sch.checkliste || !sch.checkliste.length)){
       var tpl = typeof clChecklistenFuerSchritt === 'function' ? clChecklistenFuerSchritt(a, g.schritt) : [];
-      if(tpl && tpl.length){ sch.checkliste = tpl; if(typeof saveAuftraege === 'function') saveAuftraege(); }
+      if(tpl && tpl.length){ sch.checkliste = tpl; mobSaveAuftrag(auId); }
     }
     // Explizit voller Screen (z. B. Deep-Link / Fallback ohne Tab-Kontext)
     window.__MOB_OPEN_AUFG_ID__ = g.id;
@@ -1455,15 +2018,13 @@ function mobRenderFotoView(a){
 function mobRenderFotoViewPaint(a){
   if (!a) return;
   var sl = STEP_LABELS[a.step]||{title:a.step,col:'#888'};
-  var nr = (a.auftragsnummer != null && String(a.auftragsnummer).trim() !== '') ? String(a.auftragsnummer).trim() : String(a.id || '');
   var html = '<div style="padding:16px;padding-bottom:28px;">'
     +'<div style="margin-bottom:14px;">'
       +'<button type="button" onclick="mobCloseAuftragDetail()" '
       +'style="border:none;background:#F2F2F7;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:700;color:#007AFF;cursor:pointer;width:100%;text-align:left;">← Zurück zu Fotos</button>'
     +'</div>'
     +'<div style="margin-bottom:14px;">'
-      +'<div style="font-size:13px;font-weight:800;color:#1C1C1E;">'+mobDetEsc(nr)+'</div>'
-      +'<div style="font-size:12px;color:#3C3C43;margin-top:4px;">'+mobDetEsc(String(a.kunde||'—'))+'</div>'
+      +mobCardKundeAuZeilenHtml(null, a)
       +'<div style="font-size:11px;font-weight:600;color:'+sl.col+';margin-top:6px;">Aktueller Schritt: '+mobDetEsc(String(sl.title||''))+'</div>'
     +'</div>'
     + mobMobFotoHtmlBereich(a, a.step)
@@ -1499,7 +2060,7 @@ function mobOpenAuftragDetailFromTask(g, openOpt){
     var sch = a.schritte && a.schritte[g.schritt];
     if(sch && (!sch.checkliste || !sch.checkliste.length)){
       var tpl = typeof clChecklistenFuerSchritt === 'function' ? clChecklistenFuerSchritt(a, g.schritt) : [];
-      if(tpl && tpl.length){ sch.checkliste = tpl; if(typeof saveAuftraege === 'function') saveAuftraege(); }
+      if(tpl && tpl.length){ sch.checkliste = tpl; mobSaveAuftrag(g.auftragId); }
     }
   }
   var compact = false;
@@ -1592,6 +2153,7 @@ function mobSetMA(maId){
 }
 
 function mobWechselMA(){
+  if (mobIsRealMaAppSession()) return;
   var picker=document.getElementById('mob-ma-picker');
   if(!picker) return;
   if(picker.style.display==='block'){ picker.style.display='none'; return; }
@@ -1682,6 +2244,112 @@ function mobZeitApplyButtonLayout(){
 // ── A) Anwesenheitszeit (Arbeitsbeginn/Feierabend) ──────────────
 // Gespeichert in MA_ANWESENHEIT[] → cc_intern_anwesenheit_v1
 // GETRENNT von Auftragszeiten (AUFTRAEGE[x].zeiten)
+function mobZeitApi(){
+  if(typeof window === 'undefined') return null;
+  return window.CCIntern && window.CCIntern.cockpitApi ? window.CCIntern.cockpitApi : null;
+}
+
+function mobZeitApiFail(action, err){
+  console.warn('[ARBEITSZEIT_' + String(action || 'API').toUpperCase() + '_FAIL]', err);
+  if(typeof showToast === 'function'){
+    showToast('⚠ Arbeitszeit konnte nicht gespeichert werden');
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} row
+ */
+function mobPushAnwesenheitFromApiRow(row){
+  if(!row || typeof row !== 'object') return;
+  var uid = row.user_id != null ? String(row.user_id).trim() : (MOB_MA_ID ? String(MOB_MA_ID).trim() : '');
+  var entry = {
+    maId: uid,
+    ma: row.mitarbeiter_name != null ? String(row.mitarbeiter_name) : '',
+    datum: row.datum != null ? String(row.datum) : '',
+    start: row.start != null ? String(row.start) : '',
+    end: row.ende != null ? String(row.ende) : '',
+    dauer: row.dauer_minuten != null ? Number(row.dauer_minuten) : 0,
+    typ: row.typ != null ? String(row.typ) : 'anwesenheit',
+    erstellt: row.created_at != null ? String(row.created_at) : new Date().toISOString(),
+    id: row.id != null ? String(row.id) : '',
+  };
+  if(typeof MA_ANWESENHEIT !== 'undefined' && Array.isArray(MA_ANWESENHEIT)){
+    MA_ANWESENHEIT.push(entry);
+    if(typeof saveAnwesenheit === 'function') saveAnwesenheit();
+  }
+}
+
+/** Server-Session → lokaler MOB_*-State + UI (ohne Erfolgs-Toast). */
+function mobApplySessionFromServer(session){
+  if(!session || !session.started_at){
+    mobZeitClearLocalState(true);
+    return;
+  }
+  MOB_START = new Date(String(session.started_at));
+  if(isNaN(MOB_START.getTime())){
+    MOB_START = null;
+    return;
+  }
+  MOB_PAUSE = Math.max(0, Number(session.pause_seconds) || 0);
+  MOB_PAUSED = session.status === 'paused';
+  MOB_PAUSE_START = null;
+  if(MOB_PAUSED && session.pause_started_at){
+    var pAt = new Date(String(session.pause_started_at));
+    if(!isNaN(pAt.getTime())) MOB_PAUSE_START = pAt;
+  }
+  if(MOB_PAUSED && !MOB_PAUSE_START) MOB_PAUSE_START = new Date();
+  MOB_TIMER_MA_ID = MOB_MA_ID ? String(MOB_MA_ID).trim() : null;
+  var btn=document.getElementById('mob-start-btn');
+  var pBtn=document.getElementById('mob-pause-btn');
+  if(btn){
+    if(MOB_PAUSED){
+      btn.textContent='▶ Weiter';btn.style.background='#34C759';
+    } else {
+      btn.textContent='⏹ Stop';btn.style.background='#FF3B30';
+    }
+  }
+  if(pBtn) pBtn.style.display='';
+  clearInterval(MOB_TIMER);
+  MOB_TIMER = null;
+  if(!MOB_PAUSED) MOB_TIMER = setInterval(mobZeitTick, 1000);
+  var info=document.getElementById('mob-zeit-info');
+  if(info){
+    info.style.display='block';
+    if(MOB_PAUSED && MOB_PAUSE_START){
+      info.textContent='Pausiert seit '+MOB_PAUSE_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    } else {
+      info.textContent='Läuft seit '+MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    }
+  }
+  mobZeitPersistState();
+  mobZeitApplyButtonLayout();
+  mobZeitTick();
+}
+
+/** @param {boolean} [clearStorage] */
+function mobZeitClearLocalState(clearStorage){
+  clearInterval(MOB_TIMER);
+  MOB_TIMER = null;
+  MOB_START = null;
+  MOB_PAUSE = 0;
+  MOB_PAUSED = false;
+  MOB_PAUSE_START = null;
+  MOB_TIMER_MA_ID = null;
+  var btn=document.getElementById('mob-start-btn');
+  var pBtn=document.getElementById('mob-pause-btn');
+  if(btn){ btn.textContent='▶ Start'; btn.style.background='#34C759'; }
+  if(pBtn) pBtn.style.display='none';
+  var info=document.getElementById('mob-zeit-info');
+  if(info) info.style.display='none';
+  if(clearStorage !== false){
+    var timerOwnerId = MOB_MA_ID ? String(MOB_MA_ID).trim() : '';
+    if(timerOwnerId){
+      try { sessionStorage.removeItem('mob_timer_' + timerOwnerId); } catch (e) {}
+    }
+  }
+  mobZeitApplyButtonLayout();
+}
+
 function mobZeitPersistState(){
   var ownerId = MOB_TIMER_MA_ID || (MOB_MA_ID ? String(MOB_MA_ID).trim() : '');
   if(!ownerId || !MOB_START) return;
@@ -1714,43 +2382,54 @@ function mobZeitEffektivePauseSekunden(now){
 function mobZeitToggle(){
   if(MOB_START && !MOB_PAUSED){
     mobZeitStop();
-  } else if(MOB_PAUSED){
+    return;
+  }
+  var api = mobZeitApi();
+  if(MOB_PAUSED){
+    if(api && typeof api.postArbeitszeitWeiter === 'function'){
+      api.postArbeitszeitWeiter().then(function(session){
+        mobApplySessionFromServer(session);
+      }).catch(function(e){ mobZeitApiFail('weiter', e); });
+      return;
+    }
     MOB_PAUSE += Math.floor((new Date()-MOB_PAUSE_START)/1000);
     MOB_PAUSED=false; MOB_PAUSE_START=null;
-    var btn=document.getElementById('mob-start-btn');
-    var pBtn=document.getElementById('mob-pause-btn');
-    if(btn){btn.textContent='⏹ Stop';btn.style.background='#FF3B30';}
-    if(pBtn) pBtn.style.display='';
     clearInterval(MOB_TIMER);
     MOB_TIMER=setInterval(mobZeitTick,1000);
     mobZeitPersistState();
     mobZeitApplyButtonLayout();
     mobZeitTick();
-  } else {
-    MOB_START=new Date(); MOB_PAUSE=0; MOB_PAUSED=false;
-    MOB_TIMER_MA_ID = MOB_MA_ID ? String(MOB_MA_ID) : null;
-    var btn=document.getElementById('mob-start-btn');
-    var pBtn=document.getElementById('mob-pause-btn');
-    if(btn){btn.textContent='⏹ Stop';btn.style.background='#FF3B30';}
-    if(pBtn) pBtn.style.display='';
-    MOB_TIMER=setInterval(mobZeitTick,1000);
-    var info=document.getElementById('mob-zeit-info');
-    if(info){info.style.display='block';info.textContent='Gestartet '+MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
-    // Im gemeinsamen DAL speichern — Desktop sieht es in MA_ANWESENHEIT
-    mobZeitPersistState();
-    mobZeitApplyButtonLayout();
+    return;
   }
+  if(api && typeof api.postArbeitszeitStart === 'function'){
+    api.postArbeitszeitStart().then(function(session){
+      mobApplySessionFromServer(session);
+      if(typeof showToast === 'function'){
+        showToast('▶ Arbeitszeit gestartet');
+      }
+    }).catch(function(e){ mobZeitApiFail('start', e); });
+    return;
+  }
+  MOB_START=new Date(); MOB_PAUSE=0; MOB_PAUSED=false;
+  MOB_TIMER_MA_ID = MOB_MA_ID ? String(MOB_MA_ID) : null;
+  clearInterval(MOB_TIMER);
+  MOB_TIMER=setInterval(mobZeitTick,1000);
+  mobZeitPersistState();
+  mobZeitApplyButtonLayout();
 }
 
 function mobZeitPause(){
   if(!MOB_START||MOB_PAUSED) return;
+  var api = mobZeitApi();
+  if(api && typeof api.postArbeitszeitPause === 'function'){
+    api.postArbeitszeitPause().then(function(session){
+      mobApplySessionFromServer(session);
+    }).catch(function(e){ mobZeitApiFail('pause', e); });
+    return;
+  }
   MOB_PAUSED=true; MOB_PAUSE_START=new Date();
   clearInterval(MOB_TIMER); MOB_TIMER=null;
   mobZeitPersistState();
-  var btn=document.getElementById('mob-start-btn');
-  if(btn){btn.textContent='▶ Weiter';btn.style.background='#34C759';}
-  var info=document.getElementById('mob-zeit-info');
-  if(info) info.textContent='Pausiert seit '+MOB_PAUSE_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   mobZeitApplyButtonLayout();
   mobZeitTick();
 }
@@ -1758,121 +2437,176 @@ function mobZeitPause(){
 function mobZeitStop(){
   if(!MOB_START) return;
   clearInterval(MOB_TIMER); MOB_TIMER=null;
+  var api = mobZeitApi();
+  if(api && typeof api.postArbeitszeitStop === 'function'){
+    api.postArbeitszeitStop().then(function(result){
+      if(result && result.anwesenheit) mobPushAnwesenheitFromApiRow(result.anwesenheit);
+      mobZeitClearLocalState(true);
+      var min = result && result.anwesenheit && result.anwesenheit.dauer_minuten != null
+        ? Number(result.anwesenheit.dauer_minuten) : 0;
+      if(typeof showToast === 'function'){
+        showToast('✓ Anwesenheit gespeichert · '+Math.floor(min/60)+'h '+(min%60)+'min');
+      }
+      if(typeof renderMitarbeiter==='function') renderMitarbeiter();
+    }).catch(function(e){
+      mobZeitApiFail('stop', e);
+    });
+    return;
+  }
   var endTime = new Date();
   var sek = Math.floor((endTime-MOB_START)/1000)-mobZeitEffektivePauseSekunden(endTime);
   var min = Math.floor(sek/60);
   var ma  = maByID(MOB_MA_ID)||{n:MOB_MA_ID};
   var heute = endTime.toISOString().split('T')[0];
-  var startStr = MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  var endStr   = endTime.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-
-  // A) Anwesenheitszeit → MA_ANWESENHEIT (gemeinsam, Desktop sieht es)
   var anwEntry = {
-    maId:    MOB_MA_ID,
-    ma:      ma.n,
-    datum:   heute,
-    start:   startStr,
-    end:     endStr,
-    dauer:   min,
-    typ:     'anwesenheit',
-    erstellt:endTime.toISOString(),
+    maId: MOB_MA_ID,
+    ma: ma.n,
+    datum: heute,
+    start: MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),
+    end: endTime.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),
+    dauer: min,
+    typ: 'anwesenheit',
+    erstellt: endTime.toISOString(),
   };
   MA_ANWESENHEIT.push(anwEntry);
-  var api = window.__CCINTERN_COCKPIT_MOUNT__ && window.CCIntern && window.CCIntern.cockpitApi ? window.CCIntern.cockpitApi : null;
-  if (api && typeof api.postMitarbeiterAnwesenheitFromUi === 'function') {
-    api.postMitarbeiterAnwesenheitFromUi(anwEntry, typeof showToast === 'function' ? showToast : null).then(function () {
+  if(api && typeof api.postMitarbeiterAnwesenheitFromUi === 'function'){
+    api.postMitarbeiterAnwesenheitFromUi(anwEntry, typeof showToast === 'function' ? showToast : null).then(function(){
       saveAnwesenheit();
-    }).catch(function (e) {
-      console.error('[mob] Anwesenheit API', e);
-      saveAnwesenheit();
+    }).catch(function(e){
+      console.warn('[mob] Anwesenheit API (legacy stop)', e);
     });
   } else {
     saveAnwesenheit();
   }
-
-  // Timer-State löschen
-  var timerOwnerId = MOB_TIMER_MA_ID || (MOB_MA_ID ? String(MOB_MA_ID) : '');
-  if (timerOwnerId) {
-    try { sessionStorage.removeItem('mob_timer_' + timerOwnerId); } catch (e) {}
+  mobZeitClearLocalState(true);
+  if(typeof showToast === 'function'){
+    showToast('✓ Anwesenheit gespeichert · '+Math.floor(min/60)+'h '+(min%60)+'min');
   }
-
-  MOB_START=null; MOB_PAUSE=0; MOB_PAUSED=false; MOB_TIMER_MA_ID = null;
-  var btn=document.getElementById('mob-start-btn');
-  var pBtn=document.getElementById('mob-pause-btn');
-  if(btn){btn.textContent='▶ Start';btn.style.background='#34C759';}
-  if(pBtn) pBtn.style.display='none';
-  var info=document.getElementById('mob-zeit-info');
-  if(info) info.style.display='none';
-  showToast('✓ Anwesenheit gespeichert · '+Math.floor(min/60)+'h '+(min%60)+'min');
-
-  // Desktop Mitarbeiter-Ansicht aktualisieren
   if(typeof renderMitarbeiter==='function') renderMitarbeiter();
-  mobZeitApplyButtonLayout();
 }
 
-// Timer nach Reload wiederherstellen
-function mobZeitRestore(){
+/** sessionStorage-Fallback wenn GET /arbeitszeit/aktiv fehlschlägt. */
+function mobZeitRestoreFromSessionStorage(){
   if(!MOB_MA_ID) return;
   var mid = String(MOB_MA_ID).trim();
   var raw = null;
-  try {
-    raw = sessionStorage.getItem('mob_timer_' + mid);
-  } catch (e) {
-    raw = null;
-  }
+  try { raw = sessionStorage.getItem('mob_timer_' + mid); } catch (e) { raw = null; }
   var saved = null;
-  if (raw) {
-    try {
-      saved = JSON.parse(raw);
-    } catch (e2) {
-      saved = null;
-    }
+  if(raw){
+    try { saved = JSON.parse(raw); } catch (e2) { saved = null; }
   }
   if(!saved||!saved.start || !saved.maId || String(saved.maId).trim() !== mid) return;
-  MOB_START = new Date(saved.start);
-  console.log('MOB_START restored:', MOB_START, 'saved.start:', saved.start);
-  if (isNaN(MOB_START.getTime())) {
-    MOB_START = null;
+  mobApplySessionFromServer({
+    started_at: saved.start,
+    pause_seconds: Math.max(0, Number(saved.pauseSeconds) || 0),
+    status: saved.paused ? 'paused' : 'running',
+    pause_started_at: saved.pauseStartedAt || null,
+  });
+}
+
+/** @param {function(): void} [done] */
+function mobZeitRestore(done){
+  if(!MOB_MA_ID){
+    if(typeof done === 'function') done();
     return;
   }
-  if (MOB_START.getTime() > Date.now()) {
-    MOB_START = null;
+  var api = mobZeitApi();
+  if(api && typeof api.fetchArbeitszeitSessionAktiv === 'function'){
+    api.fetchArbeitszeitSessionAktiv().then(function(session){
+      console.info('[ARBEITSZEIT_RESTORE]', session);
+      if(session) mobApplySessionFromServer(session);
+      else mobZeitClearLocalState(true);
+      if(typeof done === 'function') done();
+    }).catch(function(e){
+      console.warn('[ARBEITSZEIT_RESTORE]', e);
+      mobZeitRestoreFromSessionStorage();
+      if(typeof done === 'function') done();
+    });
     return;
   }
-  MOB_PAUSE = Math.max(0, Number(saved.pauseSeconds) || 0);
-  MOB_PAUSED = !!saved.paused;
-  MOB_PAUSE_START = null;
-  if(MOB_PAUSED && saved.pauseStartedAt){
-    var pAt = new Date(saved.pauseStartedAt);
-    if(pAt instanceof Date && !Number.isNaN(pAt.getTime())) MOB_PAUSE_START = pAt;
+  mobZeitRestoreFromSessionStorage();
+  if(typeof done === 'function') done();
+}
+
+/**
+ * Restore: nur ZEIT_AKTIV + Session-Cache + RAM-Schrittstatus (kein Save, kein Aufgaben-POST).
+ * @param {Record<string, unknown>} session
+ * @returns {boolean}
+ */
+function mobRestoreAuftragArbeitszeitApplySessionUiOnly(session){
+  console.info('[AUFTRAG_RESTORE_SESSION]', session);
+  var a = mobFindAuftragInRam(session.auftrag_id);
+  if(!a){
+    console.warn('[AUFTRAG_RESTORE_NO_MATCH]', {
+      session_auftrag_id: session.auftrag_id,
+      auftraege_count: typeof AUFTRAEGE !== 'undefined' && AUFTRAEGE ? AUFTRAEGE.length : 0,
+      sample_ids: (typeof AUFTRAEGE !== 'undefined' && AUFTRAEGE ? AUFTRAEGE.slice(0, 5) : []).map(function(x){
+        return x ? { id: x.id, ccApiId: x.ccApiId } : null;
+      }),
+    });
+    if(typeof window !== 'undefined') window.__MOB_AUFTRAG_ARBEITS_SESSION__ = session;
+    return false;
   }
-  if(MOB_PAUSED && !MOB_PAUSE_START) MOB_PAUSE_START = new Date();
-  MOB_TIMER_MA_ID = String(MOB_MA_ID).trim();
-  var btn=document.getElementById('mob-start-btn');
-  var pBtn=document.getElementById('mob-pause-btn');
-  if(btn){
-    if(MOB_PAUSED){
-      btn.textContent='▶ Weiter';btn.style.background='#34C759';
-    } else {
-      btn.textContent='⏹ Stop';btn.style.background='#FF3B30';
-    }
+  var applied = mobApplyAuftragArbeitsSessionFromServer(session);
+  console.info('[AUFTRAG_RESTORE_APPLY_ONLY_UI]', {
+    session_auftrag_id: session.auftrag_id,
+    ui_auftrag_id: a.id,
+    ccApiId: a.ccApiId || null,
+    schritt_key: session.schritt_key,
+    applied: applied,
+  });
+  console.info('[AUFTRAG_RESTORE_NO_POST_ALLOWED]');
+  if(applied && mobCcinternCockpitMount()){
+    var sch = mobSchrittObjektFuerAuftragUndStep(a, session.schritt_key);
+    if(sch && !mobSchrittIstErledigtFuerWorkflow(sch)) sch.status = 'in_bearbeitung';
   }
-  if(pBtn) pBtn.style.display='';
-  if(!MOB_PAUSED){
-    clearInterval(MOB_TIMER);
-    MOB_TIMER = setInterval(mobZeitTick,1000);
+  return applied;
+}
+
+/** @param {function(): void} [done] @param {boolean} [isRetry] */
+function mobRestoreAuftragArbeitszeit(done, isRetry){
+  if(!MOB_MA_ID){
+    mobAuftragRestoreFinish(done);
+    return;
   }
-  var info=document.getElementById('mob-zeit-info');
-  if(info){
-    info.style.display='block';
-    if(MOB_PAUSED && MOB_PAUSE_START){
-      info.textContent='Pausiert seit '+MOB_PAUSE_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    } else {
-      info.textContent='Läuft seit '+MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    }
+  var api = mobZeitApi();
+  if(!api || typeof api.fetchAuftragArbeitszeitAktiv !== 'function'){
+    mobAuftragRestoreFinish(done);
+    return;
   }
-  mobZeitApplyButtonLayout();
-  mobZeitTick();
+  if(!isRetry) mobAuftragRestoreSetRunning(true);
+  console.info('[AUFTRAG_RESTORE_START]', {
+    retry: !!isRetry,
+    mob_ma_id: MOB_MA_ID,
+    auftraege_count_before: typeof AUFTRAEGE !== 'undefined' && AUFTRAEGE ? AUFTRAEGE.length : 0,
+  });
+  mobEnsureAuftraegeLoadedThen(function(){
+    var countAfterLoad = typeof AUFTRAEGE !== 'undefined' && AUFTRAEGE ? AUFTRAEGE.length : 0;
+    api.fetchAuftragArbeitszeitAktiv().then(function(session){
+      if(!session){
+        mobClearAuftragArbeitsSessionCache();
+        mobAuftragRestoreFinish(done);
+        return;
+      }
+      console.info('[AUFTRAG_RESTORE_FOUND]', {
+        session_auftrag_id: session.auftrag_id,
+        schritt_key: session.schritt_key,
+        status: session.status,
+        auftraege_count: countAfterLoad,
+      });
+      var matched = mobRestoreAuftragArbeitszeitApplySessionUiOnly(session);
+      if(!matched && !isRetry){
+        mobEnsureAuftraegeLoadedThen(function(){
+          mobRestoreAuftragArbeitszeit(done, true);
+        });
+        return;
+      }
+      mobAuftragRestoreFinish(done);
+    }).catch(function(e){
+      console.warn('[AUFTRAG_RESTORE_NO_MATCH]', e);
+      mobAuftragRestoreFinish(done);
+    });
+  });
 }
 
 /** Nur Auftrags-Stoppuhr (#mob-lauft-timer); läuft auch bei pausierter Arbeitszeit (MOB_TIMER gestoppt). */
@@ -1896,7 +2630,7 @@ function mobAuftragLaufzeitTick(){
   if(laufendeKey){
     var lEntry = ZEIT_AKTIV[laufendeKey];
     if(lEntry){
-      var lSek=Math.floor((new Date()-lEntry.start)/1000);
+      var lSek=Math.floor(mobAuftragArbeitsElapsedMs(lEntry) / 1000);
       var lH=Math.floor(lSek/3600), lM=Math.floor((lSek%3600)/60), lS=lSek%60;
       var lt=document.getElementById('mob-lauft-timer');
       if(lt) lt.textContent=String(lH).padStart(2,'0')+':'+String(lM).padStart(2,'0')+':'+String(lS).padStart(2,'0');
@@ -1913,6 +2647,42 @@ function mobZeitTick(){
   var s=sek%60;
   var el=document.getElementById('mob-uhr');
   if(el) el.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+/** Kunde oben, AU-Nummer unten — gleiche Reihenfolge wie Tab „Aufgaben“. */
+function mobCardKundeAuZeilenHtml(g, au, opt) {
+  opt = opt || {};
+  var a = au;
+  if (!a && g && typeof AUFTRAEGE !== 'undefined') {
+    a = AUFTRAEGE.find(function (x) {
+      return x && mobAuftragIdsGleich(x.id, g.auftragId);
+    });
+  }
+  var kunde = String(
+    (g && g.kunde) ||
+      (a && a.kunde) ||
+      (a && a.kundenname) ||
+      (a && a.firma) ||
+      (a && a.firmenname) ||
+      '—',
+  );
+  if (opt.fz) {
+    kunde += (g && g.fz ? ' · ' + g.fz : '') || (a && a.fz ? ' · ' + a.fz : '');
+  }
+  var auNr = String(
+    a && a.auftragsnummer != null && String(a.auftragsnummer).trim() !== ''
+      ? String(a.auftragsnummer).trim()
+      : (g && g.auftragId != null ? g.auftragId : '') || (a && a.id != null ? a.id : ''),
+  );
+  var after = opt.afterAuHtml != null ? String(opt.afterAuHtml) : '';
+  return (
+    '<div style="font-size:13px;font-weight:800;color:#1C1C1E;line-height:1.25;">' +
+    mobDetEsc(kunde) +
+    '</div><div style="font-size:12px;color:#3C3C43;line-height:1.35;margin-top:1px;">' +
+    mobDetEsc(auNr) +
+    after +
+    '</div>'
+  );
 }
 
 // ── Home: Aufträge dieses MA ─────────────────────
@@ -1997,17 +2767,11 @@ function mobRenderHome(){
     var lH=Math.floor(lSek/3600), lM=Math.floor((lSek%3600)/60), lS=lSek%60;
     var lTimer=String(lH).padStart(2,'0')+':'+String(lM).padStart(2,'0')+':'+String(lS).padStart(2,'0');
     var lNextSl = lAuftrag&&STEP_LABELS[lAuftrag.step]&&STEP_LABELS[lAuftrag.step].next ? STEP_LABELS[STEP_LABELS[lAuftrag.step].next] : null;
-    var lNrAnzeige = lAuftrag
-      ? ((lAuftrag.auftragsnummer != null && String(lAuftrag.auftragsnummer).trim() !== '')
-        ? String(lAuftrag.auftragsnummer).trim()
-        : String(lAuftrag.id || lAuftragId || ''))
-      : String(lAuftragId || '');
     lauftHtml = '<div class="mob-sec-label">▶ LÄUFT GERADE</div>'
       +'<div class="mob-lauft-card" style="margin-bottom:10px;cursor:default;">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'
           +'<div>'
-            +'<div style="font-size:13px;font-weight:800;color:#1C1C1E;">'+mobDetEsc(lNrAnzeige)+'</div>'
-            +'<div style="font-size:11px;color:#5A7BA8;margin-top:2px;">'+(lAufg&&lAufg.kunde||lAuftrag&&lAuftrag.kunde||'')+(lAufg&&lAufg.fz?' · '+lAufg.fz:lAuftrag&&lAuftrag.fz?' · '+lAuftrag.fz:'')+'</div>'
+            +mobCardKundeAuZeilenHtml(lAufg || { auftragId: lAuftragId }, lAuftrag, { fz: true })
           +'</div>'
           +'<div style="text-align:right;">'
             +'<div style="display:flex;align-items:center;gap:4px;background:#34C759;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:2px 7px;letter-spacing:.06em;">'
@@ -2068,17 +2832,27 @@ function mobRenderHome(){
       +'<div class="mob-aufg-body">'
         // Zeile 1: ID + Chat-Badge | Step-Tag + Datum
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">'
-          +'<div class="mob-aufg-id">'+g.auftragId
-            +(chatGesamt>0?' <span style="background:'+(chatNachr>0?'#FF9500':'#5856D6')+';color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 6px;vertical-align:middle;">💬'+(chatNachr>0?' ❓'+chatNachr:''+chatGesamt)+'</span>':'')
-            +(laeuft?' <span style="background:#34C759;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;vertical-align:middle;">● Läuft</span>':'')
+          +'<div style="min-width:0;">'
+            +mobCardKundeAuZeilenHtml(g, a, {
+              fz: true,
+              afterAuHtml:
+                (chatGesamt > 0
+                  ? ' <span style="background:' +
+                    (chatNachr > 0 ? '#FF9500' : '#5856D6') +
+                    ';color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 6px;vertical-align:middle;">💬' +
+                    (chatNachr > 0 ? ' ❓' + chatNachr : '' + chatGesamt) +
+                    '</span>'
+                  : '') +
+                (laeuft
+                  ? ' <span style="background:#34C759;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;vertical-align:middle;">● Läuft</span>'
+                  : ''),
+            })
           +'</div>'
           +'<div style="text-align:right;flex-shrink:0;margin-left:8px;">'
             +'<span class="mob-step-tag" style="background:'+tagBg+';color:'+tagCol+';">'+sl.title+'</span>'
             +(termin?'<div style="font-size:10px;color:'+(istUeberf?'#FF3B30':istHeute?'#FF9500':'#C7C7CC')+';margin-top:3px;">'+(istUeberf?'🔴 Überfällig':istHeute?'⚠ Heute':termin)+'</div>':'')
           +'</div>'
         +'</div>'
-        // Zeile 2: Kunde · FZ
-        +'<div class="mob-aufg-sub">'+(g.kunde||a&&a.kunde||'—')+(g.fz?' · '+g.fz:a&&a.fz?' · '+a.fz:'')+'</div>'
         +(teamInfo.teamText ? '<div style="margin-top:4px;font-size:10px;color:#6B7280;">'+teamInfo.teamText+'</div>' : '')
         +(teamInfo.statusHtml ? '<div style="margin-top:2px;font-size:10px;line-height:1.35;">'+teamInfo.statusHtml+'</div>' : '')
         // Checkliste-Balken wenn vorhanden
@@ -2390,7 +3164,7 @@ function mobRenderAufgabeDetail(g, renderOpt){
   if(sch && schrittMigrieren) schrittMigrieren(sch, g.schritt);
   if(sch && (!sch.checkliste || !sch.checkliste.length)){
     var tpl = clChecklistenFuerSchritt(a, g.schritt);
-    if(tpl.length){ sch.checkliste = tpl; saveAuftraege(); }
+    if(tpl.length){ sch.checkliste = tpl; mobSaveAuftrag(g.auftragId); }
   }
   var checks = (sch && sch.checkliste) ? sch.checkliste : [];
   var done   = checks.filter(function(c){return c.erledigt;}).length;
@@ -2486,7 +3260,7 @@ function mobRenderAufgabeDetail(g, renderOpt){
 
     // ── Bilder / Dateien ───────────────────────────────── (nur voller Modus)
     +(!compact && a?(function(){
-      var alleDateien = (a.dateien||[]).concat((a.prod&&a.prod.planung&&a.prod.planung.dateien)||[]);
+      var alleDateien = mobMobListDateiRowsForUi(a).slice();
       var bilder = alleDateien.filter(function(f){
         return ((f.mimeType||'').startsWith('image/') || (f.dataUrl||f.data||'').startsWith('data:image')) && (f.dataUrl||f.data);
       });
@@ -2782,7 +3556,7 @@ function mobRenderAufgabeDetail(g, renderOpt){
     var _mobDiErr = document.getElementById('mob-detail-inner');
     if (_mobDiErr) _mobDiErr.setAttribute('data-mob-active-detail-path', 'mobRenderAufgabeDetail:innerHTML-error');
   }
-  // Chat rendern nach DOM-Einfügen (nur voller Modus); renderChatBereich → mobMark → mobUpdateNachrichtenBadge
+  // Chat: dieselbe RAM-Quelle wie Desktop (`a.kommentare` aus reload → bemerkung-Payload)
   if(a && !compact) renderChatBereich(a.id, 'mob-aufg-chat-container-'+g.id);
   else if(typeof mobUpdateNachrichtenBadge === 'function') mobUpdateNachrichtenBadge();
 }
@@ -2839,7 +3613,7 @@ function mobAufgabeStatusSetzen(aufgId, status){
       delete sch.erledigtVonName;
     }
     if(typeof schrittMigrieren === 'function') schrittMigrieren(sch, stepKey);
-    if(typeof saveAuftraege === 'function') saveAuftraege();
+    mobSaveAuftrag(g.auftragId);
     g.status = ns;
     if(g.status === 'fertig' && !g.erledigtTs) g.erledigtTs = sch.erledigtAm || new Date().toISOString();
     if(g.status !== 'fertig') delete g.erledigtTs;
@@ -2900,7 +3674,7 @@ function mobMatEintragen(aufgId){
   }
 
   a.materialVerbrauch.push(eintrag);
-  saveAuftraege();
+  mobSaveAuftrag(a.id);
 
   // Felder leeren
   ['mob-mat-folie','mob-mat-menge','mob-mat-datei','mob-mat-notiz'].forEach(function(id){
@@ -2925,7 +3699,7 @@ function mobMatEntfernen(aufgId, idx){
   var a = AUFTRAEGE.find(function(x){ return x.id===g.auftragId; });
   if(!a || !a.materialVerbrauch) return;
   a.materialVerbrauch.splice(idx, 1);
-  saveAuftraege();
+  mobSaveAuftrag(a.id);
   mobRenderAufgabeDetail(g);
 }
 
@@ -2968,13 +3742,16 @@ function mobRenderDetailInner(auId){
     : (auId+'_'+a.step);
   var laeuft=!!ZEIT_AKTIV[key];
 
-  // Req. 1: Schritt-eigene Checkliste (nicht globale Auftrag-Checkliste)
+  // Req. 1: Schritt-eigene Checkliste (kanonisch); Legacy nur nach Hydration
   var schAkt = a.schritte && a.schritte[a.step];
   if(schAkt) schrittMigrieren(schAkt, a.step);
+  var capiMob = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+  if (capiMob && typeof capiMob.ccInternHydrateSchrittChecklisteFromLegacy === 'function') {
+    capiMob.ccInternHydrateSchrittChecklisteFromLegacy(a);
+  }
   var startGateDetail = mobWorkflowStartFreigabe(auId, a.step, MOB_MA_ID);
-  var checks = (schAkt && schAkt.checkliste && schAkt.checkliste.length)
-    ? schAkt.checkliste
-    : (a.checklisten||[]);
+  var useSchrittMob = !!(schAkt && Array.isArray(schAkt.checkliste) && schAkt.checkliste.length);
+  var checks = useSchrittMob ? schAkt.checkliste : (a.checklisten||[]);
 
   var html='<div style="padding:16px;">'
     // Header
@@ -3049,7 +3826,7 @@ function mobRenderDetailInner(auId){
 
     // Dateien / Bilder aus Auftrag
     +(function(){
-      var alleDateien = (a.dateien||[]).concat((a.prod&&a.prod.planung&&a.prod.planung.dateien)||[]);
+      var alleDateien = mobMobListDateiRowsForUi(a).slice();
       var bilder = alleDateien.filter(function(f){
         return ((f.mimeType||'').startsWith('image/') || (f.dataUrl||f.data||'').startsWith('data:image')) && (f.dataUrl||f.data);
       });
@@ -3105,7 +3882,6 @@ function mobRenderDetailInner(auId){
     _mobDi2.setAttribute('data-mob-active-detail-path', 'mobRenderDetail');
     _mobDi2.setAttribute('data-mob-active-detail-path-at', String(window.__MOB_ACTIVE_DETAIL_PATH_AT__));
   }
-  // Chat rendern nach DOM-Einfügen (mobMark + Badge in renderChatBereich)
   renderChatBereich(auId, 'mob-chat-container-'+auId);
 }
 
@@ -3152,10 +3928,17 @@ function mobStepWeiter(auId){
 
   mobMobMontageFotoPflichtLogVorAbschluss(a, stepKey);
 
-  // Req. 6: Checklisten-Prüfung (kanonischer STEP_LABELS-Key)
+  // Checklisten: nur Hinweis, kein Block (Pflichtfotos separat über schrittAbschliessbar)
   var check = typeof schrittAbschliessbar === 'function' ? schrittAbschliessbar(a, stepKey) : { ok: true };
   if(!check.ok){
     if(!confirm('⚠ ' + check.grund + '\n\nTrotzdem abschließen?')) return;
+  }
+  var offeneCl =
+    typeof window !== 'undefined' && typeof window.ccInternZaehleOffeneChecklistenpunkte === 'function'
+      ? window.ccInternZaehleOffeneChecklistenpunkte(a, stepKey)
+      : 0;
+  if (offeneCl > 0) {
+    if (!confirm('Es sind noch Checklistenpunkte offen. Auftrag trotzdem fortsetzen?')) return;
   }
 
   if(!confirm('Schritt "'+sl.title+'" abschließen?')) return;
@@ -3210,7 +3993,7 @@ function mobStepWeiter(auId){
   if(sl.next==='abgeschlossen') a.rechnung='offen';
 
   if(!mobCcinternCockpitMount() && typeof saveAufgaben === 'function') saveAufgaben();
-  saveAuftraege();
+  mobSaveAuftrag(auId);
   if (!mobCcinternCockpitMount() && typeof mobSynchronisiereInternAufgabenMitWorkflow === 'function' && MOB_MA_ID) {
     mobSynchronisiereInternAufgabenMitWorkflow(MOB_MA_ID);
   }
@@ -3265,6 +4048,87 @@ function mobMobGetServerRows(a){
   return Array.isArray(a.__mobServerDateienUi) ? a.__mobServerDateienUi : [];
 }
 
+/**
+ * Zeilen für App-Foto-UI: wie Desktop — wenn GET …/dateien Zeilen liefert, nur diese;
+ * sonst lokale `a.dateien` / planung.dateien (z. B. frisch aus bemerkung-Payload) normalisieren.
+ */
+function mobMobNormalizeLocalDateienRows(a){
+  if (!a || typeof a !== 'object') return [];
+  var raw = []
+    .concat(Array.isArray(a.dateien) ? a.dateien : [])
+    .concat(
+      Array.isArray(a.prod && a.prod.planung && a.prod.planung.dateien) ? a.prod.planung.dateien : [],
+    );
+  var out = [];
+  var i;
+  var d;
+  var url;
+  var apiTyp;
+  var tl;
+  for (i = 0; i < raw.length; i++) {
+    d = raw[i];
+    if (!d || typeof d !== 'object') continue;
+    url = String(d.dataUrl || d.data || d.localUrl || '').trim();
+    if (!url) continue;
+    apiTyp =
+      d.ccinternApiTyp != null && String(d.ccinternApiTyp).trim() !== ''
+        ? String(d.ccinternApiTyp).trim().toLowerCase()
+        : '';
+    if (!apiTyp) {
+      tl = String(d.typ || '').toLowerCase();
+      if (tl.indexOf('layout') >= 0 && tl.indexOf('grafik') >= 0) apiTyp = 'layout_grafik';
+      else if (tl.indexOf('finale') >= 0 && tl.indexOf('druck') >= 0) apiTyp = 'druckdatei';
+      else if (tl.indexOf('druckdatei') >= 0 || (tl.indexOf('druck') >= 0 && tl.indexOf('final') >= 0))
+        apiTyp = 'druckdatei';
+      else if (tl.indexOf('nachher') >= 0) apiTyp = 'nachher';
+      else if (tl.indexOf('vorher') >= 0) apiTyp = 'vorher';
+      else if (tl.indexOf('montagefoto') >= 0 || (tl.indexOf('montage') >= 0 && tl.indexOf('foto') >= 0))
+        apiTyp = 'montagefoto';
+    }
+    if (!apiTyp) continue;
+    var phase = d.ccinternPhase != null ? String(d.ccinternPhase).trim() : '';
+    var position = d.ccinternPosition != null ? String(d.ccinternPosition).trim() : '';
+    var typUi =
+      apiTyp === 'layout_grafik'
+        ? 'Layout / Grafik'
+        : apiTyp === 'druckdatei'
+          ? 'Finale Druckdatei'
+          : apiTyp === 'montagefoto'
+            ? 'Montagefoto'
+            : apiTyp === 'vorher' || apiTyp === 'nachher'
+              ? apiTyp.charAt(0).toUpperCase() + apiTyp.slice(1)
+              : apiTyp;
+    out.push({
+      data: url,
+      localUrl: url,
+      dataUrl: url,
+      typ: typUi,
+      mimeType: d.mimeType != null ? String(d.mimeType) : '',
+      name: d.name != null ? String(d.name) : '',
+      size: Number(d.size || 0),
+      _src: 'local-datei',
+      apiTyp: apiTyp,
+      phase: phase,
+      position: position,
+    });
+  }
+  return out;
+}
+
+function mobMobListDateiRowsForUi(a){
+  var srv = mobMobGetServerRows(a);
+  var leg = mobMobNormalizeLocalDateienRows(a);
+  var api =
+    typeof window !== 'undefined' && window.CCIntern && window.CCIntern.cockpitApi
+      ? window.CCIntern.cockpitApi
+      : null;
+  if (api && typeof api.mergeCcInternDateienDisplayRows === 'function') {
+    return api.mergeCcInternDateienDisplayRows(srv, leg);
+  }
+  if (srv && srv.length) return srv;
+  return leg;
+}
+
 function mobMobSetServerRows(a, rows){
   var arr = Array.isArray(rows) ? rows : [];
   var k = mobMobCacheKey(a);
@@ -3314,7 +4178,7 @@ function mobMontageAuftragsfotosPflichtSnapshot(a){
     }
   }
   var have = {};
-  var srv = a ? mobMobGetServerRows(a) : [];
+  var srv = a ? mobMobListDateiRowsForUi(a) : [];
   if (srv.length){
     srv.forEach(function(row){
       if (!row || typeof row !== 'object') return;
@@ -3533,13 +4397,21 @@ function mobMobRowIsImageUrl(row){
   if (!row || typeof row !== 'object') return false;
   var mt = String(row.mimeType || '').toLowerCase();
   if (mt.indexOf('image/') === 0) return true;
-  var u = String(row.data || row.localUrl || '');
+  var u = String(row.data || row.localUrl || row.dataUrl || '');
   return u.indexOf('data:image') === 0;
 }
 
 function mobMobRowImageDataUrl(row){
   if (!row || !mobMobRowIsImageUrl(row)) return '';
-  return String(row.data || row.localUrl || '');
+  return String(row.data || row.localUrl || row.dataUrl || '');
+}
+
+/** Nicht-Bild (z. B. PDF) mit darstellbarer URL — für Link-Zeile unter den Thumbnails. */
+function mobMobRowDocUrl(row){
+  if (!row || typeof row !== 'object') return '';
+  if (mobMobRowIsImageUrl(row)) return '';
+  var u = String(row.data || row.localUrl || row.dataUrl || '').trim();
+  return u || '';
 }
 
 function mobMobAttrEscImgSrc(u){
@@ -3550,7 +4422,7 @@ function mobMobAttrEscImgSrc(u){
 }
 
 function mobMobUrlsForTyp(a, typLower){
-  var rows = a ? mobMobGetServerRows(a) : [];
+  var rows = a ? mobMobListDateiRowsForUi(a) : [];
   var tWant = String(typLower || '').toLowerCase();
   var urls = [];
   var seen = {};
@@ -3574,7 +4446,7 @@ function mobMobUrlsForTyp(a, typLower){
 
 /** Letztes passendes Bild pro Slot (API-Reihenfolge: neu hinten) — erneuter Upload ersetzt die Vorschau. */
 function mobMobUrlsForSlot(a, ph, pos){
-  var rows = a ? mobMobGetServerRows(a) : [];
+  var rows = a ? mobMobListDateiRowsForUi(a) : [];
   var i;
   var r;
   var u;
@@ -3637,6 +4509,39 @@ function mobMobThumbStripHtml(urls){
   );
 }
 
+/** PDF/Dokument-Links unter der Bildreihe (data:- oder blob:-URL). */
+function mobMobDocLinksForTypHtml(a, typLower){
+  var rows = a ? mobMobListDateiRowsForUi(a) : [];
+  var tWant = String(typLower || '').toLowerCase();
+  var parts = [];
+  var seen = {};
+  var i;
+  var r;
+  var u;
+  var nm;
+  for (i = 0; i < rows.length; i++) {
+    r = rows[i];
+    if (!r) continue;
+    if (mobMobDateiApiTypLower(r) !== tWant) continue;
+    if (tWant === 'montagefoto' && mobMobDateiRowIstStrukturierterVorNachSlot(r)) continue;
+    u = mobMobRowDocUrl(r);
+    if (!u || seen[u]) continue;
+    seen[u] = true;
+    nm = r.name != null && String(r.name).trim() ? String(r.name).trim() : 'Datei';
+    parts.push(
+      '<a href="' +
+        mobMobAttrEscImgSrc(u) +
+        '" download="' +
+        mobMobAttrEscImgSrc(nm) +
+        '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:6px 8px;background:#E8E8ED;border-radius:6px;font-size:10px;font-weight:600;color:#3C3C43;text-decoration:none;">📄 ' +
+        mobDetEsc(nm) +
+        '</a>',
+    );
+  }
+  if (!parts.length) return '';
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + parts.join('') + '</div>';
+}
+
 /** Obere Reihe wie Desktop: Layout / Grafik, Finale Druckdatei, Montagefoto (gleiche mobFotoHochladen-Parameter). */
 function mobMobFotoOberreiheHtml(auId, sch, darf, a){
   var urlsLayout = mobMobUrlsForTyp(a, 'layout_grafik');
@@ -3648,6 +4553,7 @@ function mobMobFotoOberreiheHtml(auId, sch, darf, a){
       cell +
       '"><span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:8px;background:#F2F2F7;font-size:11px;font-weight:700;color:#C7C7CC;">Layout / Grafik</span>' +
       mobMobThumbStripHtml(urlsLayout) +
+      mobMobDocLinksForTypHtml(a, 'layout_grafik') +
       '</div>'
     : '<div style="' +
       cell +
@@ -3655,13 +4561,15 @@ function mobMobFotoOberreiheHtml(auId, sch, darf, a){
       + '<span>🎨 Layout / Grafik</span>'
       + '<input type="file" accept="image/*,application/pdf,.pdf" multiple style="display:none;"'
       + ' onchange="mobFotoHochladen(this,\''+mobEscJsSingleQuoted(auId)+'\',\''+mobEscJsSingleQuoted(sch)+'\',\'entwurf\',\'entwurf\',\'layout\')"></label>'
-      + mobMobThumbStripHtml(urlsLayout)
-      + '</div>';
+      + mobMobThumbStripHtml(urlsLayout) +
+      mobMobDocLinksForTypHtml(a, 'layout_grafik') +
+      '</div>';
   var btnFin = !darf
     ? '<div style="' +
       cell +
       '"><span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:8px;background:#F2F2F7;font-size:11px;font-weight:700;color:#C7C7CC;">Finale Druckdatei</span>' +
       mobMobThumbStripHtml(urlsDruck) +
+      mobMobDocLinksForTypHtml(a, 'druckdatei') +
       '</div>'
     : '<div style="' +
       cell +
@@ -3669,13 +4577,15 @@ function mobMobFotoOberreiheHtml(auId, sch, darf, a){
       + '<span>🖨 Finale Druckdatei</span>'
       + '<input type="file" accept="image/*,application/pdf,.pdf" multiple style="display:none;"'
       + ' onchange="mobFotoHochladen(this,\''+mobEscJsSingleQuoted(auId)+'\',\''+mobEscJsSingleQuoted(sch)+'\',\'entwurf\',\'entwurf\',\'druckdatei\')"></label>'
-      + mobMobThumbStripHtml(urlsDruck)
-      + '</div>';
+      + mobMobThumbStripHtml(urlsDruck) +
+      mobMobDocLinksForTypHtml(a, 'druckdatei') +
+      '</div>';
   var btnMont = !darf
     ? '<div style="' +
       cell +
       '"><span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:8px;background:#F2F2F7;font-size:11px;font-weight:700;color:#C7C7CC;">Montagefoto</span>' +
       mobMobThumbStripHtml(urlsMont) +
+      mobMobDocLinksForTypHtml(a, 'montagefoto') +
       '</div>'
     : '<div style="' +
       cell +
@@ -3684,8 +4594,9 @@ function mobMobFotoOberreiheHtml(auId, sch, darf, a){
       + '<input type="file" accept="image/*" capture="environment" style="display:none;"'
       + ' onchange="mobFotoHochladen(this,\''+mobEscJsSingleQuoted(auId)+'\',\''+mobEscJsSingleQuoted(sch)+'\',\'\',\'\')"'
       + '></label>'
-      + mobMobThumbStripHtml(urlsMont)
-      + '</div>';
+      + mobMobThumbStripHtml(urlsMont) +
+      mobMobDocLinksForTypHtml(a, 'montagefoto') +
+      '</div>';
   return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px;">'
     + btnLayout
     + btnFin
@@ -4017,17 +4928,17 @@ function mobAufgCheckToggle(aufgId, idx, val){
     }
     mobRenderHome();
   };
-  if (api && typeof api.persistAuftraegeImmediate === 'function') {
-    api.persistAuftraegeImmediate(typeof showToast === 'function' ? showToast : null).then(after).catch(after);
-    return;
-  }
-  saveAuftraege();
-  after();
+  mobSaveAuftrag(g.auftragId, typeof showToast === 'function' ? showToast : null).then(after).catch(after);
+  return;
 }
 
 // ── Checkliste abhaken in mobRenderDetail (Req. 1: Schritt-Checkliste) ──
 function mobCheckToggle(auId, idx, val){
   var a=AUFTRAEGE.find(function(x){return x.id===auId;}); if(!a) return;
+  var capiH = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+  if (capiH && typeof capiH.ccInternHydrateSchrittChecklisteFromLegacy === 'function') {
+    capiH.ccInternHydrateSchrittChecklisteFromLegacy(a);
+  }
   var schAkt = a.schritte && a.schritte[a.step];
   if(schAkt) schrittMigrieren(schAkt, a.step);
   if(schAkt && schAkt.checkliste && schAkt.checkliste.length){
@@ -4039,14 +4950,9 @@ function mobCheckToggle(auId, idx, val){
   if (api && typeof api.logCcInternChecklistAuditFromUi === 'function') {
     api.logCcInternChecklistAuditFromUi(a, 'UI (Mob Detail): checkliste nach Toggle', { auId: auId, idx: idx, val: val });
   }
-  if (api && typeof api.persistAuftraegeImmediate === 'function') {
-    api.persistAuftraegeImmediate(typeof showToast === 'function' ? showToast : null).then(function(){
-      mobRenderDetail(auId);
-    }).catch(function(){ mobRenderDetail(auId); });
-    return;
-  }
-  saveAuftraege();
-  mobRenderDetail(auId);
+  mobSaveAuftrag(auId, typeof showToast === 'function' ? showToast : null).then(function(){
+    mobRenderDetail(auId);
+  }).catch(function(){ mobRenderDetail(auId); });
 }
 
 // ── Tab wechseln ────────────────────────────────
@@ -4330,11 +5236,9 @@ function mobRenderFotosPaint(ids){
     var a = AUFTRAEGE.find(function(x){ return mobAuftragIdsGleich(x.id, id); });
     if(!a) return '';
     var sl = STEP_LABELS[a.step]||{title:a.step,col:'#888'};
-    var nr = (a.auftragsnummer != null && String(a.auftragsnummer).trim() !== '') ? String(a.auftragsnummer).trim() : String(a.id || '');
-    var nFotos = mobMobGetServerRows(a).length;
+    var nFotos = mobMobListDateiRowsForUi(a).length;
     return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.05);">'
-      +'<div style="font-size:13px;font-weight:700;color:#1C1C1E;">'+mobDetEsc(nr)+'</div>'
-      +'<div style="font-size:12px;color:#3C3C43;margin-top:4px;">'+mobDetEsc(String(a.kunde||'—'))+'</div>'
+      +mobCardKundeAuZeilenHtml(null, a)
       +'<div style="font-size:11px;color:'+sl.col+';font-weight:600;margin-top:6px;">Aktueller Schritt: '+mobDetEsc(String(sl.title||''))+'</div>'
       +(nFotos ? '<div style="margin-top:6px;font-size:11px;color:#34C759;font-weight:600;">'+nFotos+' Datei(en) vom Server</div>' : '')
       +'<button type="button" onclick="mobOpenFotoView(\''+mobEscJsSingleQuoted(id)+'\')" '
@@ -4597,8 +5501,16 @@ function mobUrlaubSenden(){
   var typ   = document.getElementById('mob-url-typ').value;
   var notiz = document.getElementById('mob-url-notiz').value;
   var ma    = maByID(MOB_MA_ID)||{n:MOB_MA_ID};
+  var maUrlaubKey = MOB_MA_ID;
   var id    = 'URL-'+new Date().getFullYear()+'-'+String(URLAUB_ANTRAEGE.length+1).padStart(3,'0');
   var api   = window.__CCINTERN_COCKPIT_MOUNT__ && window.CCIntern && window.CCIntern.cockpitApi ? window.CCIntern.cockpitApi : null;
+  console.warn('[MA_URLAUB_SUBMIT]', {
+    typ: typ,
+    mobMaId: MOB_MA_ID,
+    maUrlaubKey: maUrlaubKey,
+    cockpitMount: !!window.__CCINTERN_COCKPIT_MOUNT__,
+    hasApi: !!(api && typeof api.postUrlaubAntragFromUi === 'function'),
+  });
 
   function mobUrlaubFinishUi(){
     document.getElementById('mob-url-notiz').value='';
@@ -4614,26 +5526,33 @@ function mobUrlaubSenden(){
     var std = parseFloat(document.getElementById('mob-url-std').value)||0;
     if(std <= 0){ showToast('⚠ Bitte Stunden eingeben'); return; }
     var recUe = {
-      id:id, maId:MOB_MA_ID, ma:ma.n,
+      id:id, maId:maUrlaubKey, ma:ma.n,
       typ:typ, stunden:std, von:'', bis:'', notiz:notiz,
       status:'offen', erstellt:new Date().toISOString()
     };
     URLAUB_ANTRAEGE.push(recUe);
     if (api && typeof api.postUrlaubAntragFromUi === 'function') {
+      console.warn('[MA_URLAUB_REQUEST]', { method: 'POST', path: '/api/v1/urlaub', body: recUe });
       api.postUrlaubAntragFromUi(recUe, showToast).then(function (u) {
+        console.warn('[MA_URLAUB_RESPONSE]', { ok: true, id: u && u.id ? u.id : null, status: u && u.status ? u.status : null });
         if (u) Object.assign(recUe, u);
         saveUrlaub();
         showToast('✓ Antrag gesendet · Überstunden '+std+'h');
         mobUrlaubFinishUi();
       }).catch(function (e) {
+        console.warn('[MA_URLAUB_ERROR]', {
+          status: e && e.status != null ? e.status : null,
+          message: e instanceof Error ? e.message : String(e),
+          body: e && e.body !== undefined ? e.body : null,
+        });
         console.error('[mob] Urlaub API', e);
         showToast('⚠ Antrag konnte nicht gespeichert werden.');
         mobUrlaubFinishUi();
       });
       return;
     }
-    saveUrlaub();
-    showToast('✓ Antrag gesendet · Überstunden '+std+'h');
+    console.warn('[MA_URLAUB_ERROR]', { reason: 'no-cockpit-api', silentLocalFallback: true });
+    if (typeof showToast === 'function') showToast('⚠ Urlaub: Kein API-Kontext — nicht gespeichert.');
     mobUrlaubFinishUi();
   } else if(typ === 'Kurzabwesenheit'){
     var elKd = document.getElementById('mob-url-kurz-datum');
@@ -4643,14 +5562,14 @@ function mobUrlaubSenden(){
     if(!kDatum){ showToast('⚠ Bitte Datum auswählen'); return; }
     if(!kStd || kStd <= 0){ showToast('⚠ Bitte Fehlzeit eingeben'); return; }
     var recKurz = {
-      id:id, maId:MOB_MA_ID, ma:ma.n,
+      id:id, maId:maUrlaubKey, ma:ma.n,
       typ:'Kurzabwesenheit', artLabel:'Kurzabwesenheit',
       stunden: kStd, von: kDatum, bis: kDatum, notiz: notiz,
       status:'genehmigt', erstellt:new Date().toISOString()
     };
     URLAUB_ANTRAEGE.push(recKurz);
     var anwRow = {
-      maId:    MOB_MA_ID,
+      maId:    maUrlaubKey,
       ma:      ma.n,
       datum:   kDatum,
       start:   '—',
@@ -4662,7 +5581,9 @@ function mobUrlaubSenden(){
     };
     MA_ANWESENHEIT.push(anwRow);
     if (api && typeof api.postUrlaubAntragFromUi === 'function' && typeof api.postMitarbeiterAnwesenheitFromUi === 'function') {
+      console.warn('[MA_URLAUB_REQUEST]', { method: 'POST', path: '/api/v1/urlaub', body: recKurz });
       api.postUrlaubAntragFromUi(recKurz, showToast).then(function (u) {
+        console.warn('[MA_URLAUB_RESPONSE]', { ok: true, id: u && u.id ? u.id : null });
         if (u) Object.assign(recKurz, u);
         return api.postMitarbeiterAnwesenheitFromUi(anwRow, showToast);
       }).then(function () {
@@ -4671,15 +5592,15 @@ function mobUrlaubSenden(){
         showToast('✓ Eingetragen · '+kStd+'h · '+kDatum.split('-').reverse().join('.'));
         mobUrlaubFinishUi();
       }).catch(function (e) {
+        console.warn('[MA_URLAUB_ERROR]', { status: e && e.status != null ? e.status : null, message: e instanceof Error ? e.message : String(e) });
         console.error('[mob] Kurzabwesenheit API', e);
         showToast('⚠ Speichern fehlgeschlagen.');
         mobUrlaubFinishUi();
       });
       return;
     }
-    saveUrlaub();
-    saveAnwesenheit();
-    showToast('✓ Eingetragen · '+kStd+'h · '+kDatum.split('-').reverse().join('.'));
+    console.warn('[MA_URLAUB_ERROR]', { reason: 'no-cockpit-api', silentLocalFallback: true });
+    if (typeof showToast === 'function') showToast('⚠ Kurzabwesenheit: Kein API-Kontext — nicht gespeichert.');
     mobUrlaubFinishUi();
   } else {
     var von = document.getElementById('mob-url-von').value;
@@ -4687,26 +5608,33 @@ function mobUrlaubSenden(){
     if(!von||!bis){ showToast('⚠ Bitte Datum auswählen'); return; }
     if(von>bis){ showToast('⚠ Von muss vor Bis liegen'); return; }
     var recStd = {
-      id:id, maId:MOB_MA_ID, ma:ma.n,
+      id:id, maId:maUrlaubKey, ma:ma.n,
       typ:typ, von:von, bis:bis, notiz:notiz,
       status:'offen', erstellt:new Date().toISOString()
     };
     URLAUB_ANTRAEGE.push(recStd);
     if (api && typeof api.postUrlaubAntragFromUi === 'function') {
+      console.warn('[MA_URLAUB_REQUEST]', { method: 'POST', path: '/api/v1/urlaub', body: recStd });
       api.postUrlaubAntragFromUi(recStd, showToast).then(function (u) {
+        console.warn('[MA_URLAUB_RESPONSE]', { ok: true, id: u && u.id ? u.id : null, status: u && u.status ? u.status : null });
         if (u) Object.assign(recStd, u);
         saveUrlaub();
         showToast('✓ Antrag gesendet · '+typ+' · '+von+' – '+bis);
         mobUrlaubFinishUi();
       }).catch(function (e) {
+        console.warn('[MA_URLAUB_ERROR]', {
+          status: e && e.status != null ? e.status : null,
+          message: e instanceof Error ? e.message : String(e),
+          body: e && e.body !== undefined ? e.body : null,
+        });
         console.error('[mob] Urlaub API', e);
         showToast('⚠ Antrag konnte nicht gespeichert werden.');
         mobUrlaubFinishUi();
       });
       return;
     }
-    saveUrlaub();
-    showToast('✓ Antrag gesendet · '+typ+' · '+von+' – '+bis);
+    console.warn('[MA_URLAUB_ERROR]', { reason: 'no-cockpit-api', silentLocalFallback: true });
+    if (typeof showToast === 'function') showToast('⚠ Urlaub: Kein API-Kontext — nicht gespeichert.');
     mobUrlaubFinishUi();
   }
 }
@@ -4715,6 +5643,10 @@ function mobUrlaubSenden(){
 var CCINTERN_MA_TEST_STORAGE = 'ccintern_ma_test_override';
 
 function ccMobTestRestoreFromSession() {
+  if (mobIsRealMaAppSession()) {
+    if (typeof ccMobTestClear === 'function') ccMobTestClear();
+    return;
+  }
   try {
     var s = sessionStorage.getItem(CCINTERN_MA_TEST_STORAGE);
     if (s && String(s).trim() !== '' && s !== '__cockpit__') {
@@ -4734,6 +5666,7 @@ function ccMobTestClear() {
 }
 
 function ccMobTestGetActiveId() {
+  if (mobIsRealMaAppSession()) return '';
   var g = (typeof window !== 'undefined' && (window.__CCINTERN_MA_TEST_USER__ || window.__TEST_USER__)) || '';
   g = String(g).trim();
   if (g) { return g; }
@@ -4779,6 +5712,8 @@ function ccMobTestBarSync() {
 window.ccMobTestBarSync = ccMobTestBarSync;
 
 function ccMobTestBarPopulate(tryIndex) {
+  mobSyncMaAppTestBarVisibility();
+  if (mobIsRealMaAppSession()) return;
   var idx = (tryIndex | 0) + 1;
   if (idx > 24) { return; }
   var sel = document.getElementById('cc-mob-test-select');
@@ -4805,6 +5740,24 @@ function ccMobTestBarPopulate(tryIndex) {
 window.ccMobTestBarPopulate = ccMobTestBarPopulate;
 
 function mobReapplyCockpitOrTestMa() {
+  mobSyncMaAppTestBarVisibility();
+  if (mobIsRealMaAppSession()) {
+    if (typeof ccMobTestClear === 'function') ccMobTestClear();
+    if (window.CURRENT_USER_ID && typeof window.mobApplyCockpitUser === 'function') {
+      window.mobApplyCockpitUser(window.CURRENT_USER_ID);
+    }
+    if (typeof maRunBootDiagnose === 'function') {
+      maRunBootDiagnose();
+    }
+    if (
+      typeof window !== 'undefined' &&
+      window.__MOB_PENDING_COCKPIT_USER_ID__ &&
+      typeof window.mobApplyCockpitUser === 'function'
+    ) {
+      window.mobApplyCockpitUser(window.__MOB_PENDING_COCKPIT_USER_ID__);
+    }
+    return;
+  }
   if (typeof ccMobTestRestoreFromSession === 'function') { ccMobTestRestoreFromSession(); }
   if (window.CURRENT_USER_ID && typeof window.mobApplyCockpitUser === 'function') {
     window.mobApplyCockpitUser(window.CURRENT_USER_ID);
@@ -4820,29 +5773,228 @@ window.mobReapplyCockpitOrTestMa = mobReapplyCockpitOrTestMa;
 
 /** Nach Cockpit-Login: gleiche MA-ID wie CURRENT_USER → Mitarbeiter-App ohne erneute Auswahl */
 function mobApplyCockpitUser(cockpitUserId) {
-  if (typeof ccMobTestRestoreFromSession === 'function') { ccMobTestRestoreFromSession(); }
-  var tId = (typeof ccMobTestGetActiveId === 'function' && ccMobTestGetActiveId()) || '';
-  if (tId) {
-    try { sessionStorage.setItem('mob_ma_id', tId); } catch (e) {}
-    MOB_MA_ID = tId;
-    if (typeof mobSetMA === 'function' && document.getElementById('mob-hallo')) { mobSetMA(tId); }
-    if (typeof ccMobTestBarSync === 'function') { ccMobTestBarSync(); }
-    return;
+  mobSyncMaAppTestBarVisibility();
+  var appOnly = mobIsRealMaAppSession();
+  if (appOnly) {
+    if (typeof ccMobTestClear === 'function') ccMobTestClear();
+    try { sessionStorage.removeItem('mob_ma_id'); } catch (eClr) {}
+    MOB_MA_ID = null;
+  } else if (typeof ccMobTestRestoreFromSession === 'function') {
+    ccMobTestRestoreFromSession();
+    var tId = (typeof ccMobTestGetActiveId === 'function' && ccMobTestGetActiveId()) || '';
+    if (tId) {
+      try { sessionStorage.setItem('mob_ma_id', tId); } catch (e) {}
+      MOB_MA_ID = tId;
+      if (typeof mobSetMA === 'function' && document.getElementById('mob-hallo')) { mobSetMA(tId); }
+      if (typeof ccMobTestBarSync === 'function') { ccMobTestBarSync(); }
+      return;
+    }
   }
   if (cockpitUserId == null || String(cockpitUserId).trim() === '') return;
-  if (typeof MA_DATA === 'undefined' || !MA_DATA.length) return;
-  var sid = String(cockpitUserId).trim();
-  var m = MA_DATA.find(function(u) { return String(u.maId || u.id) === sid; });
-  if (!m) return;
-  var mid = m.maId != null ? String(m.maId) : String(m.id);
+  if (typeof MA_DATA === 'undefined' || !MA_DATA.length) {
+    if (typeof window !== 'undefined') {
+      window.__MOB_PENDING_COCKPIT_USER_ID__ = String(cockpitUserId).trim();
+    }
+    return;
+  }
+  if (typeof window !== 'undefined') {
+    window.__MOB_PENDING_COCKPIT_USER_ID__ = '';
+  }
+  var res = mobResolveLoggedInMitarbeiter(cockpitUserId);
+  if (typeof console !== 'undefined' && console.warn) {
+    var matchDiag = {
+      userId: res.userId,
+      email: res.email,
+      name: res.name,
+      matchVia: res.matchVia,
+      matchedMitarbeiterId: res.matched && res.matched.mitarbeiter_id != null ? String(res.matched.mitarbeiter_id) : null,
+      workingMaId: res.workingMaId,
+      matchedName: res.matchedName,
+      matchedKuerzel: res.matchedKuerzel,
+      ok: res.ok,
+      appOnly: appOnly,
+    };
+    console.warn('[MA_BOOT_MATCH]', matchDiag);
+    if (typeof console.log === 'function') {
+      console.log('[MA-APP USER MATCH]', matchDiag);
+    }
+  }
+  if (appOnly && (!res.ok || !res.matched)) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[MA-APP USER MATCH FEHLT]', {
+        userId: res.userId,
+        email: res.email,
+        name: res.name,
+      });
+    }
+    MOB_MA_ID = null;
+    mobZeigeLogin();
+    return;
+  }
+  if (!res.workingMaId) return;
+  var mid = res.workingMaId;
   try { sessionStorage.setItem('mob_ma_id', mid); } catch (e) {}
   MOB_MA_ID = mid;
   if (typeof mobSetMA === 'function' && document.getElementById('mob-hallo')) {
     mobSetMA(mid);
   }
+  if (appOnly && typeof window !== 'undefined' && document.getElementById('mob-hallo')) {
+    if (window.__MOB_AUFTRAG_RESTORE_TRIGGERED__ === true) {
+      if (typeof console !== 'undefined' && console.info) {
+        console.info('[AUFTRAG_RESTORE_ALREADY_TRIGGERED]', { mob_ma_id: mid });
+      }
+    } else if (!window.__MOB_MOB_INIT_ACTIVE__) {
+      window.__MOB_AUFTRAG_RESTORE_TRIGGERED__ = true;
+      if (typeof console !== 'undefined' && console.info) {
+        console.info('[AUFTRAG_RESTORE_DEFERRED_TRIGGER]', { mob_ma_id: mid });
+      }
+      mobZeitRestore(function () {
+        mobRestoreAuftragArbeitszeit(function () {
+          mobAuftragLaufzeitTick();
+          if (typeof mobRenderHome === 'function') mobRenderHome();
+          if (MOB_AKTIV_TAB === 'aufgaben' && typeof mobRenderAlle === 'function') mobRenderAlle();
+        });
+      });
+    }
+  }
   if (typeof ccMobTestBarSync === 'function') { ccMobTestBarSync(); }
 }
 window.mobApplyCockpitUser = mobApplyCockpitUser;
+
+/** Nach GET Aufträge: Filter-Diagnose für Mitarbeiter-App (MOB_MA_ID / Response). */
+function maLogAuftraegeNachReload(apiRows) {
+  if (!mobIsRealMaAppSession()) return;
+  var rows = Array.isArray(apiRows) ? apiRows : [];
+  var ram = typeof AUFTRAEGE !== 'undefined' && Array.isArray(AUFTRAEGE) ? AUFTRAEGE : [];
+  var meine =
+    typeof mobMeineWorkflowAufgaben === 'function' && MOB_MA_ID
+      ? mobMeineWorkflowAufgaben(MOB_MA_ID)
+      : [];
+  var meineIds = {};
+  meine.forEach(function (g) {
+    if (g && g.auftragId != null) meineIds[String(g.auftragId)] = true;
+  });
+  console.warn('[MA_AUFTRAEGE_FILTER]', {
+    mobMaId: MOB_MA_ID,
+    maStammId: mobMaStammIdForApi(),
+    matchKeys: typeof mobWorkflowMaMatchKeys === 'function' ? mobWorkflowMaMatchKeys(MOB_MA_ID) : [],
+    apiRowCount: rows.length,
+    ramCount: ram.length,
+    ramIdsSample: ram.slice(0, 12).map(function (a) {
+      return a && (a.id || a.auftragsnummer);
+    }),
+    meineAufgabenCount: meine.length,
+    meineAuftragIds: meine.slice(0, 12).map(function (g) {
+      return g && g.auftragId;
+    }),
+  });
+  var assignSamples = [];
+  var ai;
+  for (ai = 0; ai < ram.length && assignSamples.length < 8; ai++) {
+    var ax = ram[ai];
+    if (!ax) continue;
+    var ev = typeof maAssignMatchEvaluate === 'function' ? maAssignMatchEvaluate(ax, MOB_MA_ID) : null;
+    if (!ev) continue;
+    if (!ev.included || !meineIds[String(ax.id)]) assignSamples.push(ev);
+  }
+  if (assignSamples.length) {
+    console.warn('[MA_ASSIGN_MATCH]', { samples: assignSamples });
+  }
+  ram.slice(0, 6).forEach(function (a) {
+    if (!a || typeof maAssignMatchEvaluate !== 'function') return;
+    var diag = maAssignMatchEvaluate(a, MOB_MA_ID);
+    console.warn('[MA_ASSIGN_MATCH]', diag);
+  });
+}
+window.maLogAuftraegeNachReload = maLogAuftraegeNachReload;
+window.mobFindAuftragInRam = mobFindAuftragInRam;
+window.maAssignMatchEvaluate = maAssignMatchEvaluate;
+
+/**
+ * Login/Reload-Diagnose (nur Mitarbeiter-App-only).
+ * Konsole: [MA_BOOT_AUTH] [MA_BOOT_RIGHTS] [MA_BOOT_MATCH] [MA_BOOT_PROJECT]
+ */
+function maRunBootDiagnose() {
+  if (!mobIsRealMaAppSession()) return;
+  var tok = '';
+  try {
+    if (typeof localStorage !== 'undefined') {
+      tok = localStorage.getItem('cc_cockpit_access_token') || '';
+    }
+  } catch (eTok) {
+    void eTok;
+  }
+  var authMod = typeof window !== 'undefined' && window.CCIntern && window.CCIntern.auth;
+  var projectId = '';
+  try {
+    if (authMod && typeof authMod.getCurrentProjectId === 'function') {
+      projectId = authMod.getCurrentProjectId() || '';
+    }
+  } catch (ePid) {
+    void ePid;
+  }
+  if (!projectId) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        projectId = sessionStorage.getItem('cc_cockpit_active_project_id') || '';
+      }
+    } catch (eSs) {
+      void eSs;
+    }
+  }
+  var ui = typeof window !== 'undefined' && window.CC_SHELL_UI_ACCESS ? window.CC_SHELL_UI_ACCESS : null;
+  console.warn('[MA_BOOT_AUTH]', {
+    currentUserId: typeof window !== 'undefined' && window.CURRENT_USER_ID != null ? String(window.CURRENT_USER_ID) : null,
+    currentUserName: typeof window !== 'undefined' && window.CURRENT_USER_NAME != null ? String(window.CURRENT_USER_NAME) : null,
+    accessTokenPresent: !!(tok && String(tok).trim()),
+    mobMaId: MOB_MA_ID,
+    maDataLen: typeof MA_DATA !== 'undefined' && MA_DATA ? MA_DATA.length : 0,
+    cockpitMount: !!(typeof window !== 'undefined' && window.__CCINTERN_COCKPIT_MOUNT__),
+  });
+  console.warn('[MA_BOOT_RIGHTS]', {
+    isMitarbeiterAppOnlyShell: ui && ui.isMitarbeiterAppOnlyShell === true,
+    canSeeMitarbeiterApp: ui && ui.canSeeMitarbeiterApp === true,
+    canSeeCcInternDesktop: ui && ui.canSeeCcInternDesktop === true,
+  });
+  console.warn('[MA_BOOT_PROJECT]', {
+    projectId: projectId || null,
+    xProjectIdSet: !!(projectId && String(projectId).trim()),
+    company_id:
+      typeof window !== 'undefined' && window.COCKPIT_FIRMA_ID != null
+        ? String(window.COCKPIT_FIRMA_ID)
+        : null,
+  });
+  if (!authMod || typeof authMod.apiFetch !== 'function') return;
+  authMod
+    .apiFetch('/auth/me')
+    .then(function (meRes) {
+      console.warn('[MA_BOOT_AUTH]', {
+        meStatus: 'ok',
+        email: meRes && meRes.user && meRes.user.email ? String(meRes.user.email) : null,
+        company_id: meRes && meRes.user && meRes.user.company_id != null ? String(meRes.user.company_id) : null,
+      });
+    })
+    .catch(function (eMe) {
+      console.warn('[MA_BOOT_AUTH]', {
+        meStatus: 'error',
+        status: eMe && eMe.status != null ? eMe.status : null,
+        message: eMe instanceof Error ? eMe.message : String(eMe),
+      });
+    });
+  authMod
+    .apiFetch('/auth/my-rights')
+    .then(function (mr) {
+      console.warn('[MA_BOOT_RIGHTS]', { myRightsStatus: 'ok', hasBundle: !!(mr && typeof mr === 'object') });
+    })
+    .catch(function (eMr) {
+      console.warn('[MA_BOOT_RIGHTS]', {
+        myRightsStatus: 'error',
+        status: eMr && eMr.status != null ? eMr.status : null,
+        message: eMr instanceof Error ? eMr.message : String(eMr),
+      });
+    });
+}
+window.maRunBootDiagnose = maRunBootDiagnose;
 
 /** Referenz: „Minus“ oben — hier: zurück zur Desktop-Übersicht (Dashboard) */
 function mobShellMinimize() {
@@ -4922,3 +6074,33 @@ function ccInternDebugMitarbeiterAuftrag(auKey, nameOrKuerzel) {
   return out;
 }
 window.ccInternDebugMitarbeiterAuftrag = ccInternDebugMitarbeiterAuftrag;
+
+/**
+ * Blockiert POST /api/v1/ccintern/aufgaben während F5-Restore und in der echten MA-App
+ * (dalInit → mobAufgabenNacherzeugen → saveAufgaben). Normale Desktop-CC-Intern-Pfade unberührt.
+ */
+(function mobInstallSaveAufgabenPostGuard(){
+  if(typeof window === 'undefined') return;
+  if(window.__MOB_SAVE_AUFGABEN_GUARD_INSTALLED__) return;
+  var orig =
+    typeof window.saveAufgaben === 'function'
+      ? window.saveAufgaben
+      : typeof saveAufgaben === 'function'
+        ? saveAufgaben
+        : null;
+  if(!orig) return;
+  window.__MOB_SAVE_AUFGABEN_GUARD_INSTALLED__ = true;
+  function mobGuardedSaveAufgaben(){
+    if(window.__MOB_AUFTRAG_RESTORE_RUNNING__ === true){
+      console.info('[AUFGABEN_POST_BLOCKED_DURING_RESTORE]');
+      console.info('[AUFTRAG_RESTORE_NO_POST_ALLOWED]');
+      return;
+    }
+    if(typeof mobShouldSkipInternAufgabenBulkPost === 'function' && mobShouldSkipInternAufgabenBulkPost()){
+      console.info('[AUFGABEN_POST_BLOCKED_MA_APP_COCKPIT]');
+      return;
+    }
+    return orig.apply(this, arguments);
+  }
+  window.saveAufgaben = mobGuardedSaveAufgaben;
+})();
