@@ -6,6 +6,12 @@
 import { randomUUID } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import { defaultFlagsForRole } from '../auth/project-access-rules.js';
+import {
+  inviteRowField,
+  normalizeInviteAccessForRedeem,
+  parseInviteModulesFromRow,
+  parseInviteRightsFromRow,
+} from '../auth/invite-redeem-normalize.js';
 import { bereicheForModule, normalizeRightsJson, rightsJsonFullForModule } from '../auth/rights-spec.js';
 import {
   attachFahrzeugFelderToFusaRows,
@@ -1053,8 +1059,87 @@ async function ensureMysqlCcInternMitarbeiterOperativTables(pool) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
       [],
     );
+    await qRun(
+      pool,
+      `CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_arbeitszeit_session (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        project_id CHAR(36) NULL,
+        project_id_key VARCHAR(36) AS (IFNULL(project_id, '')) STORED,
+        status VARCHAR(16) NOT NULL,
+        started_at VARCHAR(40) NOT NULL,
+        pause_seconds INT NOT NULL DEFAULT 0,
+        pause_started_at VARCHAR(40) NULL,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_cc_az_sess_user_proj (user_id, project_id_key),
+        CONSTRAINT fk_cc_az_sess_user
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
+    await qRun(
+      pool,
+      `CREATE TABLE IF NOT EXISTS ccintern_auftrag_arbeits_session (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        auftrag_id CHAR(36) NOT NULL,
+        schritt_key VARCHAR(64) NOT NULL,
+        status VARCHAR(16) NOT NULL,
+        started_at VARCHAR(40) NOT NULL,
+        pause_started_at VARCHAR(40) NULL,
+        pause_seconds INT NOT NULL DEFAULT 0,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (id),
+        KEY idx_cc_auftrag_arbeit_auftrag (auftrag_id),
+        KEY idx_cc_auftrag_arbeit_user_status (user_id, status),
+        CONSTRAINT fk_cc_auftrag_arbeit_user
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        CONSTRAINT fk_cc_auftrag_arbeit_auftrag
+          FOREIGN KEY (auftrag_id) REFERENCES ccintern_auftraege (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
   } catch (e) {
     console.error('[mysql] ensure ccintern mitarbeiter operativ', e);
+  }
+}
+
+/**
+ * Duplikate in ccintern_checklisten_zuordnung entfernen und
+ * UNIQUE-Constraint auf (firma_id, produkt_id, schritt, checkliste_id) setzen.
+ */
+async function ensureMysqlChecklistenZuordnungUnique(pool) {
+  try {
+    // Duplikate entfernen — pro Kombination den ältesten Eintrag (MIN id) behalten
+    await qRun(
+      pool,
+      `DELETE z FROM ccintern_checklisten_zuordnung z
+       WHERE z.id NOT IN (
+         SELECT id FROM (
+           SELECT MIN(id) AS id
+           FROM ccintern_checklisten_zuordnung
+           GROUP BY firma_id, produkt_id, schritt, checkliste_id
+         ) AS keep_ids
+       )`,
+      [],
+    );
+    // UNIQUE-Key anlegen — ignorieren falls bereits vorhanden
+    try {
+      await qRun(
+        pool,
+        `ALTER TABLE ccintern_checklisten_zuordnung
+         ADD UNIQUE KEY uk_ccintern_clz_combo (firma_id, produkt_id, schritt, checkliste_id)`,
+        [],
+      );
+    } catch (e) {
+      // Fehlercode 1061 = Duplicate key name → Index existiert bereits, kein Problem
+      if (e && e.errno !== 1061) throw e;
+    }
+  } catch (e) {
+    console.error('[mysql] ensureMysqlChecklistenZuordnungUnique', e);
   }
 }
 
@@ -1263,6 +1348,29 @@ async function ensureMysqlCcInternChecklistenTables(pool) {
         KEY idx_checklisten_eintraege_liste (checkliste_id, reihenfolge),
         CONSTRAINT fk_checklisten_eintraege_liste
           FOREIGN KEY (checkliste_id) REFERENCES checklisten (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
+    await qRun(
+      pool,
+      `CREATE TABLE IF NOT EXISTS ccintern_checklisten_zuordnung (
+        id CHAR(36) NOT NULL,
+        firma_id CHAR(36) NOT NULL,
+        produkt_id VARCHAR(96) NOT NULL,
+        schritt VARCHAR(32) NOT NULL,
+        checkliste_id CHAR(36) NOT NULL,
+        sortierung INT NOT NULL DEFAULT 0,
+        aktiv TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NULL,
+        PRIMARY KEY (id),
+        KEY idx_ccintern_clz_lookup (firma_id, produkt_id, schritt, aktiv, sortierung),
+        CONSTRAINT fk_ccintern_clz_firma
+          FOREIGN KEY (firma_id) REFERENCES firmen (id) ON DELETE CASCADE,
+        CONSTRAINT fk_ccintern_clz_checkliste
+          FOREIGN KEY (checkliste_id) REFERENCES checklisten (id) ON DELETE CASCADE,
+        CONSTRAINT chk_ccintern_clz_schritt
+          CHECK (schritt IN ('grafik','druck','laminat','montage','doku'))
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
       [],
     );
@@ -1631,6 +1739,7 @@ export async function createMysqlStore() {
   await ensureMysqlCrmTables(pool);
   await ensureMysqlRefreshTokensAndMitarbeiterZeiten(pool);
   await ensureMysqlCcInternMitarbeiterOperativTables(pool);
+  await ensureMysqlChecklistenZuordnungUnique(pool);
 
   return {
     async getUserByEmail(email) {
@@ -1649,7 +1758,10 @@ export async function createMysqlStore() {
     },
     async insertUser({ id, email, passwordHash, name, globalRole, soll, urlaub }) {
       const gr =
-        globalRole === 'SUPER_ADMIN' || globalRole === 'INTERN' || globalRole === 'EXTERN'
+        globalRole === 'SUPER_ADMIN' ||
+        globalRole === 'INTERN' ||
+        globalRole === 'EXTERN' ||
+        globalRole === 'MITARBEITER'
           ? globalRole
           : 'INTERN';
       let sollN = 160;
@@ -1736,7 +1848,7 @@ export async function createMysqlStore() {
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'global_role')) {
         const g = String(patch.global_role || '').trim();
-        if (g === 'SUPER_ADMIN' || g === 'EXTERN' || g === 'INTERN') globalRole = g;
+        if (g === 'SUPER_ADMIN' || g === 'EXTERN' || g === 'INTERN' || g === 'MITARBEITER') globalRole = g;
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
         status = patch.status === 'deaktiviert' ? 'deaktiviert' : 'aktiv';
@@ -1837,7 +1949,10 @@ export async function createMysqlStore() {
       const uid = typeof userId === 'string' ? userId.trim() : '';
       if (!uid) throw new Error('replaceUserAccessBundle: userId fehlt');
       const gr =
-        globalRole === 'SUPER_ADMIN' || globalRole === 'INTERN' || globalRole === 'EXTERN'
+        globalRole === 'SUPER_ADMIN' ||
+        globalRole === 'INTERN' ||
+        globalRole === 'EXTERN' ||
+        globalRole === 'MITARBEITER'
           ? globalRole
           : 'INTERN';
       const conn = await pool.getConnection();
@@ -3477,27 +3592,37 @@ export async function createMysqlStore() {
           await conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, user.id]);
         }
         const uid = String(user.id);
-        let mods = [];
-        try {
-          mods = JSON.parse(String(inv.modules_json || '[]'));
-        } catch {
-          mods = [];
+        const [uCheckRows] = await conn.execute(
+          'SELECT id, email, name FROM users WHERE id = ? LIMIT 1',
+          [uid],
+        );
+        const uCheck = /** @type {any} */ (uCheckRows)[0] ?? null;
+        const redeemedEmail =
+          uCheck?.email != null ? String(uCheck.email).trim().toLowerCase() : '';
+        if (redeemedEmail && redeemedEmail !== email) {
+          console.error('[INVITE_REDEEM_DEBUG]', {
+            phase: 'redeem_email_mismatch',
+            inviteId: inv.id,
+            inviteEmail: email,
+            redeemedUserId: uid,
+            redeemedUserEmail: redeemedEmail,
+          });
+          await conn.rollback();
+          return { ok: false, code: 'DATABASE_ERROR' };
         }
-        let rights = {};
-        try {
-          rights = JSON.parse(String(inv.rights_json || '{}'));
-        } catch {
-          rights = {};
-        }
+        const modsRaw = parseInviteModulesFromRow(inviteRowField(inv, 'modules_json'));
+        const rightsRaw = parseInviteRightsFromRow(inviteRowField(inv, 'rights_json'));
+        const normalizedAccess = normalizeInviteAccessForRedeem(modsRaw, rightsRaw);
         const gr = String(inv.global_role || 'INTERN');
         await conn.execute('UPDATE users SET global_role = ? WHERE id = ?', [gr, uid]);
         await conn.execute('DELETE FROM user_modules WHERE user_id = ?', [uid]);
         await conn.execute('DELETE FROM user_rights WHERE user_id = ?', [uid]);
-        for (const m of mods) {
+        for (const m of normalizedAccess.modules) {
           if (typeof m === 'string' && m.trim()) {
             await conn.execute('INSERT INTO user_modules (user_id, module) VALUES (?, ?)', [uid, m.trim()]);
           }
         }
+        const rights = normalizedAccess.rights;
         if (rights && typeof rights === 'object') {
           for (const mod of Object.keys(rights)) {
             const bereiche = /** @type {Record<string, unknown>} */ (rights)[mod];
@@ -3969,6 +4094,10 @@ export async function createMysqlStore() {
         params,
       );
     },
+    async countKalenderTermineTableAll() {
+      const row = await qGet(pool, 'SELECT COUNT(*) AS c FROM kalender_termine LIMIT 1', []);
+      return row && row.c != null ? Number(row.c) : 0;
+    },
     async countKalenderTermineByFirma(firmaId, { typ = null, von = null, bis = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
@@ -4380,6 +4509,205 @@ export async function createMysqlStore() {
          LIMIT ?`,
         params,
       );
+    },
+    async getCcInternArbeitszeitSessionByUserProject(userId, projectId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      const pid = projectId != null && String(projectId).trim() !== '' ? String(projectId).trim() : null;
+      if (pid) {
+        return qGet(
+          pool,
+          `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+           FROM ccintern_mitarbeiter_arbeitszeit_session
+           WHERE user_id = ? AND project_id = ?
+           LIMIT 1`,
+          [uid, pid],
+        );
+      }
+      return qGet(
+        pool,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session
+         WHERE user_id = ? AND project_id IS NULL
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    async insertCcInternArbeitszeitSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      await qRun(
+        pool,
+        `INSERT INTO ccintern_mitarbeiter_arbeitszeit_session
+          (id, user_id, project_id, status, started_at, pause_seconds, pause_started_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          row.id,
+          row.user_id,
+          row.project_id ?? null,
+          row.status === 'paused' ? 'paused' : 'running',
+          startedAt,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+          row.pause_started_at ?? null,
+        ],
+      );
+      return this.getCcInternArbeitszeitSessionById(row.id);
+    },
+    async getCcInternArbeitszeitSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    async updateCcInternArbeitszeitSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = [];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        sets.push('status = ?');
+        params.push(patch.status === 'paused' ? 'paused' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternArbeitszeitSessionById(iid);
+      params.push(iid);
+      await qRun(
+        pool,
+        `UPDATE ccintern_mitarbeiter_arbeitszeit_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      return this.getCcInternArbeitszeitSessionById(iid);
+    },
+    async deleteCcInternArbeitszeitSession(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return false;
+      await qRun(pool, `DELETE FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ?`, [iid]);
+      return true;
+    },
+    async listCcInternAuftragArbeitsSessionsAllActive(firmaId) {
+      const fid = String(firmaId || '').trim();
+      if (!fid) return [];
+      return qAll(pool,
+        `SELECT s.id, s.user_id, s.auftrag_id, s.schritt_key, s.status, s.started_at, s.pause_started_at, s.pause_seconds, s.created_at, s.updated_at
+         FROM ccintern_auftrag_arbeits_session s
+         JOIN ccintern_auftraege a ON s.auftrag_id = a.id
+         WHERE a.firma_id = ? AND s.status IN ('running', 'paused')`,
+        [fid],
+      );
+    },
+    async getCcInternAuftragArbeitsSessionActiveByUser(userId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')
+         ORDER BY updated_at DESC
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    async getCcInternAuftragArbeitsSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    async stopCcInternAuftragArbeitsSessionsForUser(userId, { exceptId = null } = {}) {
+      const uid = String(userId || '').trim();
+      if (!uid) return;
+      const rows = await qAll(
+        pool,
+        `SELECT id, status, pause_seconds, pause_started_at FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')`,
+        [uid],
+      );
+      for (const row of rows) {
+        if (exceptId && String(row.id) === String(exceptId)) continue;
+        let pauseSec = Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0));
+        if (row.status === 'paused' && row.pause_started_at) {
+          const ps = new Date(row.pause_started_at);
+          if (!Number.isNaN(ps.getTime())) {
+            pauseSec += Math.max(0, Math.floor((Date.now() - ps.getTime()) / 1000));
+          }
+        }
+        await qRun(
+          pool,
+          `UPDATE ccintern_auftrag_arbeits_session
+           SET status = 'stopped', pause_seconds = ?, pause_started_at = NULL WHERE id = ?`,
+          [pauseSec, row.id],
+        );
+      }
+    },
+    async insertCcInternAuftragArbeitsSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      const st =
+        row.status === 'paused' ? 'paused' : row.status === 'stopped' ? 'stopped' : 'running';
+      await qRun(
+        pool,
+        `INSERT INTO ccintern_auftrag_arbeits_session
+          (id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          row.id,
+          row.user_id,
+          row.auftrag_id,
+          row.schritt_key,
+          st,
+          startedAt,
+          row.pause_started_at ?? null,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+        ],
+      );
+      return this.getCcInternAuftragArbeitsSessionById(row.id);
+    },
+    async updateCcInternAuftragArbeitsSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = [];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        const st = String(patch.status).trim();
+        sets.push('status = ?');
+        params.push(st === 'paused' ? 'paused' : st === 'stopped' ? 'stopped' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternAuftragArbeitsSessionById(iid);
+      params.push(iid);
+      await qRun(
+        pool,
+        `UPDATE ccintern_auftrag_arbeits_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      return this.getCcInternAuftragArbeitsSessionById(iid);
     },
     async listLagerMaterialByFirma(firmaId, { offset = 0, limit = 50, kategorie = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
@@ -5119,7 +5447,11 @@ export async function createMysqlStore() {
     async countChecklistenByFirma(firmaId) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
-      const row = await qGet(pool, 'SELECT COUNT(*) AS c FROM checklisten WHERE firma_id = ? LIMIT 1', [fid]);
+      const row = await qGet(
+        pool,
+        'SELECT COUNT(*) AS c FROM checklisten WHERE firma_id = ? OR firma_id IS NULL LIMIT 1',
+        [fid],
+      );
       return Number(row?.c || 0);
     },
     async listChecklistenByFirma(firmaId, { offset = 0, limit = 50 } = {}) {
@@ -5131,7 +5463,7 @@ export async function createMysqlStore() {
         pool,
         `SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at
          FROM checklisten
-         WHERE firma_id = ?
+         WHERE firma_id = ? OR firma_id IS NULL
          ORDER BY created_at DESC, id
          LIMIT ? OFFSET ?`,
         [fid, lim, off],
@@ -5143,7 +5475,10 @@ export async function createMysqlStore() {
       if (!cid || !fid) return null;
       return qGet(
         pool,
-        'SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at FROM checklisten WHERE id = ? AND firma_id = ? LIMIT 1',
+        `SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at
+         FROM checklisten
+         WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)
+         LIMIT 1`,
         [cid, fid],
       );
     },
@@ -5180,7 +5515,7 @@ export async function createMysqlStore() {
       const cur = await this.getChecklisteById(id, firmaId);
       if (!cur) return null;
       const next = { ...cur, ...patch };
-      await qRun(pool, 'UPDATE checklisten SET titel = ?, auftrag_id = ? WHERE id = ? AND firma_id = ?', [
+      await qRun(pool, 'UPDATE checklisten SET titel = ?, auftrag_id = ? WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)', [
         String(next.titel || '').trim() || cur.titel,
         next.auftrag_id ?? null,
         String(id).trim(),
@@ -5192,7 +5527,7 @@ export async function createMysqlStore() {
       const cid = typeof id === 'string' ? id.trim() : '';
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!cid || !fid) return false;
-      await qRun(pool, 'DELETE FROM checklisten WHERE id = ? AND firma_id = ?', [cid, fid]);
+      await qRun(pool, 'DELETE FROM checklisten WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)', [cid, fid]);
       return true;
     },
     async getChecklisteEintragByIdAndFirma(eintragId, firmaId) {
@@ -5204,7 +5539,7 @@ export async function createMysqlStore() {
         `SELECT e.id, e.checkliste_id, e.text, e.erledigt, e.reihenfolge
          FROM checklisten_eintraege e
          INNER JOIN checklisten c ON c.id = e.checkliste_id
-         WHERE e.id = ? AND c.firma_id = ?
+         WHERE e.id = ? AND (c.firma_id = ? OR c.firma_id IS NULL)
          LIMIT 1`,
         [eid, fid],
       );
@@ -5235,7 +5570,7 @@ export async function createMysqlStore() {
         pool,
         `UPDATE checklisten_eintraege
          SET text = ?, erledigt = ?, reihenfolge = ?
-         WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ?)`,
+         WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ? OR firma_id IS NULL)`,
         [String(next.text || '').trim() || cur.text, erl, reihenfolge, String(eintragId).trim(), String(firmaId).trim()],
       );
       return this.getChecklisteEintragByIdAndFirma(eintragId, firmaId);
@@ -5246,10 +5581,141 @@ export async function createMysqlStore() {
       if (!eid || !fid) return false;
       await qRun(
         pool,
-        'DELETE FROM checklisten_eintraege WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ?)',
+        'DELETE FROM checklisten_eintraege WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ? OR firma_id IS NULL)',
         [eid, fid],
       );
       return true;
+    },
+    async listCcInternChecklistenZuordnung(firmaId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!fid) return [];
+      return qAll(
+        pool,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.firma_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         ORDER BY z.produkt_id ASC, z.schritt ASC, z.sortierung ASC, z.id ASC`,
+        [fid],
+      );
+    },
+    async listCcInternChecklistenZuordnungForProdukt(firmaId, produktId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      if (!fid || !pid) return [];
+      return qAll(
+        pool,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.firma_id = ?
+           AND z.produkt_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         ORDER BY z.schritt ASC, z.sortierung ASC, z.id ASC`,
+        [fid, pid],
+      );
+    },
+    async getCcInternChecklistenZuordnungRowJoined(id, firmaId) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid) return null;
+      return qGet(
+        pool,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.id = ? AND z.firma_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         LIMIT 1`,
+        [zid, fid],
+      );
+    },
+    async findCcInternChecklistenZuordnungByKey(firmaId, produktId, schritt, checklisteId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      const st = typeof schritt === 'string' ? schritt.trim() : '';
+      const cid = typeof checklisteId === 'string' ? checklisteId.trim() : '';
+      if (!fid || !pid || !st || !cid) return null;
+      return qGet(
+        pool,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         WHERE z.firma_id = ? AND z.produkt_id = ? AND z.schritt = ? AND z.checkliste_id = ?
+         LIMIT 1`,
+        [fid, pid, st, cid],
+      );
+    },
+    async createCcInternChecklistenZuordnung(firmaId, row) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const produkt_id = row && typeof row.produkt_id === 'string' ? row.produkt_id.trim() : '';
+      const schritt = row && typeof row.schritt === 'string' ? row.schritt.trim() : '';
+      const checkliste_id = row && typeof row.checkliste_id === 'string' ? row.checkliste_id.trim() : '';
+      if (!fid || !produkt_id || !schritt || !checkliste_id) return null;
+      const ro = row && row.sortierung != null ? Number(row.sortierung) : 0;
+      const sortierung = Number.isFinite(ro) ? Math.trunc(ro) : 0;
+      let aktiv = 1;
+      if (row && Object.prototype.hasOwnProperty.call(row, 'aktiv')) {
+        aktiv = row.aktiv === false || row.aktiv === 0 ? 0 : 1;
+      }
+      const id = randomUUID();
+      await qRun(
+        pool,
+        `INSERT INTO ccintern_checklisten_zuordnung (id, firma_id, produkt_id, schritt, checkliste_id, sortierung, aktiv, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))`,
+        [id, fid, produkt_id, schritt, checkliste_id, sortierung, aktiv],
+      );
+      return this.getCcInternChecklistenZuordnungRowJoined(id, fid);
+    },
+    async updateCcInternChecklistenZuordnung(id, firmaId, patch) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid || !patch || typeof patch !== 'object') return null;
+      const cur = await qGet(
+        pool,
+        'SELECT id, firma_id, produkt_id, schritt, checkliste_id, sortierung, aktiv FROM ccintern_checklisten_zuordnung WHERE id = ? AND firma_id = ? LIMIT 1',
+        [zid, fid],
+      );
+      if (!cur) return null;
+      let produkt_id = String(cur.produkt_id || '').trim();
+      let schritt = String(cur.schritt || '').trim();
+      let checkliste_id = String(cur.checkliste_id || '').trim();
+      let sortierung = Number(cur.sortierung) || 0;
+      let aktiv = Number(cur.aktiv) ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(patch, 'produkt_id')) {
+        produkt_id = String(patch.produkt_id ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'schritt')) {
+        schritt = String(patch.schritt ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'checkliste_id')) {
+        checkliste_id = String(patch.checkliste_id ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'sortierung')) {
+        const nr = Number(patch.sortierung);
+        sortierung = Number.isFinite(nr) ? Math.trunc(nr) : 0;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'aktiv')) {
+        aktiv = patch.aktiv === false || patch.aktiv === 0 ? 0 : 1;
+      }
+      await qRun(
+        pool,
+        `UPDATE ccintern_checklisten_zuordnung
+         SET produkt_id = ?, schritt = ?, checkliste_id = ?, sortierung = ?, aktiv = ?, updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ? AND firma_id = ?`,
+        [produkt_id, schritt, checkliste_id, sortierung, aktiv, zid, fid],
+      );
+      return this.getCcInternChecklistenZuordnungRowJoined(zid, fid);
+    },
+    async deleteCcInternChecklistenZuordnung(id, firmaId) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid) return false;
+      const [res] = await pool.execute(
+        'DELETE FROM ccintern_checklisten_zuordnung WHERE id = ? AND firma_id = ?',
+        mysqlBindParams([zid, fid]),
+      );
+      return Number((/** @type {any} */ (res)).affectedRows || 0) > 0;
     },
     async countProduktionAuftraegeByFirma(firmaId, { auftragId = null, verantwortlich = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';

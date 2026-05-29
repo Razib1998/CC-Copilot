@@ -1,0 +1,2289 @@
+{
+  "generatedAt": "2026-05-10T21:59:28.226Z",
+  "summary": {
+    "totalRequests": 307,
+    "count403": 10,
+    "postApiV1UsersCreate": [],
+    "urlaubPostStatus": 201,
+    "isMitarbeiterAppOnlyShell": true
+  },
+  "forbidden403": [
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450365632",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450365625",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/mitarbeiter?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/role-templates",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450367752",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/mitarbeiter?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450367828",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/role-templates",
+      "method": "POST",
+      "status": 403
+    }
+  ],
+  "usersRelated": [
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "urlaubRelated": [
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/urlaub-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/urlaub/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/urlaub-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/urlaub/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "ccinternAuftraegeRelated": [
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "allRequests": [
+    {
+      "url": "http://localhost:3000/?token=IqhhZzTxIZb6Jybw8AlAezP52LCQDbTzN9T95P0d_XE",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cockpit-shell.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cc-design-styl-c.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/main.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/@vite/client",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/init.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/node_modules/vite/dist/client/env.mjs",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/events/module-events.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cockpit-shell.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/api/api-routes.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/auth/cc-auth-session.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/access/cc-my-rights.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/shell/shell-ui-snapshot.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/module-users-readonly-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/ui/render-ccintern-active-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/module-role-templates-readonly-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-einladungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-detail.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-dashboard-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kalender-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-benutzer-view.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-firmen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/state/state.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kunden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-rollen-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-placeholder-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/sidebar.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-start-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-auftraege-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-kunden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-schaden-detail-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-fahrzeuge-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-schaeden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-angebote-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-dokumente-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-shell-handlers.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-project-context.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-quartalsabrechnung-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/kunden-stamm-from-store-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-cockpit-bridge.js?t=1778438798692",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-rechnungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/messeflow/messeflow-cockpit-mount.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/api/cockpit-id-adapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/fusa-beklebung-kalender.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-unified-map.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-mapper.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-filter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/data/dev-calendar-read-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-kalender-week-drag-persist.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kalender-week-drag.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-konflikt.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/lib/cockpit-rights-editor.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/state/firmen-stamm-store.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/firmen-stamm-list.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-ui-shared.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/ccw-lucide-svgs.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-api-data-port.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dashboard-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/auftraege-api-table.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-auftrag-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/lib/firma-kunden-referenz.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-schaden-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-auftrag-wizard.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-schaden-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dokument-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-angebote-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dokument-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-rechnung-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-quartalsabrechnung-aggregate.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-rechnung-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/forms/kunde-form.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/lib/kunden-stamm-detail-api.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/kunden-stamm-detail-panel.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-loader.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/messeflow/messeflow-loader.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-kernel.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-foundation.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-quartal-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/invites/IqhhZzTxIZb6Jybw8AlAezP52LCQDbTzN9T95P0d_XE",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/invites/IqhhZzTxIZb6Jybw8AlAezP52LCQDbTzN9T95P0d_XE/activate",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/auth/login",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/auth/my-rights",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/auth/my-rights",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/firmen",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/LocalStorageAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/ApiAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/SyncAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/services/CCInternDataService.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/data/ccintern-default-seeds.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/cc-intern-boot.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/lager-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/urlaub-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/angebote-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/anfragen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/rechnungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/rechnungen-ledger.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/auftraege-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/auftraege-detail-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-app-mob-inline.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-app-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/produktion-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/detail.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/dateien.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/checklisten.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/kommunikation.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/schnell-anfragen/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/angebote/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/crm/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/checklisten/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/rechnungen/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/dashboard/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/dashboard-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/mitarbeiter/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/produktion/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/materiallager/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/urlaub/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/mitarbeiter-app/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/benutzer/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-templates.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-main.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/angebote",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/services/ccintern-cockpit-api.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/lager?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/checklisten?page=1&limit=100&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450365632",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450365625",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/anwesenheit?datum_von=2025-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/fusa/vehicles",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/mitarbeiter?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/role-templates",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/anwesenheit?datum_von=2025-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/lager?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cockpit-shell.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cc-design-styl-c.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/main.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/@vite/client",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/init.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/node_modules/vite/dist/client/env.mjs",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/events/module-events.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/cockpit-shell.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/shell/shell-ui-snapshot.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/api/api-routes.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/ui/render-ccintern-active-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/access/cc-my-rights.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/auth/cc-auth-session.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/module-users-readonly-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/module-role-templates-readonly-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-detail.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-dashboard-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-benutzer-view.js?t=1778445962122",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-firmen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-einladungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kalender-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/state/state.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kunden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/sidebar.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-rollen-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-start-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-placeholder-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-angebote-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-schaeden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-schaden-detail-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-auftraege-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-quartalsabrechnung-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-shell-handlers.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-dokumente-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-project-context.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-kunden-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/kunden-stamm-from-store-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/messeflow/messeflow-cockpit-mount.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-fahrzeuge-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-rechnungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-cockpit-bridge.js?t=1778438798692",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/fusa-beklebung-kalender.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/lib/cockpit-rights-editor.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/api/cockpit-id-adapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/state/firmen-stamm-store.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-kalender-week-drag-persist.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-unified-map.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-mapper.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/firmen-stamm-list.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/data/dev-calendar-read-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-filter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-konflikt.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-kalender-week-drag.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/ccw-lucide-svgs.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-ui-shared.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/fusa-api-data-port.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dashboard-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/cockpit/ui/views/cockpit-angebote-view.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-schaden-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-schaden-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/lib/firma-kunden-referenz.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-auftrag-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/auftraege-api-table.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-rechnung-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dokument-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-rechnung-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-quartalsabrechnung-aggregate.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-dokument-view-model.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/ui/kunden-stamm-detail-panel.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/messeflow/messeflow-loader.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-loader.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/lib/kunden-stamm-detail-api.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/shared/forms/kunde-form.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/ui/views/fusa-auftrag-wizard.js?t=1778444067422",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-kernel.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/core/calendar/ccw-calendar-event-foundation.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/fusa/lib/fusa-quartal-ui-status.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/auth/my-rights",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/auth/my-rights",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/firmen",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern.css",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/LocalStorageAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/ApiAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/core/SyncAdapter.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/services/CCInternDataService.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/data/ccintern-default-seeds.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/cc-intern-boot.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/lager-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/urlaub-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/angebote-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/anfragen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/rechnungen-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/rechnungen-ledger.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/auftraege-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/auftraege-detail-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-app-mob-inline.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/mitarbeiter-app-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/produktion-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/detail.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/dateien.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/checklisten.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/auftraege/kommunikation.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/schnell-anfragen/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/angebote/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/crm/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/checklisten/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/rechnungen/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/dashboard/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/views/dashboard-view.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/mitarbeiter/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/produktion/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/materiallager/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/urlaub/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/mitarbeiter-app/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/module/benutzer/index.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-templates.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/cc-intern-main.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:3000/modules/ccintern/services/ccintern-cockpit-api.js",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/angebote",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/angebote",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/angebote",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450367752",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/fusa/vehicles",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/mitarbeiter?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/users",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/anwesenheit?datum_von=2025-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/lager?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/rechnungen",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/auftraege?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/projects",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/stammdaten/kalender?page=1&limit=200&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08&von=2025-04-05&bis=2028-05-09&_ccKalCb=1778450367828",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "GET",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/anfragen",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "url": "http://localhost:5371/api/v1/lager?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/checklisten?page=1&limit=100&firma_id=1a94b68a-2fa6-4f21-99b8-835e06a98a08",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/anwesenheit?datum_von=2025-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/urlaub?limit=500&page=1",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/ccintern/mitarbeiter/status?datum_von=2026-04-19&datum_bis=2026-05-10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://localhost:5371/api/v1/role-templates",
+      "method": "POST",
+      "status": 403
+    }
+  ],
+  "myRights": {
+    "afterLogin": {
+      "user_id": "3f43ecfe-33d7-43a8-a3e3-40a168c28134",
+      "global_role": "INTERN",
+      "modules": [
+        "ccintern"
+      ],
+      "rights": {
+        "ccintern": {
+          "dashboard": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "schnell_anfragen": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "angebote": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "auftraege": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "kunden": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "crm": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "messeflow": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "produktion": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "materiallager": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "checklisten": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "kalender": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "mitarbeiter": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "urlaub": {
+            "sehen": true,
+            "erstellen": true,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "mitarbeiterapp": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "rechnungen": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "benutzer_ro": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "rollen_ro": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          }
+        }
+      }
+    },
+    "afterReload": {
+      "user_id": "3f43ecfe-33d7-43a8-a3e3-40a168c28134",
+      "global_role": "INTERN",
+      "modules": [
+        "ccintern"
+      ],
+      "rights": {
+        "ccintern": {
+          "dashboard": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "schnell_anfragen": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "angebote": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "auftraege": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "kunden": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "crm": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "messeflow": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "produktion": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "materiallager": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "checklisten": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "kalender": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "mitarbeiter": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "urlaub": {
+            "sehen": true,
+            "erstellen": true,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "mitarbeiterapp": {
+            "sehen": true,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "rechnungen": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "benutzer_ro": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          },
+          "rollen_ro": {
+            "sehen": false,
+            "erstellen": false,
+            "bearbeiten": false,
+            "loeschen": false,
+            "upload": false,
+            "freigeben": false,
+            "preiseSehen": false,
+            "margeSehen": false,
+            "rechnungSehen": false,
+            "reporting": false,
+            "export": false,
+            "fahrzeugMobilSehen": false,
+            "schadenAnlegen": false,
+            "fotoUpload": false
+          }
+        }
+      }
+    }
+  },
+  "deriveShellUiAccess": {
+    "afterLogin": {
+      "canSeeMitarbeiterApp": true,
+      "canSeeCcInternDesktop": false,
+      "canSeeCockpit": false,
+      "canSeeFusa": false,
+      "isMitarbeiterAppOnlyShell": true
+    },
+    "afterReload": {
+      "canSeeMitarbeiterApp": true,
+      "canSeeCcInternDesktop": false,
+      "canSeeCockpit": false,
+      "canSeeFusa": false,
+      "isMitarbeiterAppOnlyShell": true
+    }
+  }
+}

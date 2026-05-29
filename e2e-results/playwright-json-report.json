@@ -1,0 +1,132 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\CC\\Desktop\\CC Cockpit_Strato\\playwright.config.mjs",
+    "rootDir": "C:/Users/CC/Desktop/CC Cockpit_Strato/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/CC/Desktop/CC Cockpit_Strato/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/CC/Desktop/CC Cockpit_Strato/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\Users\\CC\\Desktop\\CC Cockpit_Strato\\e2e-results\\playwright-json-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "pflicht-app-only.spec.mjs",
+      "file": "pflicht-app-only.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Stufe 2 — App-only Browser E2E",
+          "file": "pflicht-app-only.spec.mjs",
+          "line": 59,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Health, Invite-Flow, UI App-only, Tabs, Urlaub POST, kein POST /users",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5858,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n── PFlicht-E2E Report (Auszug) ──\n"
+                        },
+                        {
+                          "text": "{\n  \"totalRequests\": 307,\n  \"count403\": 10,\n  \"postApiV1UsersCreate\": [],\n  \"urlaubPostStatus\": 201,\n  \"isMitarbeiterAppOnlyShell\": true\n}\n"
+                        },
+                        {
+                          "text": "Vollständiger Report: C:\\Users\\CC\\Desktop\\CC Cockpit_Strato\\e2e-results\\pflicht-network-report.json\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-10T21:59:22.429Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "8b588285d036e471e49c-d1427c39796a9976989d",
+              "file": "pflicht-app-only.spec.mjs",
+              "line": 60,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-10T21:59:20.869Z",
+    "duration": 7709.406,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

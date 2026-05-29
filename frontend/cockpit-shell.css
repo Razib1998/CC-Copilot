@@ -281,7 +281,7 @@ body {
 }
 
 .ckp-body {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   color: #334155;
 }
@@ -4197,6 +4197,124 @@ select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) 
   margin: 12px;
   font-size: 13px;
   color: #64748b;
+}
+
+/* Einladungs-Aktivierung — ohne Cockpit-Topbar/Sidebar/Abmelden, Karte mittig */
+#cockpit-root.ckp-shell-layout--invite-only {
+  background: #eef2f7;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#cockpit-root.ckp-shell-layout--invite-only .ckp-topbar,
+#cockpit-root.ckp-shell-layout--invite-only .ckp-topbar-modules,
+#cockpit-root.ckp-shell-layout--invite-only [data-ccw-ro='topbar'],
+#cockpit-root.ckp-shell-layout--invite-only #cockpit-sidebar,
+#cockpit-root.ckp-shell-layout--invite-only #ccw-logout-btn {
+  display: none !important;
+}
+
+#cockpit-root.ckp-shell-layout--invite-only .cockpit-body,
+#cockpit-root.ckp-shell-layout--invite-only .ckp-shell-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  width: 100%;
+}
+
+#cockpit-root.ckp-shell-layout--invite-only #cockpit-main.ckp-main--invite-only {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: auto;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+#cockpit-root.ckp-shell-layout--invite-only #cockpit-content.ckp-invite-fullscreen-host {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.ckp-invite-fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.ckp-invite-fullscreen__inner {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+#cockpit-root.ckp-shell-layout--invite-only .ckp-api-login-panel {
+  max-width: 480px;
+  width: 100%;
+  margin: 0;
+  padding: 28px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+}
+
+@media (max-width: 520px) {
+  #cockpit-root.ckp-shell-layout--invite-only #cockpit-content.ckp-invite-fullscreen-host {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+
+  #cockpit-root.ckp-shell-layout--invite-only .ckp-api-login-panel {
+    padding: 22px 18px;
+  }
+}
+
+/* Mitarbeiter-App-only — keine Cockpit-Topbar, kein Shell-Header, volle Höhe */
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-topbar-modules,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #cockpit-sidebar,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #ccw-logout-btn {
+  display: none !important;
+}
+
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .cockpit-body,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-shell-body {
+  flex: 1;
+  min-height: 0;
+}
+
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #cockpit-main,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #cockpit-content,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ccds-shell-root {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-header,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-section.ckp-view--styl-c-shell .ckp-header {
+  display: none !important;
+}
+
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-body,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-section.ckp-view--styl-c-shell .ckp-body {
+  padding: 0;
+  min-height: 0;
+  flex: 1;
 }
 
 /* Phase 8 — API-Login / Einladung / Formulare */

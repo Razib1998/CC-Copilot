@@ -8,6 +8,7 @@ import {
   clearSession,
   loginRequest,
   apiFetch,
+  tryRefreshAccessToken,
   fetchPublicInvite,
   activateInviteAccount,
   normalizeApiError,
@@ -15,7 +16,8 @@ import {
   syncCockpitAccessibleProjectsCache,
 } from './core/auth/cc-auth-session.js';
 import { API_ROUTES } from './core/api/api-routes.js';
-import { clearMyRightsCache } from './core/access/cc-my-rights.js';
+import { clearMyRightsCache, deriveShellUiAccess, loadMyRights } from './core/access/cc-my-rights.js';
+import { setShellUiAccessSnapshot } from './core/shell/shell-ui-snapshot.js';
 import {
   renderCcInternActiveViewHtml,
   attachCcInternActiveViewHandlers,
@@ -111,6 +113,155 @@ let activeModule = 'cockpit';
 /** Lokaler UI-Zustand — aktueller Sidebar-Key je Modul. */
 let activeView = 'dashboard';
 
+const APP_ONLY_MODULE = 'ccintern';
+const APP_ONLY_VIEW = 'cc_mitarbeiter_app';
+
+/** Final gesetzt wenn `deriveShellUiAccess(...).isMitarbeiterAppOnlyShell === true` — blockiert Desktop-Routing. */
+let shellAppOnlyLocked = false;
+
+/**
+ * @param {string} label
+ * @param {object|null|undefined} bundle
+ * @param {ReturnType<typeof deriveShellUiAccess>|null|undefined} ui
+ * @param {{ activeModule?: string, activeView?: string }} [route]
+ */
+function logAppOnlyDebug(label, bundle, ui, route) {
+  const mods = bundle && Array.isArray(bundle.modules) ? bundle.modules : [];
+  console.warn('[APP_ONLY_DEBUG]', label, {
+    user: bundle?.user_id ?? bundle?.user?.id ?? null,
+    global_role: bundle?.global_role ?? null,
+    modules: mods,
+    rights: bundle?.rights ?? null,
+    canSeeCockpit: ui?.canSeeCockpit ?? null,
+    canSeeFusa: ui?.canSeeFusa ?? null,
+    canSeeCcInternDesktop: ui?.canSeeCcInternDesktop ?? null,
+    canSeeMitarbeiterApp: ui?.canSeeMitarbeiterApp ?? null,
+    isMitarbeiterAppOnlyShell: ui?.isMitarbeiterAppOnlyShell ?? null,
+    shellAppOnlyLocked,
+    activeModule: route?.activeModule ?? activeModule,
+    activeView: route?.activeView ?? activeView,
+  });
+}
+
+function isAppOnlyShellLocked() {
+  return shellAppOnlyLocked === true;
+}
+
+/**
+ * @param {object|null|undefined} bundle
+ * @returns {ReturnType<typeof deriveShellUiAccess>}
+ */
+function applyShellUiAccessFromBundle(bundle) {
+  const ui = deriveShellUiAccess(bundle);
+  setShellUiAccessSnapshot(ui);
+  if (typeof window !== 'undefined') {
+    window.CC_SHELL_UI_ACCESS = ui;
+  }
+  shellAppOnlyLocked = ui.isMitarbeiterAppOnlyShell === true;
+  syncMitarbeiterAppOnlyShellLayoutClass();
+  logAppOnlyDebug('applyShellUiAccessFromBundle', bundle, ui);
+  return ui;
+}
+
+function clearShellUiAccessState() {
+  shellAppOnlyLocked = false;
+  setShellUiAccessSnapshot(null);
+  if (typeof window !== 'undefined') {
+    window.CC_SHELL_UI_ACCESS = null;
+  }
+  syncMitarbeiterAppOnlyShellLayoutClass();
+}
+
+function isMitarbeiterAppOnlyActive() {
+  const ui = typeof window !== 'undefined' ? window.CC_SHELL_UI_ACCESS : null;
+  return isAppOnlyShellLocked() || ui?.isMitarbeiterAppOnlyShell === true;
+}
+
+/** App-only + Ansicht cc_mitarbeiter_app: kein Cockpit-ckp-header. */
+function isMitarbeiterAppOnlyMaView() {
+  return (
+    isMitarbeiterAppOnlyActive() &&
+    activeModule === APP_ONLY_MODULE &&
+    activeView === APP_ONLY_VIEW
+  );
+}
+
+/** @param {string} renderVariant */
+function logMaHeaderHideDebug(renderVariant) {
+  const root = typeof document !== 'undefined' ? document.getElementById('cockpit-root') : null;
+  const ui = typeof window !== 'undefined' ? window.CC_SHELL_UI_ACCESS : null;
+  console.warn('[MA_HEADER_HIDE_DEBUG]', {
+    module: activeModule,
+    view: activeView,
+    isMitarbeiterAppOnlyShell: ui?.isMitarbeiterAppOnlyShell ?? null,
+    renderVariant,
+    rootClassName: root ? root.className : null,
+  });
+}
+
+/** Layout-Klasse für vorhandenes CSS (#cockpit-root.ckp-shell-layout--mitarbeiter-app-only). */
+function syncMitarbeiterAppOnlyShellLayoutClass() {
+  if (typeof document === 'undefined') return;
+  const root = document.getElementById('cockpit-root');
+  if (!(root instanceof HTMLElement)) return;
+  root.classList.toggle('ckp-shell-layout--mitarbeiter-app-only', isMitarbeiterAppOnlyActive());
+}
+
+/**
+ * my-rights laden; bei Fehler einmal Refresh + Retry (kein Cockpit-Fallback vor finalen Rechten).
+ * @returns {Promise<{ bundle: object, ui: ReturnType<typeof deriveShellUiAccess> }>}
+ */
+async function resolveShellRightsBundleForShell() {
+  console.warn('[REFRESH_FLOW]', 'resolveShellRightsBundleForShell start', {
+    hasAccessToken: !!getAccessToken(),
+  });
+  /** @type {unknown} */
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const bundle = await loadMyRights(attempt > 0);
+      if (!bundle || typeof bundle !== 'object') {
+        throw new Error('my-rights: leere Antwort');
+      }
+      const ui = applyShellUiAccessFromBundle(bundle);
+      console.warn('[REFRESH_FLOW]', 'resolveShellRightsBundleForShell ok', { attempt });
+      return { bundle, ui };
+    } catch (e) {
+      lastErr = e;
+      console.warn('[REFRESH_FLOW]', 'loadMyRights failed', {
+        attempt,
+        message: e instanceof Error ? e.message : String(e),
+      });
+      if (attempt === 0) {
+        const refreshed = await tryRefreshAccessToken();
+        console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken after my-rights fail', { refreshed });
+        if (refreshed) continue;
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Rechte konnten nicht geladen werden');
+}
+
+/**
+ * Erzwingt Mitarbeiter-App-Routing wenn App-only final gesperrt.
+ * @param {string} contextLabel
+ * @returns {boolean}
+ */
+function enforceMitarbeiterAppOnlyShellState(contextLabel) {
+  if (!isAppOnlyShellLocked()) return false;
+  const before = { activeModule, activeView };
+  if (activeModule === APP_ONLY_MODULE && activeView === APP_ONLY_VIEW) return true;
+  activeModule = APP_ONLY_MODULE;
+  activeView = APP_ONLY_VIEW;
+  console.warn('[APP_ONLY_FORCE]', contextLabel, 'vorher:', before, 'nachher:', {
+    activeModule,
+    activeView,
+  });
+  console.warn('[APP_ONLY_ROUTE]', contextLabel, { activeModule, activeView });
+  syncTopbarActiveModule(activeModule);
+  return true;
+}
+
 /** Monoton steigend: nur der letzte gestartete Render darf ins DOM schreiben. */
 let contentRenderSeq = 0;
 
@@ -157,6 +308,45 @@ function setLogoutVisibility(loggedIn) {
   const btn = getLogoutButtonEl();
   if (!btn) return;
   btn.hidden = !loggedIn;
+}
+
+/**
+ * Einladungs-Aktivierung: keine Topbar/Sidebar/Abmelden, zentrierte Karte (nur Anzeige).
+ * @param {boolean} active
+ */
+function setInviteActivationShellMode(active) {
+  const root = document.getElementById('cockpit-root');
+  const topbar = document.querySelector('[data-ccw-ro="topbar"]');
+  const modBar = document.querySelector('.ckp-topbar-modules');
+  const sidebar = document.getElementById('cockpit-sidebar');
+  const main = document.getElementById('cockpit-main');
+  const content = document.getElementById('cockpit-content');
+  const logout = getLogoutButtonEl();
+  if (!root) return;
+  if (active) {
+    root.classList.add('ckp-shell-layout--invite-only');
+    if (main) {
+      main.classList.add('ckp-main--invite-only');
+    }
+    if (content) {
+      content.classList.add('ckp-invite-fullscreen-host');
+    }
+    if (topbar instanceof HTMLElement) topbar.style.display = 'none';
+    if (modBar instanceof HTMLElement) modBar.style.display = 'none';
+    if (sidebar instanceof HTMLElement) sidebar.style.display = 'none';
+    if (logout instanceof HTMLElement) logout.hidden = true;
+    setLogoutVisibility(false);
+  } else {
+    root.classList.remove('ckp-shell-layout--invite-only');
+    if (main) {
+      main.classList.remove('ckp-main--invite-only');
+    }
+    if (content) {
+      content.classList.remove('ckp-invite-fullscreen-host');
+    }
+    if (topbar instanceof HTMLElement) topbar.style.display = '';
+    if (modBar instanceof HTMLElement) modBar.style.display = '';
+  }
 }
 
 function esc(s) {
@@ -231,6 +421,14 @@ function syncTopbarActiveModule(mod) {
  * @param {string} [pendingNeu]
  */
 function navigateCrossModule(targetMod, targetKey, pendingNeu) {
+  if (isAppOnlyShellLocked()) {
+    console.warn('[APP_ONLY_BLOCK_DESKTOP]', 'navigateCrossModule', {
+      targetMod,
+      targetKey,
+    });
+    enforceMitarbeiterAppOnlyShellState('navigateCrossModule-block');
+    return;
+  }
   if (targetMod !== 'cockpit' && targetMod !== 'fusa' && targetMod !== 'ccintern') return;
   if (!navKeyIsValidForModule(targetMod, targetKey)) return;
   closeNeuDropdown();
@@ -363,6 +561,10 @@ export function renderCockpitShell(opts) {
   const content = opts.content != null ? String(opts.content) : '';
   const ro = opts.dataRo != null ? esc(opts.dataRo) : '';
   const headerAside = opts.headerAside != null ? String(opts.headerAside) : '';
+  if (isMitarbeiterAppOnlyMaView()) {
+    logMaHeaderHideDebug('styl-c');
+    return `<div class="ccds-shell-root"${ro ? ` data-ccw-ro="${ro}"` : ''}>${content}</div>`;
+  }
   if (opts.variant === 'styl-c') {
     return `<div class="ccds-shell-root"${ro ? ` data-ccw-ro="${ro}"` : ''}>${content}</div>`;
   }
@@ -445,6 +647,16 @@ function renderLogsMockTableHtml() {
  */
 async function buildHtmlForActiveView(rid) {
   if (rid !== contentRenderSeq) return '';
+
+  enforceMitarbeiterAppOnlyShellState('buildHtmlForActiveView');
+
+  if (isAppOnlyShellLocked() && activeModule === 'cockpit') {
+    console.warn('[APP_ONLY_BLOCK_DESKTOP]', 'buildHtmlForActiveView-cockpit-branch', {
+      activeModule,
+      activeView,
+    });
+    enforceMitarbeiterAppOnlyShellState('buildHtmlForActiveView-cockpit-block');
+  }
 
   if (activeModule !== 'cockpit') {
     const label = getNavLabelForModule(activeModule, activeView);
@@ -549,6 +761,15 @@ async function buildHtmlForActiveView(rid) {
             '<button type="button" class="ckp-api-auftrag-submit" data-fusa-q-nav-neu-quartal>+ Neue Quartalsrechnung</button>',
           ]
         : [];
+    if (isMitarbeiterAppOnlyMaView()) {
+      syncMitarbeiterAppOnlyShellLayoutClass();
+      logMaHeaderHideDebug('styl-c');
+      return renderCockpitShell({
+        variant: 'styl-c',
+        content,
+        dataRo,
+      });
+    }
     return renderCockpitShell({
       title: label,
       /** CC Intern: kein globaler „+ Neu“ — jedes Legacy-Modul hat eigene Aktionen (s. Referenz `migration/CC Inter End/index.html`). */
@@ -559,8 +780,16 @@ async function buildHtmlForActiveView(rid) {
   }
 
   if (activeView === 'projekte' || activeView === 'auftraege') {
-    activeView = 'dashboard';
-    syncSidebarActiveStates();
+    if (isAppOnlyShellLocked()) {
+      console.warn('[APP_ONLY_BLOCK_DESKTOP]', 'cockpit-projekte-auftraege-fallback', {
+        activeModule,
+        activeView,
+      });
+      enforceMitarbeiterAppOnlyShellState('cockpit-projekte-auftraege-fallback-block');
+    } else {
+      activeView = 'dashboard';
+      syncSidebarActiveStates();
+    }
   }
 
   switch (activeView) {
@@ -678,6 +907,8 @@ async function renderActiveViewIntoContent() {
   const mount = document.getElementById('cockpit-content');
   if (!mount) return;
 
+  enforceMitarbeiterAppOnlyShellState('renderActiveViewIntoContent');
+
   if (typeof document !== 'undefined' && !kalenderRerenderDocListenerBound) {
     kalenderRerenderDocListenerBound = true;
     document.addEventListener('ccw-kalender-rerender-request', () => {
@@ -771,6 +1002,15 @@ async function renderActiveViewIntoContent() {
       html && String(html).trim() !== ''
         ? html
         : `<div class="ccds-shell-root" data-ccw-ro="cockpit-empty-render"><p class="ckp-mock-note">Keine Inhalte geladen (Abbruch oder veralteter Render). Bitte Navigation erneut wählen.</p></div>`;
+    if (activeView === APP_ONLY_VIEW) {
+      syncMitarbeiterAppOnlyShellLayoutClass();
+      const leakedHeader = mount.querySelector('.ckp-header h2');
+      logMaHeaderHideDebug(
+        leakedHeader instanceof HTMLElement && String(leakedHeader.textContent || '').trim() !== ''
+          ? 'leaked-header'
+          : 'styl-c-dom',
+      );
+    }
     if (tDom && lastKalenderRenderPerf) {
       const domInsertMs = Math.round((performance.now() - tDom) * 100) / 100;
       kalenderRenderPerfRecordDomInsertMs(domInsertMs);
@@ -851,6 +1091,11 @@ async function renderActiveViewIntoContent() {
 }
 
 function tryNavigateToNavKey(key) {
+  if (isAppOnlyShellLocked()) {
+    console.warn('[APP_ONLY_BLOCK_DESKTOP]', 'tryNavigateToNavKey', { key });
+    enforceMitarbeiterAppOnlyShellState('tryNavigateToNavKey-block');
+    return;
+  }
   if (!key || !navKeyIsValidForModule(activeModule, key)) return;
   if (key === activeView) {
     return;
@@ -1098,6 +1343,12 @@ function onModuleBarClick(ev) {
   const mod = btn.dataset.module;
   if (mod !== 'cockpit' && mod !== 'fusa' && mod !== 'ccintern') return;
 
+  if (isAppOnlyShellLocked()) {
+    console.warn('[APP_ONLY_BLOCK_DESKTOP]', 'onModuleBarClick', { mod });
+    enforceMitarbeiterAppOnlyShellState('onModuleBarClick-block');
+    return;
+  }
+
   if (isSharedKalenderViewActive()) {
     ccwInvalidateKalenderEventCache();
   }
@@ -1131,6 +1382,48 @@ function parseInviteTokenFromLocation() {
   return null;
 }
 
+/** Ob die aktuelle URL eine Einladungs-Aktivierung anzeigen soll (ohne Session). */
+function isInviteActivationRoute() {
+  return parseInviteTokenFromLocation() != null;
+}
+
+/** Entfernt Invite-Query/Hash aus der URL ohne Reload (F5 zeigt keine Aktivierungsmaske mehr). */
+function stripInviteParamsFromLocation() {
+  if (typeof window === 'undefined') return;
+  try {
+    const u = new URL(window.location.href);
+    let changed = false;
+    if (u.searchParams.has('cc_invite')) {
+      u.searchParams.delete('cc_invite');
+      changed = true;
+    }
+    if (u.searchParams.has('token')) {
+      u.searchParams.delete('token');
+      changed = true;
+    }
+    if (u.pathname === '/invite') {
+      u.pathname = '/';
+      changed = true;
+    }
+    if (/^#cc-invite=/.test(u.hash || '')) {
+      u.hash = '';
+      changed = true;
+    }
+    if (!changed) return;
+    const next = `${u.pathname}${u.search}${u.hash}` || '/';
+    history.replaceState(history.state, '', next);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Zentrierte Karte im Invite-/Post-Invite-Login-Fullscreen. */
+function wrapInviteShellFullscreenHtml(innerHtml) {
+  return `<div class="ckp-invite-fullscreen" data-ccw-ro="invite-fullscreen">
+  <div class="ckp-invite-fullscreen__inner">${innerHtml}</div>
+</div>`;
+}
+
 function renderLoginPanelHtml() {
   return `<div class="ckp-api-login-panel" data-ccw-ro="api-login">
   <h2 class="ckp-api-login-panel__title">Anmelden</h2>
@@ -1156,16 +1449,17 @@ function renderLoginPanelHtml() {
  * @param {string|null} errMsg
  */
 function renderInviteTokenPanelHtml(token, payload, errMsg) {
+  let card = '';
   if (errMsg) {
-    return `<div class="ckp-api-login-panel" data-ccw-ro="api-invite-error">
+    card = `<div class="ckp-api-login-panel" data-ccw-ro="api-invite-error">
   <p class="ckp-api-error" role="alert">${esc(errMsg)}</p>
   <button type="button" class="ckp-api-login-submit" data-ccw-invite-dismiss>Zurück</button>
 </div>`;
-  }
-  const inv = payload && payload.invite && typeof payload.invite === 'object' ? payload.invite : {};
-  const mail = inv.email != null ? String(inv.email) : '—';
-  const role = inv.global_role != null ? String(inv.global_role) : '—';
-  return `<div class="ckp-api-login-panel" data-ccw-ro="api-invite-accept">
+  } else {
+    const inv = payload && payload.invite && typeof payload.invite === 'object' ? payload.invite : {};
+    const mail = inv.email != null ? String(inv.email) : '—';
+    const role = inv.global_role != null ? String(inv.global_role) : '—';
+    card = `<div class="ckp-api-login-panel" data-ccw-ro="api-invite-accept">
   <h2 class="ckp-api-login-panel__title">Einladung aktivieren</h2>
   <dl class="ckp-api-invite-dl">
     <div><dt>E-Mail</dt><dd>${esc(mail)}</dd></div>
@@ -1186,12 +1480,13 @@ function renderInviteTokenPanelHtml(token, payload, errMsg) {
   <p class="ckp-api-error" data-ccw-invite-msg hidden role="alert"></p>
   <button type="button" class="ckp-api-invite-dismiss" data-ccw-invite-dismiss>Abbrechen</button>
 </div>`;
+  }
+  return wrapInviteShellFullscreenHtml(card);
 }
 
 function clearInviteFromLocation() {
-  if (typeof window === 'undefined') return;
-  const path = '/';
-  window.location.href = path;
+  stripInviteParamsFromLocation();
+  setInviteActivationShellMode(false);
 }
 
 /**
@@ -1203,6 +1498,7 @@ function clearInviteFromLocation() {
 function doLogout(sidebar, content, main) {
   clearSession();
   clearMyRightsCache();
+  clearShellUiAccessState();
   CCState.reset();
   clearKalenderNowLineTimer();
   closeNeuDropdown();
@@ -1247,8 +1543,11 @@ function attachInviteTokenPanelHandlers(content, token, sidebar, main) {
         await activateInviteAccount(token, password, passwordConfirm);
         clearSession();
         clearMyRightsCache();
+        stripInviteParamsFromLocation();
         sidebar.style.display = 'none';
-        content.innerHTML = `${renderLoginPanelHtml()}<p class="ckp-api-login-panel__hint">Konto aktiviert. Bitte normal anmelden.</p>`;
+        content.innerHTML = wrapInviteShellFullscreenHtml(
+          `${renderLoginPanelHtml()}<p class="ckp-api-login-panel__hint" style="margin:12px 0 0;text-align:center;">Konto aktiviert. Bitte normal anmelden.</p>`,
+        );
         attachLoginPanelHandlers(content, sidebar, main);
       } catch (e) {
         const ne = normalizeApiError(e);
@@ -1279,6 +1578,8 @@ function attachLoginPanelHandlers(content, sidebar, main) {
     try {
       await loginRequest(email, password);
       clearMyRightsCache();
+      stripInviteParamsFromLocation();
+      setInviteActivationShellMode(false);
       sidebar.style.display = '';
       await mountCockpitShellAuthenticated(sidebar, content, main);
     } catch (e) {
@@ -1297,22 +1598,55 @@ function attachLoginPanelHandlers(content, sidebar, main) {
  * @param {HTMLElement} main
  */
 async function mountCockpitShellAuthenticated(sidebar, content, main) {
-  // INTERN-Benutzer → nur Mitarbeiter-App anzeigen
-  let _internOnly = false;
-  try {
-    const meData = await apiFetch('/auth/my-rights');
-    _internOnly = String(meData?.global_role ?? '') === 'INTERN';
-  } catch { /* ignore — normaler Cockpit-Start bei Fehler */ }
+  setInviteActivationShellMode(false);
+  content.innerHTML =
+    '<div class="ckp-mock-note" role="status" aria-live="polite" data-ccw-ro="cockpit-loading">Rechte werden geladen…</div>';
 
-  activeModule = _internOnly ? 'ccintern' : 'cockpit';
-  activeView = _internOnly ? 'cc_mitarbeiter_app' : getDefaultNavKeyForModule('cockpit');
+  /** @type {ReturnType<typeof deriveShellUiAccess>|null} */
+  let shellUi = null;
+  try {
+    const resolved = await resolveShellRightsBundleForShell();
+    shellUi = resolved.ui;
+  } catch (e) {
+    console.warn('[INTERN-CHECK] my-rights/refresh fehlgeschlagen:', e);
+    clearShellUiAccessState();
+    const ne = normalizeApiError(e);
+    content.innerHTML = `<div class="ccds-shell-root" data-ccw-ro="cockpit-rights-error">
+  <p class="ckp-api-error" role="alert">${esc(ne.message || 'Rechte konnten nicht geladen werden.')}</p>
+  <p class="ckp-mock-note">Bitte erneut anmelden oder Seite neu laden (F5). Cockpit wird erst nach erfolgreichem Laden der Rechte geöffnet.</p>
+</div>`;
+    return;
+  }
+
+  const routeBefore = { activeModule, activeView };
+  if (shellUi?.isMitarbeiterAppOnlyShell === true) {
+    activeModule = APP_ONLY_MODULE;
+    activeView = APP_ONLY_VIEW;
+    console.warn('[APP_ONLY_FORCE]', 'mountCockpitShellAuthenticated', 'vorher:', routeBefore, 'nachher:', {
+      activeModule,
+      activeView,
+    });
+    console.warn('[APP_ONLY_ROUTE]', 'mountCockpitShellAuthenticated', { activeModule, activeView });
+    logAppOnlyDebug('mountCockpitShellAuthenticated-route', null, shellUi, {
+      activeModule,
+      activeView,
+    });
+  } else {
+    activeModule = 'cockpit';
+    activeView = getDefaultNavKeyForModule('cockpit');
+    logAppOnlyDebug('mountCockpitShellAuthenticated-route-desktop', null, shellUi, {
+      activeModule,
+      activeView,
+    });
+  }
   syncTopbarActiveModule(activeModule);
   renderSidebarForModule(activeModule, activeView);
 
-  // INTERN: Modul-Leiste und Sidebar ausblenden
+  const hideChrome = shellUi?.isMitarbeiterAppOnlyShell === true;
+  syncMitarbeiterAppOnlyShellLayoutClass();
   const _modBar = document.querySelector('.ckp-topbar-modules');
-  if (_modBar) _modBar.style.display = _internOnly ? 'none' : '';
-  if (_internOnly) sidebar.style.display = 'none';
+  if (_modBar) _modBar.style.display = hideChrome ? 'none' : '';
+  if (hideChrome) sidebar.style.display = 'none';
   sidebar.removeEventListener('click', onSidebarClick);
   sidebar.addEventListener('click', onSidebarClick);
 
@@ -1336,6 +1670,7 @@ async function mountCockpitShellAuthenticated(sidebar, content, main) {
   content.innerHTML =
     '<div class="ckp-mock-note" role="status" aria-live="polite" data-ccw-ro="cockpit-loading">Oberfläche wird geladen…</div>';
   try {
+    enforceMitarbeiterAppOnlyShellState('mountCockpitShellAuthenticated-pre-render');
     await renderActiveViewIntoContent();
   } catch (e) {
     console.error('[CockpitShell] renderActiveViewIntoContent', e);
@@ -1357,10 +1692,15 @@ export async function mountCockpitShell() {
     return;
   }
 
-  const inviteTok = parseInviteTokenFromLocation();
+  setInviteActivationShellMode(false);
+
+  if (getAccessToken()) {
+    stripInviteParamsFromLocation();
+  }
+
+  const inviteTok = isInviteActivationRoute() ? parseInviteTokenFromLocation() : null;
   if (inviteTok) {
-    sidebar.style.display = 'none';
-    setLogoutVisibility(false);
+    setInviteActivationShellMode(true);
     try {
       const data = await fetchPublicInvite(inviteTok);
       content.innerHTML = renderInviteTokenPanelHtml(inviteTok, data, null);
@@ -1385,5 +1725,9 @@ export async function mountCockpitShell() {
   }
 
   sidebar.style.display = '';
+  if (getAccessToken()) {
+    console.warn('[REFRESH_FLOW]', 'mountCockpitShell boot refresh attempt');
+    await tryRefreshAccessToken();
+  }
   await mountCockpitShellAuthenticated(sidebar, content, main);
 }

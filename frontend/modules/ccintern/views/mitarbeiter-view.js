@@ -532,13 +532,15 @@ async function maSaveSettings(){
     }
     saveMitarbeiter();
   }
-  renderMitarbeiter();
-  maCloseSettings();
-  var msg = [];
-  if(changed) msg.push(changed+' geändert');
-  if(added)   msg.push(added+' hinzugefügt');
-  if(removed) msg.push(removed+' entfernt');
-  if (toast) toast(msg.length ? '✓ '+msg.join(' · ') : 'Keine Änderungen');
+  try {
+    renderMitarbeiter();
+  } finally {
+    maCloseSettings();
+  }
+  if (toast) {
+    if (changed || added || removed) toast('Änderung gespeichert');
+    else toast('Keine Änderungen');
+  }
 }
 
 function maOpenDetail(maId){
@@ -823,6 +825,13 @@ function maAnwesenheitHtml(m){
 }
 
 function maAuftragsZeitHtml(m){
+  if(typeof window !== 'undefined' && !window.__MITARBEITER_AUFTRAGSZEIT_SOURCE_LOG__){
+    window.__MITARBEITER_AUFTRAGSZEIT_SOURCE_LOG__ = true;
+    console.info('[MITARBEITER_AUFTRAGSZEIT_SOURCE]', {
+      source: 'AUFTRAEGE.zeiten',
+      via: 'ccintern_auftraege.bemerkung.__ccintern_v1.payload.zeiten (API-Load)',
+    });
+  }
   // Alle Zeitbuchungen für diesen MA aus AUFTRAEGE.zeiten
   var eintraege = [];
   AUFTRAEGE.forEach(function(a){

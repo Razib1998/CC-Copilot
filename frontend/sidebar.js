@@ -3,6 +3,7 @@
  */
 
 import { ccwLucideIconMarkup } from './ccw-lucide-svgs.js';
+import { getShellUiAccessSnapshot } from './core/shell/shell-ui-snapshot.js';
 
 function esc(s) {
   if (s == null || s === '') return '';
@@ -49,8 +50,6 @@ export const FUSA_NAV_DEFS = [
   { key: 'fusa_kalender', label: 'Kalender', iconKey: 'calendar' },
   { key: 'fusa_rechnungen', label: 'Rechnungen', iconKey: 'receipt' },
   { key: 'fusa_quartalsabrechnung', label: 'Quartalsabrechnung', iconKey: 'pieChart' },
-  { key: 'fusa_benutzer', label: 'Benutzer', iconKey: 'users', badge: 'RO' },
-  { key: 'fusa_rollen', label: 'Rollen', iconKey: 'lock', badge: 'RO' },
 ];
 
 const FUSA_OPERATIVE_KEYS = new Set([
@@ -65,7 +64,7 @@ const FUSA_OPERATIVE_KEYS = new Set([
 ]);
 
 const FUSA_BILLING_KEYS = new Set(['fusa_rechnungen', 'fusa_quartalsabrechnung']);
-const FUSA_READONLY_KEYS = new Set(['fusa_benutzer', 'fusa_rollen']);
+const FUSA_READONLY_KEYS = new Set();
 
 /** @type {{ key: string, label: string, iconKey: string, badge?: string }[]} */
 export const CC_NAV_DEFS = [
@@ -84,8 +83,6 @@ export const CC_NAV_DEFS = [
   { key: 'cc_urlaub', label: 'Urlaub', iconKey: 'palmtree' },
   { key: 'cc_mitarbeiter_app', label: 'Mitarbeiter-App', iconKey: 'smartphone' },
   { key: 'cc_rechnungen', label: 'Rechnungen', iconKey: 'receipt' },
-  { key: 'cc_benutzer', label: 'Benutzer', iconKey: 'users' },
-  { key: 'cc_rollen', label: 'Rollen', iconKey: 'lock' },
 ];
 
 /** @type {Record<string, { key: string, label: string, iconKey: string, badge?: string }[]>} */
@@ -150,6 +147,11 @@ export function renderSidebarCcIntern(sidebarEl, activeKey) {
  * @param {string} activeKey
  */
 export function renderSidebarForModule(modul, activeKey) {
+  if (getShellUiAccessSnapshot()?.isMitarbeiterAppOnlyShell === true) {
+    const sidebar = document.getElementById('cockpit-sidebar');
+    if (sidebar) sidebar.innerHTML = '';
+    return '';
+  }
   const sidebar = document.getElementById('cockpit-sidebar');
   if (!sidebar) return;
   sidebar.setAttribute('data-sidebar-module', modul);

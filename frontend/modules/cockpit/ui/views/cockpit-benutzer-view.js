@@ -23,6 +23,23 @@ let benutzerFlashMessage = '';
 /** @type {AbortController|null} */
 let benutzerHandlersAbort = null;
 
+/** @type {{ email: string, inviteUrl: string }|null} */
+let benutzerMaLinkDialog = null;
+
+/** Mitarbeiter-App-Einladung (POST /api/v1/invites — gleiches Paket wie Einladungen-Preset). */
+const MITARBEITER_APP_INVITE_RIGHTS = {
+  ccintern: {
+    mitarbeiter: { sehen: true },
+    mitarbeiterapp: { sehen: true, erstellen: true, bearbeiten: true },
+    urlaub: { sehen: true, erstellen: true, bearbeiten: true },
+    materiallager: { sehen: true, erstellen: true, bearbeiten: true },
+    auftraege: { sehen: true, bearbeiten: true },
+    produktion: { sehen: true, erstellen: true, bearbeiten: true },
+    checklisten: { sehen: true, bearbeiten: true },
+    kommunikation: { sehen: true, erstellen: true, bearbeiten: true },
+  },
+};
+
 /**
  * Session-basierter SUPER_ADMIN-Check (ohne E-Mail- oder User-Hardcode).
  * @param {object|null|undefined} bundle
@@ -61,6 +78,289 @@ function canEditBenutzerFromSession(primary, fallback) {
       myRight(primary, 'cockpit', 'benutzer', 'bearbeiten') ||
       myRight(fallback, 'cockpit', 'benutzer', 'bearbeiten'),
   );
+}
+
+/**
+ * @param {object|null|undefined} bundle
+ * @returns {boolean}
+ */
+function canCreateMaAppInviteFromSession(bundle) {
+  return Boolean(
+    isSessionSuperAdmin(bundle) ||
+      myRight(bundle, 'cockpit', 'einladungen', 'erstellen'),
+  );
+}
+
+/**
+ * @param {object} u
+ * @returns {string[]}
+ */
+function userModulesArray(u) {
+  if (u && Array.isArray(u.modules) && u.modules.length > 0) {
+    return u.modules.map(x => String(x).trim().toLowerCase()).filter(Boolean);
+  }
+  const ml = moduleLine(u);
+  if (!ml) return [];
+  return ml.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
+ * @param {object} u
+ * @returns {boolean}
+ */
+function canShowMaAppLinkButton(u) {
+  const gr = String(u?.global_role || '').trim().toUpperCase();
+  if (gr === 'SUPER_ADMIN') return false;
+  const mods = userModulesArray(u);
+  if (mods.includes('cockpit') && !mods.includes('ccintern')) return false;
+  if (mods.includes('ccintern')) return true;
+  if (gr === 'MITARBEITER') return true;
+  if (gr === 'INTERN') return true;
+  const em = userEmail(u).toLowerCase();
+  if (em.startsWith('ccintern.ma.') && em.endsWith('@cc-cockpit.local')) return true;
+  return false;
+}
+
+/**
+ * @param {object} u
+ * @returns {string|null}
+ */
+function resolveUserFirmaId(u) {
+  if (!u || typeof u !== 'object') return null;
+  const n = normalizeCockpitIds(u);
+  const cid = n.firmaId;
+  if (cid != null && String(cid).trim() !== '') return String(cid).trim();
+  return null;
+}
+
+/**
+ * @param {string} userId
+ * @returns {object|null}
+ */
+function findBenutzerById(userId) {
+  const uid = String(userId || '').trim();
+  if (!uid) return null;
+  for (let i = 0; i < benutzerSourceAll.length; i++) {
+    const u = benutzerSourceAll[i];
+    if (stableUserId(u, i) === uid) return u;
+  }
+  return null;
+}
+
+/**
+ * @param {object|null|undefined} inv
+ * @param {string} email
+ * @returns {{ inviteUrl: string, email: string }}
+ */
+function maAppInviteLinkFromApiRecord(inv, email) {
+  const inviteUrl =
+    inv && inv.invite_url != null && String(inv.invite_url).trim()
+      ? String(inv.invite_url).trim()
+      : inv && inv.token != null && String(inv.token).trim()
+        ? `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin.replace(/\/+$/, '') : ''}/?cc_invite=${encodeURIComponent(String(inv.token).trim())}`
+        : '';
+  if (!inviteUrl) {
+    throw new Error('Kein Einladungslink in der API-Antwort.');
+  }
+  return { inviteUrl, email };
+}
+
+/**
+ * @param {string} email
+ * @returns {Promise<{ inviteUrl: string, email: string }|null>}
+ */
+async function fetchOpenMaAppInviteLinkForEmail(email) {
+  const norm = String(email || '').trim().toLowerCase();
+  if (!norm || !norm.includes('@')) return null;
+  const res = await apiFetch('/api/v1/invites');
+  const list = Array.isArray(res?.data?.invites ?? res?.invites)
+    ? (res?.data?.invites ?? res?.invites ?? [])
+    : [];
+  const open = list.find(
+    inv =>
+      inv &&
+      typeof inv === 'object' &&
+      String(inv.email || '')
+        .trim()
+        .toLowerCase() === norm &&
+      String(inv.status || '')
+        .trim()
+        .toLowerCase() === 'offen',
+  );
+  if (!open) return null;
+  try {
+    return maAppInviteLinkFromApiRecord(open, norm);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {object} u
+ * @returns {Promise<{ inviteUrl: string, email: string }>}
+ */
+async function createMaAppInviteForUser(u) {
+  const email = userEmail(u);
+  if (email === '—' || !email.includes('@')) {
+    throw new Error('Benutzer hat keine gültige E-Mail-Adresse.');
+  }
+  const userId = u?.id != null ? String(u.id).trim() : '';
+  if (!userId) {
+    throw new Error('Benutzer ohne gültige ID (user_id fehlt).');
+  }
+  const firmaId = resolveUserFirmaId(u);
+  if (!firmaId) {
+    throw new Error('Keine Firma am Benutzer — bitte company_id / Firma zuordnen.');
+  }
+  const modules = ['ccintern'];
+  const rights = { ...MITARBEITER_APP_INVITE_RIGHTS };
+  const res = await apiFetch('/api/v1/invites', {
+    method: 'POST',
+    body: {
+      email,
+      user_id: userId,
+      global_role: 'MITARBEITER',
+      modules,
+      areas: [],
+      rights,
+      firma_id: firmaId,
+      company_id: firmaId,
+    },
+  });
+  const inv = res?.data?.invite ?? res?.invite ?? null;
+  return maAppInviteLinkFromApiRecord(inv, email);
+}
+
+/**
+ * @param {HTMLElement} root
+ * @param {{ inviteUrl: string, email: string }} data
+ * @param {{ existing?: boolean }} [opts]
+ */
+function showMaAppLinkDialog(root, data, opts = {}) {
+  benutzerMaLinkDialog = data;
+  let dlg = root.querySelector('[data-ccw-benutzer-ma-link-dialog]');
+  if (!(dlg instanceof HTMLDialogElement)) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = renderMaAppLinkDialogHtml();
+    const created = wrap.querySelector('[data-ccw-benutzer-ma-link-dialog]');
+    if (created instanceof HTMLDialogElement) {
+      root.appendChild(created);
+      dlg = created;
+    }
+  } else {
+    const urlEl = dlg.querySelector('[data-ccw-benutzer-ma-link-url]');
+    if (urlEl instanceof HTMLElement) urlEl.textContent = data.inviteUrl;
+    const wa = dlg.querySelector('[data-ccw-benutzer-ma-link-whatsapp]');
+    if (wa instanceof HTMLAnchorElement) {
+      wa.href = `https://wa.me/?text=${encodeURIComponent(`Dein Mitarbeiter-App-Link: ${data.inviteUrl}`)}`;
+      wa.removeAttribute('aria-disabled');
+      wa.style.pointerEvents = '';
+      wa.style.opacity = '';
+    }
+  }
+  const statusEl = dlg?.querySelector('[data-ccw-benutzer-ma-link-status]');
+  if (statusEl instanceof HTMLElement) {
+    statusEl.textContent = opts.existing
+      ? 'Bestehende offene Einladung'
+      : 'App-Link erstellt';
+    statusEl.style.color = '#15803d';
+  }
+  if (dlg instanceof HTMLDialogElement) dlg.showModal();
+}
+
+/**
+ * @param {HTMLElement} root
+ * @param {string} uid
+ */
+async function runMaAppLinkForUser(root, uid) {
+  const u = findBenutzerById(uid) || findUserById(uid);
+  if (!u) {
+    benutzerFlashMessage = 'Benutzer nicht gefunden.';
+    await refreshBenutzerMainDom(root);
+    return;
+  }
+  if (!canShowMaAppLinkButton(u)) {
+    benutzerFlashMessage = 'App-Link ist für diesen Benutzer nicht verfügbar.';
+    await refreshBenutzerMainDom(root);
+    return;
+  }
+  const session = await loadSessionForEdit(true).catch(() => null);
+  if (!canCreateMaAppInviteFromSession(session)) {
+    benutzerFlashMessage = 'Recht „einladungen.erstellen“ oder SUPER_ADMIN erforderlich.';
+    await refreshBenutzerMainDom(root);
+    return;
+  }
+  benutzerOpenRowMenuUserId = null;
+  /** @type {{ inviteUrl: string, email: string }|null} */
+  let dialogData = null;
+  let dialogExisting = false;
+  const email = userEmail(u);
+  try {
+    dialogData = await createMaAppInviteForUser(u);
+    const copied = await copyTextToClipboard(dialogData.inviteUrl);
+    benutzerFlashMessage = copied
+      ? `App-Link für ${dialogData.email} erstellt und kopiert.`
+      : `App-Link für ${dialogData.email} erstellt.`;
+  } catch (e) {
+    const status =
+      e && typeof e === 'object' && 'status' in e ? Number(/** @type {{ status?: unknown }} */ (e).status) : 0;
+    const msg = formatApiErrorForUi(e);
+    if (status === 409 || /offene Einladung/i.test(msg)) {
+      const existing = await fetchOpenMaAppInviteLinkForEmail(email);
+      if (existing) {
+        dialogData = existing;
+        dialogExisting = true;
+        const copied = await copyTextToClipboard(existing.inviteUrl);
+        benutzerFlashMessage = copied
+          ? `Bestehende Einladung für ${existing.email} — Link kopiert und im Dialog.`
+          : `Bestehende Einladung für ${existing.email} — Link im Dialog.`;
+      } else {
+        benutzerFlashMessage = msg;
+      }
+    } else {
+      benutzerFlashMessage = msg;
+    }
+  }
+  await refreshBenutzerMainDom(root);
+  if (dialogData) {
+    showMaAppLinkDialog(root, dialogData, { existing: dialogExisting });
+  }
+}
+
+/**
+ * @param {string} text
+ * @returns {Promise<boolean>}
+ */
+async function copyTextToClipboard(text) {
+  if (!text || text === '—') return false;
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+function renderMaAppLinkDialogHtml() {
+  const url = benutzerMaLinkDialog?.inviteUrl || '—';
+  const waHref =
+    url && url !== '—'
+      ? `https://wa.me/?text=${encodeURIComponent(`Dein Mitarbeiter-App-Link: ${url}`)}`
+      : '#';
+  return `<dialog class="ckp-benutzer-dlg" data-ccw-benutzer-ma-link-dialog="" style="max-width:min(560px,96vw);padding:16px;border:1px solid #e2e8f0;border-radius:10px;">
+  <h3 style="margin:0 0 8px;font-size:16px;">Mitarbeiter-App Einladung</h3>
+  <p data-ccw-benutzer-ma-link-status style="margin:0 0 10px;font-size:13px;color:#15803d;font-weight:600;">App-Link erstellt</p>
+  <p style="margin:0 0 6px;font-size:12px;color:#64748b;">Link an den Mitarbeiter senden (beim Öffnen Passwort setzen):</p>
+  <p><code data-ccw-benutzer-ma-link-url style="word-break:break-all;font-size:12px;display:block;padding:8px;background:#f8fafc;border-radius:8px;">${esc(url)}</code></p>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
+    <button type="button" class="ccds-btn-primary" data-ccw-benutzer-ma-link-copy>Link kopieren</button>
+    <a class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-ma-link-whatsapp href="${esc(waHref)}" target="_blank" rel="noopener noreferrer"${url && url !== '—' ? '' : ' aria-disabled="true" style="pointer-events:none;opacity:.65;"'}>WhatsApp senden</a>
+    <button type="button" class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-ma-link-close>Schließen</button>
+  </div>
+</dialog>`;
 }
 
 /**
@@ -493,7 +793,8 @@ async function buildUserDetailOpts(selectedUser, allRows, mySession = null) {
           rights: editorSource.rights,
         })
       : '';
-  return { rightsSummary, editorHtml, canEdit, benutzerId: uid };
+  const canMaAppLink = canCreateMaAppInviteFromSession(my) && canShowMaAppLinkButton(selectedUser);
+  return { rightsSummary, editorHtml, canEdit, benutzerId: uid, canMaAppLink };
 }
 
 function countUserStats(all) {
@@ -514,9 +815,10 @@ function countUserStats(all) {
  * @param {object[]} all
  * @param {object|null} raw
  * @param {string|null} selectedId
+ * @param {boolean} [canMaAppLink]
  * @returns {string}
  */
-function renderBenutzerTableHtml(rows, all, raw, selectedId) {
+function renderBenutzerTableHtml(rows, all, raw, selectedId, canMaAppLink = false) {
   const head = `<div class="ccds-table-head" role="row">
   <div class="ccds-th" aria-hidden="true"></div>
   <div class="ccds-th">Name / E-Mail</div>
@@ -557,9 +859,11 @@ function renderBenutzerTableHtml(rows, all, raw, selectedId) {
       const sel = selectedId && id === selectedId;
       const rowCls = `ccds-table-row${sel ? ' ccds-table-row--selected' : ''}${st === 'deaktiviert' ? ' ccds-table-row--disabled' : ''}`;
       const lockLabel = st === 'deaktiviert' ? 'Benutzer entsperren' : 'Benutzer sperren';
+      const showMaLink = canMaAppLink && canShowMaAppLinkButton(u);
       const menuHtml =
         benutzerOpenRowMenuUserId === id
-          ? `<div class="ccds-row-menu" style="position:absolute;right:0;top:28px;z-index:40;min-width:210px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 10px 26px rgba(15,23,42,.14);padding:6px;">
+          ? `<div class="ccds-row-menu" style="position:absolute;right:0;top:28px;z-index:40;min-width:230px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 10px 26px rgba(15,23,42,.14);padding:6px;">
+  ${showMaLink ? `<button type="button" data-ccw-user-row-action="ma-app-link" data-ccw-user-row-action-id="${esc(id)}" style="display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;border-radius:8px;cursor:pointer;font-weight:600;color:#1565C0;">🔗 App-Link generieren</button>` : ''}
   <button type="button" data-ccw-user-row-action="lock-toggle" data-ccw-user-row-action-id="${esc(id)}" style="display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;border-radius:8px;cursor:pointer;">${esc(lockLabel)}</button>
   <button type="button" data-ccw-user-row-action="password-reset" data-ccw-user-row-action-id="${esc(id)}" style="display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;border-radius:8px;cursor:pointer;">Passwort zurücksetzen</button>
 </div>`
@@ -577,7 +881,8 @@ function renderBenutzerTableHtml(rows, all, raw, selectedId) {
   <div>${roleCellStylCHtml(rline, rolleNavId)}</div>
   <div>${statusChipHtml(st)}</div>
   <div>${deviceDotsHtml(u)}</div>
-  <div class="ccds-row-actions" style="position:relative;">
+  <div class="ccds-row-actions" style="position:relative;display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+    ${showMaLink ? `<button type="button" class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-ma-app-link="${esc(id)}" title="Mitarbeiter-App-Link generieren" style="font-size:11px;padding:4px 8px;white-space:nowrap;">🔗 App-Link</button>` : ''}
     <button type="button" class="ccds-act-btn" data-ccw-user-row-edit="${esc(id)}" title="Bearbeiten">✏</button>
     <button type="button" class="ccds-act-btn" data-ccw-user-row-menu="${esc(id)}" title="Aktionen">⋯</button>
     ${menuHtml}
@@ -716,9 +1021,10 @@ function renderUserDetailPanelHtml(u, all, raw, opts = {}) {
   <div class="ccds-dp-row"><span class="ccds-dp-icon-box" aria-hidden="true">🏢</span> ${firmaCellStylCHtml(firmaText, fid)}</div>
   <div class="ccds-dp-row"><span class="ccds-dp-icon-box" aria-hidden="true">◎</span> Zugang: <strong>${esc(accessLabel(ch))}</strong></div>
   ${
-    opts.canEdit
+    opts.canEdit || opts.canMaAppLink
       ? `<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-    <button type="button" class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-edit-toggle>Bearbeiten</button>
+    ${opts.canEdit ? '<button type="button" class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-edit-toggle>Bearbeiten</button>' : ''}
+    ${opts.canMaAppLink && opts.benutzerId ? `<button type="button" class="ccds-dp-btn ccds-dp-btn--secondary" data-ccw-benutzer-ma-app-link="${esc(opts.benutzerId)}" style="font-weight:600;color:#1565C0;">🔗 App-Link generieren</button>` : ''}
   </div>`
       : ''
   }
@@ -793,6 +1099,7 @@ export async function renderCockpitBenutzerViewHtml() {
   const canCreateUser =
     !!myBtn &&
     (isSessionSuperAdmin(myBtn) || myRight(myBtn, 'cockpit', 'benutzer', 'erstellen'));
+  const canMaAppLink = canCreateMaAppInviteFromSession(myBtn);
   const newUserEditorHtml = renderAccessEditorHtml('__new__', {
     global_role: 'INTERN',
     modules: [],
@@ -802,8 +1109,8 @@ export async function renderCockpitBenutzerViewHtml() {
 
   const tableBlock =
     all.length === 0
-      ? `${renderFilterBarHtml()}${renderBenutzerTableHtml([], all, rawObj, selId)}<div class="ccds-table-footer"><span>0 von ${all.length} Benutzer(n)</span></div>`
-      : `${renderFilterBarHtml()}${renderBenutzerTableHtml(benutzerLastRows, all, rawObj, selId)}<div class="ccds-table-footer"><span>${benutzerLastRows.length} von ${all.length} Benutzer(n)</span></div>`;
+      ? `${renderFilterBarHtml()}${renderBenutzerTableHtml([], all, rawObj, selId, canMaAppLink)}<div class="ccds-table-footer"><span>0 von ${all.length} Benutzer(n)</span></div>`
+      : `${renderFilterBarHtml()}${renderBenutzerTableHtml(benutzerLastRows, all, rawObj, selId, canMaAppLink)}<div class="ccds-table-footer"><span>${benutzerLastRows.length} von ${all.length} Benutzer(n)</span></div>`;
 
   const detailBody = selectedUser
     ? renderUserDetailPanelHtml(selectedUser, all, rawObj, detailOpts)
@@ -875,6 +1182,7 @@ export async function renderCockpitBenutzerViewHtml() {
       <button type="button" class="ccds-btn-primary" data-ccw-benutzer-invite-close style="background:#64748b;">Abbrechen</button>
     </div>
   </dialog>
+  ${renderMaAppLinkDialogHtml()}
 </div>`;
 }
 
@@ -909,10 +1217,11 @@ async function refreshBenutzerMainDom(root, usersReloadNonce = '') {
   benutzerLastRows = all.filter(u => userPassesFilter(u, moduleLine(u)));
 
   const selId = CCState.get('cockpitBenutzerSelectedId');
+  const canMaAppLink = canCreateMaAppInviteFromSession(myBtn);
   const tableInner =
     all.length === 0
-      ? `${renderFilterBarHtml()}${renderBenutzerTableHtml([], all, rawObj, selId)}<div class="ccds-table-footer"><span>0 von ${all.length} Benutzer(n)</span></div>`
-      : `${renderFilterBarHtml()}${renderBenutzerTableHtml(benutzerLastRows, all, rawObj, selId)}<div class="ccds-table-footer"><span>${benutzerLastRows.length} von ${all.length} Benutzer(n)</span></div>`;
+      ? `${renderFilterBarHtml()}${renderBenutzerTableHtml([], all, rawObj, selId, canMaAppLink)}<div class="ccds-table-footer"><span>0 von ${all.length} Benutzer(n)</span></div>`
+      : `${renderFilterBarHtml()}${renderBenutzerTableHtml(benutzerLastRows, all, rawObj, selId, canMaAppLink)}<div class="ccds-table-footer"><span>${benutzerLastRows.length} von ${all.length} Benutzer(n)</span></div>`;
   main.innerHTML = `${loadErr ? `<p class="ckp-api-error" role="alert">${esc(loadErr)}</p>` : ''}${tableInner}`;
   const flashMount = root.querySelector('[data-ccw-benutzer-flash]');
   if (flashMount instanceof HTMLElement) {
@@ -1004,6 +1313,38 @@ export function attachCockpitBenutzerHandlers(mount) {
       return;
     }
 
+    const maLinkClose = t.closest('[data-ccw-benutzer-ma-link-close]');
+    if (maLinkClose) {
+      ev.preventDefault();
+      const dlg = root.querySelector('[data-ccw-benutzer-ma-link-dialog]');
+      if (dlg instanceof HTMLDialogElement) dlg.close();
+      return;
+    }
+
+    const maLinkCopy = t.closest('[data-ccw-benutzer-ma-link-copy]');
+    if (maLinkCopy) {
+      ev.preventDefault();
+      const urlEl = root.querySelector('[data-ccw-benutzer-ma-link-url]');
+      const statusEl = root.querySelector('[data-ccw-benutzer-ma-link-status]');
+      const text = urlEl instanceof HTMLElement ? String(urlEl.textContent || '').trim() : '';
+      const copied = await copyTextToClipboard(text);
+      if (statusEl instanceof HTMLElement) {
+        statusEl.textContent = copied ? 'Link kopiert' : 'Kopieren fehlgeschlagen';
+        statusEl.style.color = copied ? '#15803d' : '#b91c1c';
+      }
+      return;
+    }
+
+    const maLinkBtn = t.closest('[data-ccw-benutzer-ma-app-link]');
+    if (maLinkBtn) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const uid = maLinkBtn.getAttribute('data-ccw-benutzer-ma-app-link') || '';
+      if (!uid) return;
+      await runMaAppLinkForUser(root, uid);
+      return;
+    }
+
     const createSubmit = t.closest('[data-ccw-benutzer-create-submit]');
     if (createSubmit) {
       ev.preventDefault();
@@ -1071,6 +1412,14 @@ export function attachCockpitBenutzerHandlers(mount) {
           return;
         }
         const body = collectAccessEditorPayload(ed);
+        if (!Array.isArray(body.modules) || body.modules.length === 0) {
+          if (msg instanceof HTMLElement) {
+            msg.textContent =
+              'Speichern abgebrochen: Kein Modul ausgewählt — leere Zugriffsrechte würden das Konto sperren.';
+            msg.style.color = '#b91c1c';
+          }
+          return;
+        }
         const nameInp = root.querySelector('[data-ccw-user-edit-name]');
         const emailInp = root.querySelector('[data-ccw-user-edit-email]');
         const name =
@@ -1137,6 +1486,11 @@ export function attachCockpitBenutzerHandlers(mount) {
       const action = rowMenuAction.getAttribute('data-ccw-user-row-action') || '';
       const uid = rowMenuAction.getAttribute('data-ccw-user-row-action-id') || '';
       benutzerOpenRowMenuUserId = null;
+      if (action === 'ma-app-link') {
+        if (!uid) return;
+        await runMaAppLinkForUser(root, uid);
+        return;
+      }
       try {
         if (action === 'lock-toggle') {
           const res = await apiFetch(`/users/${encodeURIComponent(uid)}/lock-toggle`, { method: 'POST' });
@@ -1217,6 +1571,7 @@ export function attachCockpitBenutzerHandlers(mount) {
 
     const row = t.closest('.ccds-table-row[data-user-id]');
     if (row) {
+      if (t.closest('[data-ccw-benutzer-ma-app-link],[data-ccw-user-row-action]')) return;
       const id = row.getAttribute('data-user-id');
       if (!id) return;
       CCState.set('cockpitBenutzerSelectedId', id);
@@ -1244,6 +1599,14 @@ export function attachCockpitBenutzerHandlers(mount) {
     const msg = ed.querySelector('[data-ccw-access-save-msg]');
     try {
       const body = collectAccessEditorPayload(ed);
+      if (!Array.isArray(body.modules) || body.modules.length === 0) {
+        if (msg instanceof HTMLElement) {
+          msg.textContent =
+            'Mindestens ein Modul muss aktiv bleiben — leere Zuweisung wird nicht gespeichert.';
+          msg.style.color = '#b91c1c';
+        }
+        return;
+      }
       await apiFetch(`/users/${encodeURIComponent(uid)}/access`, { method: 'PATCH', body });
       if (msg instanceof HTMLElement) {
         msg.textContent = 'Gespeichert.';

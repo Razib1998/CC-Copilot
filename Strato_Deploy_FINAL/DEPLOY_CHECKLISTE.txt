@@ -1,0 +1,66 @@
+CC Cockpit — STRATO Deploy-Paket (lokal vorbereitet)
+Erstellt: 2026-05-25 (Mitarbeiter-Anlage company_id-Fix)
+Quelle: CC Cockpit_Strato (Architekturregel docs/ARCHITEKTUR_REGEL.md beachtet)
+Kein ZIP. Kein Server-Upload durchgeführt.
+
+Änderung gegenüber vorherigem Paket:
+  - Frontend-Build: CC Intern Mitarbeiter speichern sendet company_id bei POST /api/v1/users
+  - Neuer Auftrag: alle MA_DATA-Mitarbeiter in Schritt-Zuweisung (nicht nur feste Kürzel-Liste)
+  - Bundle: index-Bp_L2w6R.js, ccintern-cockpit-api-DmwukQdf.js (nicht mehr index-DLO3Xr6u.js)
+  - Zusätzlich hochladen: manual-scripts/views/auftraege-detail-view.js
+    (oder gesamter Ordner manual-scripts/ bzw. modules/ccintern/ — je nach Server-Pfad)
+
+================================================================================
+FRONTEND (Strato_Deploy_FINAL/frontend-dist/)
+================================================================================
+
+Build: npm run build (frontend/, Vite 8.0.10 — erfolgreich)
+
+Vorhandene Dateien/Ordner:
+  - index.html
+  - manifest.json
+  - assets/ (8 Dateien)
+  - icons/ (4 Dateien)
+
+Prüfung index.html:
+  [OK] cc-api-base = https://api.cc-werbung-data.de
+  [OK] Kein localhost in index.html
+  [OK] Script: /assets/index-Bp_L2w6R.js (aktueller Build)
+
+Nicht vorhanden (optional): .htaccess
+
+================================================================================
+BACKEND (Strato_Deploy_FINAL/backend/)
+================================================================================
+
+Vorhanden:
+  [OK] src/, package.json, package-lock.json, passenger_startup.cjs, .env.example
+
+================================================================================
+DATENBANK (Strato_Deploy_FINAL/database/)
+================================================================================
+
+SQLite: database/cc-cockpit.db (~4,1 MB, Stand 2026-05-16)
+
+================================================================================
+UPLOADS (Strato_Deploy_FINAL/uploads_optional/)
+================================================================================
+
+[LEER] Lokal keine Upload-Dateien
+
+================================================================================
+SERVER-HINWEISE
+================================================================================
+
+cockpit.cc-werbung-data.de → gesamter Inhalt von frontend-dist/
+api.cc-werbung-data.de → backend/ + npm ci --omit=dev + .env
+DB → database/cc-cockpit.db nach data/cc-cockpit.db (Backup vorher!)
+
+================================================================================
+ZUSAMMENFASSUNG
+================================================================================
+
+1. FEHLT ETWAS? Nein (optional: .htaccess, .node-version)
+2. cockpit → frontend-dist/
+3. api → backend/ + DB nach data/
+4. Löschbar nach Backup: tmp/, alte ZIPs, veraltete src/ im Webroot

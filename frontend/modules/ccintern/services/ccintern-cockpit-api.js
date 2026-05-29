@@ -366,6 +366,69 @@ function parseChecklistenFromBemerkung(bemerkung) {
 }
 
 /**
+ * Tiefe Kopie einer Checklisten-Zeilen-Liste (ohne File/Blob).
+ * @param {unknown[]} arr
+ * @returns {unknown[]}
+ */
+function ccInternCloneChecklisteItems(arr) {
+  if (!Array.isArray(arr)) return [];
+  try {
+    return JSON.parse(JSON.stringify(arr));
+  } catch {
+    return arr.slice();
+  }
+}
+
+/**
+ * Wenn `schritte[a.step].checkliste` fehlt/leer, aber Legacy `checklisten` existiert,
+ * einmalig in den aktuellen Schritt kopieren (kein DB-Migrate, nur RAM nach Load).
+ * @param {Record<string, unknown>} a
+ */
+export function ccInternHydrateSchrittChecklisteFromLegacy(a) {
+  if (!a || typeof a !== 'object') return;
+  const step = a.step != null ? String(a.step) : '';
+  if (!step || step === 'abgeschlossen') return;
+  const steps = a.schritte;
+  if (!steps || typeof steps !== 'object') return;
+  const sch = /** @type {Record<string, unknown>} */ (/** @type {object} */ (steps))[step];
+  if (!sch || typeof sch !== 'object') return;
+  const cl = sch.checkliste;
+  if (Array.isArray(cl) && cl.length) return;
+  const leg = a.checklisten;
+  if (!Array.isArray(leg) || !leg.length) return;
+  sch.checkliste = ccInternCloneChecklisteItems(/** @type {unknown[]} */ (leg));
+}
+
+/**
+ * `a.checklisten` aus allen Schritt-Checklisten ableiten (Legacy-Kopie, dedupliziert pro Schritt+Text).
+ * Wird vor dem Serialisieren in `bemerkung` aufgerufen.
+ * @param {Record<string, unknown>} a
+ */
+export function ccInternSyncLegacyChecklistenFromSchritte(a) {
+  if (!a || typeof a !== 'object') return;
+  const steps = a.schritte;
+  if (!steps || typeof steps !== 'object') return;
+  const seen = {};
+  const flat = [];
+  ['grafik', 'druck', 'laminat', 'montage', 'doku'].forEach(function (st) {
+    const sch = /** @type {Record<string, unknown>} */ (/** @type {object} */ (steps))[st];
+    if (!sch || !Array.isArray(sch.checkliste)) return;
+    sch.checkliste.forEach(function (it) {
+      if (!it || typeof it !== 'object') return;
+      const t = /** @type {{ text?: unknown }} */ (it).text != null ? String(/** @type {{ text?: unknown }} */ (it).text) : '';
+      const key = st + '|' + t;
+      if (t && !seen[key]) {
+        seen[key] = true;
+        flat.push(it);
+      }
+    });
+  });
+  if (flat.length) {
+    /** @type {Record<string, unknown>} */ (a).checklisten = flat;
+  }
+}
+
+/**
  * @param {Record<string, unknown>} row
  * @returns {Record<string, unknown>}
  */
@@ -389,7 +452,67 @@ export function apiRowToUi(row) {
       '',
     liefertermin: payload.liefertermin || '',
   });
+  ccInternHydrateSchrittChecklisteFromLegacy(/** @type {Record<string, unknown>} */ (out));
+  ccInternEnsureSchritteSkeletonFromApiRow(/** @type {Record<string, unknown>} */ (out));
   return out;
+}
+
+/** Workflow-Schritt-Aliase (minimal, wie Mobile `mobCanonicalWorkflowStep`). */
+const CCINTERN_WORKFLOW_STEP_ALIASES = {
+  digitaldruck: 'druck',
+  plot: 'druck',
+  plotten: 'druck',
+  schnitt: 'laminat',
+  laminieren: 'laminat',
+};
+
+/**
+ * @param {unknown} stepRaw
+ * @returns {string}
+ */
+function canonicalWorkflowStepForApi(stepRaw) {
+  const s = stepRaw != null ? String(stepRaw).trim().toLowerCase() : '';
+  if (!s || s === 'draft' || s === 'abgeschlossen') return s;
+  return CCINTERN_WORKFLOW_STEP_ALIASES[s] || s;
+}
+
+/**
+ * Wenn `row.schritt` gesetzt ist, aber `bemerkung` kein `schritte[step]` liefert:
+ * minimalen Schritt-Skeleton anlegen, damit Produktions-Pool/MA-Zuordnung in der App greifen kann.
+ * @param {Record<string, unknown>} out
+ */
+export function ccInternEnsureSchritteSkeletonFromApiRow(out) {
+  if (!out || typeof out !== 'object') return;
+  const stepRaw = out.step != null ? String(out.step) : '';
+  if (!stepRaw || stepRaw === 'draft' || stepRaw === 'abgeschlossen') return;
+  if (!out.schritte || typeof out.schritte !== 'object') {
+    out.schritte = {};
+  }
+  const steps = /** @type {Record<string, unknown>} */ (/** @type {object} */ (out.schritte));
+  const canon = canonicalWorkflowStepForApi(stepRaw);
+  let found = false;
+  const tryKeys = [stepRaw, canon];
+  let ti;
+  for (ti = 0; ti < tryKeys.length; ti++) {
+    const k = tryKeys[ti];
+    if (k && steps[k] && typeof steps[k] === 'object') {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    const keys = Object.keys(steps);
+    for (ti = 0; ti < keys.length; ti++) {
+      if (canonicalWorkflowStepForApi(keys[ti]) === canon) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found) {
+    const sk = canon || stepRaw;
+    steps[sk] = { status: 'offen' };
+  }
 }
 
 /**
@@ -401,6 +524,7 @@ export function uiToApiBody(a) {
   }
   const copy = safeJsonClone(a);
   normalizeSchritteCockpitMaToUserUuid(/** @type {Record<string, unknown>} */(copy));
+  ccInternSyncLegacyChecklistenFromSchritte(/** @type {Record<string, unknown>} */(copy));
   if (ccInternClAuditEnabled()) {
     logCcInternChecklistAuditFromUi(copy, 'uiToApiBody: nach safeJsonClone (= Payload in bemerkung)', {});
   }
@@ -448,6 +572,16 @@ async function fetchAuftraegePage(qs) {
 }
 
 async function fetchAllAuftraegeRowsRobust() {
+  const maDiag =
+    typeof window !== 'undefined' && window.__CCINTERN_MITARBEITER_APP_BOOT__ === true;
+  const listPath = API_ROUTES.ccintern.auftraege + buildAuftraegeListQuery(1, 200);
+  if (maDiag) {
+    console.warn('[MA_AUFTRAEGE_GET]', {
+      path: listPath,
+      projectId: getCurrentProjectId() || null,
+      firmaId: readOptionalCockpitFirmaIdForMitarbeiterApi() || null,
+    });
+  }
   try {
     const first = await fetchAuftraegePage(buildAuftraegeListQuery(1, 200));
     if (first && first.items != null && !Array.isArray(first.items)) {
@@ -455,6 +589,17 @@ async function fetchAllAuftraegeRowsRobust() {
       return [];
     }
     const items0 = first && Array.isArray(first.items) ? first.items : [];
+    if (maDiag) {
+      console.warn('[MA_AUFTRAEGE_RESPONSE]', {
+        path: listPath,
+        ok: true,
+        count: items0.length,
+        total: first && first.pagination && first.pagination.total != null ? first.pagination.total : items0.length,
+        sampleIds: items0.slice(0, 8).map(function (r) {
+          return r && (r.auftragsnummer || r.id);
+        }),
+      });
+    }
     const pag0 = first && typeof first.pagination === 'object' ? first.pagination : {};
     const all = items0.slice();
     const total = pag0.total != null ? Number(pag0.total) : items0.length;
@@ -471,6 +616,15 @@ async function fetchAllAuftraegeRowsRobust() {
     }
     return all;
   } catch (e) {
+    if (maDiag) {
+      console.warn('[MA_AUFTRAEGE_RESPONSE]', {
+        path: listPath,
+        ok: false,
+        status: e && typeof e === 'object' && 'status' in e ? /** @type {{ status?: number }} */ (e).status : null,
+        message: e instanceof Error ? e.message : String(e),
+        code: e && typeof e === 'object' && 'code' in e ? /** @type {{ code?: string }} */ (e).code : null,
+      });
+    }
     console.error('[ccintern-cockpit-api] fetchAllAuftraegeRowsRobust', e);
     throw e;
   }
@@ -559,6 +713,9 @@ export async function fetchAllKalenderTermine(von, bis) {
  * @returns {Promise<Error|null>}
  */
 export async function reloadCcInternKalenderFeed(showToast) {
+  if (skipKalenderFeedForMaAppOnly()) {
+    return null;
+  }
   if (!hasCockpitAuftraegeApi()) {
     if (typeof window !== 'undefined') {
       window.__CCINTERN_KALENDER_FEED_OK__ = false;
@@ -658,6 +815,10 @@ function ccInternMobSyncAfterAuftraegeFlush() {
  */
 export async function reloadAuftraegeFromApiIntoMemory(showToast) {
   try {
+    if (_saveTimer) {
+      clearTimeout(_saveTimer);
+      _saveTimer = null;
+    }
     const arr = auftraegeTarget();
     if (!arr) {
       const err = new Error('AUFTRAEGE nicht initialisiert');
@@ -694,6 +855,7 @@ export async function reloadAuftraegeFromApiIntoMemory(showToast) {
       );
     }
 
+    const ramBefore = arr.length;
     arr.length = 0;
     rows.forEach(function (row) {
       const ui = apiRowToUi(row);
@@ -705,12 +867,28 @@ export async function reloadAuftraegeFromApiIntoMemory(showToast) {
       }
       arr.push(ui);
     });
+    _pendingDirtyAuftragKeys.clear();
 
     // Kein lokales Re-Append: AUFTRAEGE spiegelt strikt den Backend-Stand.
+    if (typeof window !== 'undefined' && window.__CCINTERN_MITARBEITER_APP_BOOT__ === true) {
+      console.warn('[MA_AUFTRAEGE_AFTER_LOAD]', {
+        ramBefore: ramBefore,
+        ramAfter: arr.length,
+        replaced: true,
+        projectId: getCurrentProjectId() || null,
+      });
+      if (typeof window.maLogAuftraegeNachReload === 'function') {
+        try {
+          window.maLogAuftraegeNachReload(rows);
+        } catch (eMaF) {
+          console.warn('[MA_AUFTRAEGE_FILTER]', { error: eMaF instanceof Error ? eMaF.message : String(eMaF) });
+        }
+      }
+    }
     if (typeof window.auNrRecalculate === 'function') window.auNrRecalculate();
     if (typeof window.renderAuftragVerwaltung === 'function') window.renderAuftragVerwaltung();
     if (typeof window.renderKanban === 'function') window.renderKanban();
-    if (typeof window.ccInternRefreshKalenderFromApi === 'function') {
+    if (!skipKalenderFeedForMaAppOnly() && typeof window.ccInternRefreshKalenderFromApi === 'function') {
       try {
         await window.ccInternRefreshKalenderFromApi(null);
       } catch {
@@ -763,10 +941,48 @@ export async function runLoadAuftraegeFromApi(showToast, callback) {
  * @param {(msg: string) => void} [showToast]
  * @returns {boolean} false wenn kein API-Kontext
  */
-export function runSaveAuftraege(showToast) {
+/**
+ * @param {(msg: string) => void} [showToast]
+ * @param {unknown} [auftragIdHint] — nur diesen Auftrag flushen (Chat/Kommentar); ohne Hint alle Aufträge (Legacy).
+ */
+/** @returns {boolean} */
+function ccInternIsMaAppOnlyBoot() {
+  try {
+    if (typeof window !== 'undefined' && window.__CCINTERN_MITARBEITER_APP_BOOT__ === true) return true;
+    const ui = typeof window !== 'undefined' ? window.CC_SHELL_UI_ACCESS : null;
+    if (ui && ui.isMitarbeiterAppOnlyShell === true) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/**
+ * Auftrag für nächsten Flush markieren (nur dieser wird PUT/POST — kein Full-RAM-Flush).
+ * @param {unknown} auftragId
+ */
+export function touchAuftragDirty(auftragId) {
+  addDirtyKeysForAuftragId(auftragId);
+}
+
+export function runSaveAuftraege(showToast, auftragIdHint) {
   if (!hasCockpitAuftraegeApi()) {
     console.error('[ccintern-cockpit-api]', NO_API_SAVE_MSG);
     if (showToast) showToast('⚠ ' + NO_API_SAVE_MSG);
+    return false;
+  }
+  if (auftragIdHint != null && String(auftragIdHint).trim() !== '') {
+    addDirtyKeysForAuftragId(auftragIdHint);
+  } else if (!ccInternIsMaAppOnlyBoot()) {
+    markAllAuftraegeDirtyForPersist();
+  }
+  if (_pendingDirtyAuftragKeys.size === 0) {
+    if (ccInternIsMaAppOnlyBoot()) {
+      console.warn('[MA_SAVE_SKIP]', {
+        reason: 'kein-dirty-auftrag',
+        hint: 'saveAuftraege(…, auftragId) oder touchAuftragDirty(id) vor dem Speichern',
+      });
+    }
     return false;
   }
   scheduleSaveAuftraege(showToast || null);
@@ -775,6 +991,230 @@ export function runSaveAuftraege(showToast) {
 
 let _saveTimer = null;
 let _saving = false;
+
+/** Nur diese Aufträge beim nächsten Flush per PUT/POST (verhindert stale RAM → Kommentar-Verlust). */
+/** @type {Set<string>} */
+let _pendingDirtyAuftragKeys = new Set();
+
+/**
+ * @param {unknown} auftragId
+ * @returns {Record<string, unknown>|null}
+ */
+function findAuftragInRamByAnyId(auftragId) {
+  const t = auftragId != null ? String(auftragId).trim() : '';
+  if (!t) return null;
+  const arr = auftraegeTarget();
+  if (!arr || !arr.length) return null;
+  for (let i = 0; i < arr.length; i++) {
+    const a = arr[i];
+    if (!a || a._ccDeleted) continue;
+    if (String(a.id) === t || String(a.ccApiId) === t) return a;
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.mobAuftragIdsGleich === 'function' &&
+      window.mobAuftragIdsGleich(a.id, t)
+    ) {
+      return a;
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {unknown} auftragId
+ */
+function addDirtyKeysForAuftragId(auftragId) {
+  const t = auftragId != null ? String(auftragId).trim() : '';
+  if (!t) return;
+  _pendingDirtyAuftragKeys.add(t);
+  const a = findAuftragInRamByAnyId(t);
+  if (a) {
+    if (a.id != null && String(a.id).trim() !== '') _pendingDirtyAuftragKeys.add(String(a.id).trim());
+    if (a.ccApiId != null && String(a.ccApiId).trim() !== '') {
+      _pendingDirtyAuftragKeys.add(String(a.ccApiId).trim());
+    }
+  }
+}
+
+function markAllAuftraegeDirtyForPersist() {
+  _pendingDirtyAuftragKeys.clear();
+  const arr = auftraegeTarget();
+  if (!arr) return;
+  for (let i = 0; i < arr.length; i++) {
+    const a = arr[i];
+    if (!a || a._ccDeleted) continue;
+    addDirtyKeysForAuftragId(a.id);
+  }
+}
+
+/**
+ * @param {Record<string, unknown>|null|undefined} a
+ */
+function auftragMatchesPendingDirty(a) {
+  if (!a) return false;
+  if (_pendingDirtyAuftragKeys.size === 0) return false;
+  const id = a.id != null ? String(a.id).trim() : '';
+  const apiId = a.ccApiId != null ? String(a.ccApiId).trim() : '';
+  if (id && _pendingDirtyAuftragKeys.has(id)) return true;
+  if (apiId && _pendingDirtyAuftragKeys.has(apiId)) return true;
+  return false;
+}
+
+/**
+ * @param {Record<string, unknown>|null|undefined} a
+ * @returns {object}
+ */
+export function chatDiagSnapshotFromAuftrag(a) {
+  const km = a && Array.isArray(a.kommentare) ? a.kommentare : [];
+  const last = km.length ? km[km.length - 1] : null;
+  return {
+    auftragId: a && a.id != null ? String(a.id) : '',
+    ccApiId: a && a.ccApiId != null ? String(a.ccApiId) : '',
+    schritt: a && (a.step != null || a.schritt != null) ? String(a.step || a.schritt) : '',
+    kommentareLength: km.length,
+    lastText: last && last.text != null ? String(last.text).slice(0, 160) : '',
+    lastAutor: last && (last.autor != null || last.von != null) ? String(last.autor || last.von) : '',
+    lastAutorMaId: last && last.autorMaId != null ? String(last.autorMaId) : '',
+  };
+}
+
+/**
+ * @param {string} bemerkungStr
+ */
+function chatDiagSnapshotFromBemerkung(bemerkungStr) {
+  const payload = parseChecklistenFromBemerkung(bemerkungStr != null ? String(bemerkungStr) : '');
+  const km = Array.isArray(payload.kommentare) ? payload.kommentare : [];
+  const last = km.length ? km[km.length - 1] : null;
+  return {
+    kommentareLength: km.length,
+    lastText: last && last.text != null ? String(last.text).slice(0, 160) : '',
+    lastAutor: last && (last.autor != null || last.von != null) ? String(last.autor || last.von) : '',
+    lastAutorMaId: last && last.autorMaId != null ? String(last.autorMaId) : '',
+  };
+}
+
+/**
+ * Kommentare zusammenführen: Server-Reihenfolge + lokale Nur-lokal-Zeilen; bei gleicher id Overlay (lokal).
+ * @param {unknown[]} serverList
+ * @param {unknown[]} localList
+ * @returns {Record<string, unknown>[]}
+ */
+export function mergeCcInternKommentare(serverList, localList) {
+  const server = Array.isArray(serverList) ? serverList : [];
+  const local = Array.isArray(localList) ? localList : [];
+  const localById = {};
+  for (let i = 0; i < local.length; i++) {
+    const lk = local[i];
+    if (!lk || typeof lk !== 'object' || /** @type {{ id?: unknown }} */ (lk).id == null) continue;
+    localById[String(/** @type {{ id?: unknown }} */ (lk).id)] = /** @type {Record<string, unknown>} */ (lk);
+  }
+  const out = [];
+  const seen = {};
+  for (let si = 0; si < server.length; si++) {
+    const sk = server[si];
+    if (!sk || typeof sk !== 'object' || /** @type {{ id?: unknown }} */ (sk).id == null) continue;
+    const id = String(/** @type {{ id?: unknown }} */ (sk).id);
+    seen[id] = true;
+    const lk = localById[id];
+    out.push(lk ? Object.assign({}, sk, lk) : /** @type {Record<string, unknown>} */ (sk));
+  }
+  for (let li = 0; li < local.length; li++) {
+    const lk = local[li];
+    if (!lk || typeof lk !== 'object' || /** @type {{ id?: unknown }} */ (lk).id == null) continue;
+    const id = String(/** @type {{ id?: unknown }} */ (lk).id);
+    if (seen[id]) continue;
+    seen[id] = true;
+    out.push(/** @type {Record<string, unknown>} */ (lk));
+  }
+  return out;
+}
+
+/**
+ * @param {Record<string, unknown>|null|undefined} apiRow
+ * @returns {Record<string, unknown>[]}
+ */
+function kommentareFromApiAuftragRow(apiRow) {
+  if (!apiRow) return [];
+  const payload = parseChecklistenFromBemerkung(
+    apiRow.bemerkung != null ? String(apiRow.bemerkung) : '',
+  );
+  const km = payload.kommentare;
+  return Array.isArray(km)
+    ? /** @type {Record<string, unknown>[]} */ (km.map(function (k) {
+        return k && typeof k === 'object' ? /** @type {Record<string, unknown>} */ (k) : null;
+      }).filter(Boolean))
+    : [];
+}
+
+/**
+ * GET /api/v1/ccintern/auftraege/:ccApiId — aktuelle bemerkung vom Server.
+ * @param {string} ccApiId
+ * @returns {Promise<Record<string, unknown>|null>}
+ */
+async function fetchCcInternAuftragApiRow(ccApiId) {
+  const res = await apiFetch(
+    API_ROUTES.ccintern.auftraege + '/' + encodeURIComponent(String(ccApiId)),
+    { cache: 'no-store' },
+  );
+  const row = res && typeof res.auftrag === 'object' ? res.auftrag : null;
+  return row ? /** @type {Record<string, unknown>} */ (row) : null;
+}
+
+/**
+ * Vor PUT: Server-kommentare mit RAM mergen (optional neue Zeilen anhängen).
+ * @param {Record<string, unknown>} a UI-Auftrag in AUFTRAEGE
+ * @param {Record<string, unknown>[]} [appendKommentare] noch nicht in RAM (z. B. neue Nachricht)
+ * @returns {Promise<Record<string, unknown>[]>}
+ */
+export async function ccInternMergeKommentareFromServerIntoAuftrag(a, appendKommentare) {
+  if (!a) return [];
+  const ccApiId = a.ccApiId != null && isUuid(String(a.ccApiId)) ? String(a.ccApiId).trim() : '';
+  let serverKm = [];
+  if (ccApiId) {
+    try {
+      const row = await fetchCcInternAuftragApiRow(ccApiId);
+      serverKm = kommentareFromApiAuftragRow(row);
+      console.warn('[CHAT_MERGE_GET]', {
+        auftragId: a.id != null ? String(a.id) : '',
+        ccApiId,
+        serverKommentareLength: serverKm.length,
+      });
+    } catch (mergeGetErr) {
+      console.warn('[CHAT_MERGE_GET_FAIL]', {
+        auftragId: a.id != null ? String(a.id) : '',
+        ccApiId,
+        message: mergeGetErr instanceof Error ? mergeGetErr.message : String(mergeGetErr),
+      });
+    }
+  }
+  const localKm = Array.isArray(a.kommentare)
+    ? /** @type {Record<string, unknown>[]} */ (a.kommentare.slice())
+    : [];
+  const pending = Array.isArray(appendKommentare) ? appendKommentare : [];
+  const merged = mergeCcInternKommentare(serverKm, localKm.concat(pending));
+  a.kommentare = merged;
+  console.warn('[CHAT_MERGE_RESULT]', {
+    auftragId: a.id != null ? String(a.id) : '',
+    ccApiId: ccApiId || null,
+    serverKommentareLength: serverKm.length,
+    localKommentareLength: localKm.length,
+    mergedKommentareLength: merged.length,
+  });
+  return merged;
+}
+
+/**
+ * @param {Record<string, unknown>[]} arr
+ */
+function pickAuftraegeForFlush(arr) {
+  const all = (arr || []).filter(function (x) {
+    return x && !x._ccDeleted;
+  });
+  if (_pendingDirtyAuftragKeys.size === 0) return [];
+  return all.filter(function (a) {
+    return auftragMatchesPendingDirty(a);
+  });
+}
 
 /**
  * Nach POST: Anzeige-ID des Auftrags wechselt oft (lokal → Auftragsnummer). INTERN_AUFGABEN.auftragId nachziehen.
@@ -856,9 +1296,23 @@ async function flushAuftraegeToApi(showToast) {
     anyFlushUserToast = true;
     showToast(m);
   }
+  const flushList = pickAuftraegeForFlush(arr);
+  if (flushList.length === 0 && _pendingDirtyAuftragKeys.size > 0) {
+    console.warn('[ccintern-cockpit-api] flush: dirty Auftrag nicht in RAM gefunden', {
+      dirtyKeys: Array.from(_pendingDirtyAuftragKeys),
+    });
+  }
+  if (flushList.length === 0) {
+    if (ccInternIsMaAppOnlyBoot()) {
+      console.warn('[MA_SAVE_FLUSH_SKIP]', { dirtyKeys: Array.from(_pendingDirtyAuftragKeys) });
+    }
+    _pendingDirtyAuftragKeys.clear();
+    _saving = false;
+    return;
+  }
   try {
-    for (let i = 0; i < arr.length; i++) {
-      const a = arr[i];
+    for (let i = 0; i < flushList.length; i++) {
+      const a = flushList[i];
       if (!a || a._ccDeleted) continue;
       normalizeSchritteCockpitMaToUserUuid(/** @type {Record<string, unknown>} */(a));
       const checklistenState = {
@@ -870,6 +1324,16 @@ async function flushAuftraegeToApi(showToast) {
       }
       const body = uiToApiBody(a);
       const bodyBemerkung = body && body.bemerkung != null ? String(body.bemerkung) : '';
+      const chatInPayload = chatDiagSnapshotFromBemerkung(bodyBemerkung);
+      const chatPutDiag = {
+        ...chatDiagSnapshotFromAuftrag(a),
+        kommentareInBemerkung: chatInPayload,
+        dirtyKeys: Array.from(_pendingDirtyAuftragKeys),
+      };
+      console.warn('[CHAT_PUT_PAYLOAD]', chatPutDiag);
+      if (ccInternIsMaAppOnlyBoot()) {
+        console.warn('[MA_CHAT_PUT_PAYLOAD]', chatPutDiag);
+      }
       if (!bodyBemerkung.trim() && hasChecklistenData(a)) {
         const fallbackPayload = safeJsonClone(a);
         body.bemerkung = serializeBemerkungPayload(fallbackPayload);
@@ -977,6 +1441,16 @@ async function flushAuftraegeToApi(showToast) {
             method: 'PUT',
             body,
           });
+          const putAuftrag =
+            putRes && typeof putRes.auftrag === 'object' ? putRes.auftrag : null;
+          const echoBem =
+            putAuftrag && putAuftrag.bemerkung != null ? String(putAuftrag.bemerkung) : '';
+          console.warn('[CHAT_PUT_RESPONSE]', {
+            auftragId: a.id,
+            ccApiId: apiId,
+            status: 200,
+            kommentareInResponse: chatDiagSnapshotFromBemerkung(echoBem),
+          });
           if (ccInternClAuditEnabled()) {
             const putAuftrag =
               putRes && typeof putRes.auftrag === 'object'
@@ -1021,6 +1495,28 @@ async function flushAuftraegeToApi(showToast) {
       }
     }
     await reloadAuftraegeFromApiIntoMemory(showToast);
+    if (_pendingDirtyAuftragKeys.size > 0) {
+      const arrAfter = auftraegeTarget();
+      const dirtySample = flushList[0] || null;
+      const after =
+        dirtySample && arrAfter
+          ? arrAfter.find(function (x) {
+              return (
+                x &&
+                (String(x.id) === String(dirtySample.id) ||
+                  String(x.ccApiId) === String(dirtySample.ccApiId))
+              );
+            })
+          : null;
+      const chatAfterDiag = {
+        ...(after ? chatDiagSnapshotFromAuftrag(after) : { hinweis: 'Auftrag nach Reload nicht gefunden' }),
+        flushCount: flushList.length,
+      };
+      console.warn('[CHAT_GET_AFTER_SAVE]', chatAfterDiag);
+      if (ccInternIsMaAppOnlyBoot()) {
+        console.warn('[MA_CHAT_GET_AFTER_SAVE]', chatAfterDiag);
+      }
+    }
     if (typeof window !== 'undefined') {
       const rawKal = window.__CCINTERN_KALENDER_API_ROWS__;
       if (Array.isArray(rawKal) && typeof window.ccInternApplyKalenderApiRows === 'function') {
@@ -1044,15 +1540,23 @@ async function flushAuftraegeToApi(showToast) {
     }
   } finally {
     _saving = false;
+    _pendingDirtyAuftragKeys.clear();
   }
 }
 
 /**
  * Sofort speichern (z. B. vor Tab-Schließen). Kein Debounce.
  * @param {(msg: string) => void} [showToast]
+ * @param {unknown} [auftragIdHint]
  * @returns {Promise<void>}
  */
-export function flushAuftraegeNow(showToast) {
+export function flushAuftraegeNow(showToast, auftragIdHint) {
+  if (auftragIdHint != null && String(auftragIdHint).trim() !== '') {
+    addDirtyKeysForAuftragId(auftragIdHint);
+  }
+  if (_pendingDirtyAuftragKeys.size === 0) {
+    return Promise.resolve();
+  }
   return flushAuftraegeToApi(showToast);
 }
 
@@ -1061,15 +1565,16 @@ export function flushAuftraegeNow(showToast) {
  * Verhindert Datenverlust, wenn der Tab geschlossen oder die Seite neu geladen wird, bevor der 500ms-Timer feuert.
  *
  * @param {(msg: string) => void} [showToast]
+ * @param {unknown} [auftragIdHint]
  * @returns {Promise<void>}
  */
-export function persistAuftraegeImmediate(showToast) {
+export function persistAuftraegeImmediate(showToast, auftragIdHint) {
   if (!hasCockpitAuftraegeApi()) return Promise.resolve();
   if (_saveTimer) {
     clearTimeout(_saveTimer);
     _saveTimer = null;
   }
-  return flushAuftraegeNow(showToast || null);
+  return flushAuftraegeNow(showToast || null, auftragIdHint);
 }
 
 /**
@@ -1481,7 +1986,7 @@ export function maKuerzelOderIdZuUserUuid(raw) {
 
 /**
  * /users ist die vollständige Quelle; /mitarbeiter liefert Zusatzfelder (Kürzel, Soll etc.).
- * Ergebnis: keine Mitarbeiter verlieren, wenn /mitarbeiter unvollständig ist.
+ * Nach Merge: nur Einträge mit Stammzeile (mitarbeiter_id) oder gesetztem Kürzel k — App-only ohne beides entfällt.
  *
  * @param {Array<Record<string, unknown>>} items
  * @param {Array<Record<string, unknown>>} apiUsers
@@ -1530,7 +2035,13 @@ function mergeMaDataFromUsersAndMitarbeiter(items, apiUsers, usersById) {
     if (s.col != null && String(s.col).trim() !== '') b.col = s.col;
   });
   mergeKuerzelFromPreviousMaList(base, null);
-  return base;
+  return base.filter(function (m) {
+    if (!m || typeof m !== 'object') return false;
+    var mid = m.mitarbeiter_id != null ? String(m.mitarbeiter_id).trim() : '';
+    if (mid) return true;
+    var k = m.k != null ? String(m.k).trim() : '';
+    return k !== '';
+  });
 }
 
 /**
@@ -1720,6 +2231,147 @@ function rowsFromChecklistenListResponse(res) {
   return /** @type {Array<Record<string, unknown>>} */ (rows);
 }
 
+/** @type {Map<string, Promise<Array<Record<string, unknown>>>>} */
+const __checklistenZuordnungInflight = new Map();
+
+/**
+ * Rohdaten aus GET /api/v1/ccintern/checklisten-zuordnung (Envelope bereits durch `apiFetch` → `data`).
+ * @param {unknown} res
+ * @returns {Array<Record<string, unknown>>}
+ */
+function rowsFromChecklistenZuordnungResponse(res) {
+  if (res == null || typeof res !== 'object') return [];
+  const o = /** @type {{ items?: unknown; data?: { items?: unknown } }} */ (res);
+  const fromItems = 'items' in o ? o.items : undefined;
+  const fromNested =
+    o.data != null && typeof o.data === 'object' ? /** @type {{ items?: unknown }} */ (o.data).items : undefined;
+  if (Array.isArray(fromItems)) return /** @type {Array<Record<string, unknown>>} */ (fromItems.slice());
+  if (Array.isArray(fromNested)) return /** @type {Array<Record<string, unknown>>} */ (fromNested.slice());
+  return [];
+}
+
+/**
+ * GET /api/v1/ccintern/checklisten-zuordnung?produkt_id=… (optional firma_id Query).
+ * Cache: `window.CC_CHECKLISTEN_ZUORDNUNG_CACHE[produkt_id]`; keine parallelen Requests pro Produkt.
+ * @param {unknown} produktId
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+export async function fetchCcInternChecklistenZuordnung(produktId) {
+  const pid = produktId != null ? String(produktId).trim() : '';
+  if (!pid) return [];
+  try {
+    if (typeof window !== 'undefined' && window.CC_CHECKLISTEN_ZUORDNUNG_CACHE && typeof window.CC_CHECKLISTEN_ZUORDNUNG_CACHE === 'object') {
+      const cached = /** @type {Record<string, unknown>} */ (window.CC_CHECKLISTEN_ZUORDNUNG_CACHE)[pid];
+      if (Array.isArray(cached)) return /** @type {Array<Record<string, unknown>>} */ (cached.slice());
+    }
+    const existing = __checklistenZuordnungInflight.get(pid);
+    if (existing) return existing;
+    const p = (async function () {
+      try {
+        const fid = firmaIdForCcInternApi();
+        let qs = '?produkt_id=' + encodeURIComponent(pid);
+        if (fid) qs += '&firma_id=' + encodeURIComponent(fid);
+        const res = await apiFetch('/api/v1/ccintern/checklisten-zuordnung' + qs);
+        const rows = rowsFromChecklistenZuordnungResponse(res);
+        if (typeof window !== 'undefined') {
+          if (!window.CC_CHECKLISTEN_ZUORDNUNG_CACHE || typeof window.CC_CHECKLISTEN_ZUORDNUNG_CACHE !== 'object') {
+            window.CC_CHECKLISTEN_ZUORDNUNG_CACHE = {};
+          }
+          /** @type {Record<string, unknown[]>} */ (window.CC_CHECKLISTEN_ZUORDNUNG_CACHE)[pid] = rows.slice();
+        }
+        return rows;
+      } catch (err) {
+        console.warn('[CL-ZUORDNUNG API FEHLER]', err);
+        return [];
+      }
+    })().finally(function () {
+      __checklistenZuordnungInflight.delete(pid);
+    });
+    __checklistenZuordnungInflight.set(pid, p);
+    return p;
+  } catch (err) {
+    console.warn('[CL-ZUORDNUNG API FEHLER]', err);
+    return [];
+  }
+}
+
+function invalidateCcInternChecklistenZuordnungCache() {
+  if (typeof window !== 'undefined') {
+    window.CC_CHECKLISTEN_ZUORDNUNG_CACHE = {};
+  }
+  __checklistenZuordnungInflight.clear();
+}
+
+/**
+ * GET /api/v1/ccintern/checklisten-zuordnung — alle Zuordnungen der Firma.
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+export async function fetchCcInternChecklistenZuordnungAll() {
+  try {
+    const fid = firmaIdForCcInternApi();
+    let qs = '';
+    if (fid) qs = '?firma_id=' + encodeURIComponent(fid);
+    const res = await apiFetch('/api/v1/ccintern/checklisten-zuordnung' + qs);
+    return rowsFromChecklistenZuordnungResponse(res);
+  } catch (err) {
+    console.warn('[CL-ZUORDNUNG API FEHLER] fetchCcInternChecklistenZuordnungAll', err);
+    return [];
+  }
+}
+
+/**
+ * POST /api/v1/ccintern/checklisten-zuordnung
+ * @param {{ produkt_id: string, schritt: string, checkliste_id: string, sortierung?: number, aktiv?: boolean }} body
+ * @returns {Promise<Record<string, unknown>|null>}
+ */
+export async function createCcInternChecklistenZuordnung(body) {
+  try {
+    const pid = getCurrentProjectId();
+    /** @type {Record<string, string>} */
+    const extraHeaders = pid ? { 'x-project-id': pid } : {};
+    const res = await apiFetch('/api/v1/ccintern/checklisten-zuordnung', {
+      method: 'POST',
+      body: body,
+      headers: extraHeaders,
+    });
+    invalidateCcInternChecklistenZuordnungCache();
+    const item =
+      res && typeof res === 'object' && res.item != null && typeof res.item === 'object'
+        ? /** @type {Record<string, unknown>} */ (res.item)
+        : res && typeof res === 'object' && res.data != null && typeof res.data === 'object' && /** @type {{ item?: unknown }} */ (res.data).item != null
+          ? /** @type {Record<string, unknown>} */ (/** @type {{ item: object }} */ (res.data).item)
+          : null;
+    return item;
+  } catch (err) {
+    console.warn('[CL-ZUORDNUNG API FEHLER] createCcInternChecklistenZuordnung', err);
+    throw err;
+  }
+}
+
+/**
+ * DELETE /api/v1/ccintern/checklisten-zuordnung/:id
+ * @param {string} zuordnungId
+ * @returns {Promise<boolean>}
+ */
+export async function deleteCcInternChecklistenZuordnung(zuordnungId) {
+  const zid = zuordnungId != null ? String(zuordnungId).trim() : '';
+  if (!zid) return false;
+  try {
+    const pid = getCurrentProjectId();
+    /** @type {Record<string, string>} */
+    const extraHeaders = pid ? { 'x-project-id': pid } : {};
+    await apiFetch('/api/v1/ccintern/checklisten-zuordnung/' + encodeURIComponent(zid), {
+      method: 'DELETE',
+      headers: extraHeaders,
+    });
+    invalidateCcInternChecklistenZuordnungCache();
+    return true;
+  } catch (err) {
+    console.warn('[CL-ZUORDNUNG API FEHLER] deleteCcInternChecklistenZuordnung', err);
+    throw err;
+  }
+}
+
 /**
  * Aus POST /checklisten Antwort (evtl. doppelt gewrappt) die neue UUID ermitteln.
  * @param {unknown} created
@@ -1748,14 +2400,28 @@ function checklisteCreatedIdFromResponse(created) {
  */
 function mapChecklisteDetailToVorlage(row) {
   if (!row || typeof row !== 'object') return null;
-  const ein = Array.isArray(row.eintraege) ? row.eintraege : [];
-  const punkte = ein.map(function (e) {
+  const einRaw = Array.isArray(row.eintraege) ? row.eintraege.slice() : [];
+  einRaw.sort(function (a, b) {
+    if (!a || typeof a !== 'object') return 1;
+    if (!b || typeof b !== 'object') return -1;
+    const ra = Number(a.reihenfolge);
+    const rb = Number(b.reihenfolge);
+    const na = Number.isFinite(ra) ? ra : 0;
+    const nb = Number.isFinite(rb) ? rb : 0;
+    if (na !== nb) return na - nb;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+  const punkte = einRaw.map(function (e) {
     if (!e || typeof e !== 'object') return { text: '', kat: 'pflicht', hinweis: '', erledigt: false };
+    const ro = Number(e.reihenfolge);
+    const eintragId = e.id != null && String(e.id).trim() !== '' ? String(e.id).trim() : '';
     return {
       text: e.text != null ? String(e.text) : '',
       kat: 'pflicht',
       hinweis: '',
       erledigt: Boolean(e.erledigt),
+      eintragId,
+      reihenfolge: Number.isFinite(ro) ? ro : 0,
     };
   });
   return {
@@ -1802,6 +2468,7 @@ async function fetchChecklisteDetailForVorlage(id) {
 
 /**
  * Lädt Firmen-Checklisten vom Backend in `window.CL_VORLAGEN` (Vorlagen-UI-Format).
+ * Zentrale Vorlagenquelle: nur diese API; `CL_VORLAGEN` ist der RAM-Cache für UI + Auftrags-Anlage (Kopie in Auftrag).
  * Backend: GET /api/v1/checklisten, Detail GET /api/v1/checklisten/:id
  * @param {(msg: string) => void} [showToast]
  * @returns {Promise<Error|null>}
@@ -1832,6 +2499,46 @@ export async function reloadChecklistenVorlagenFromApi(showToast) {
 }
 
 /**
+ * Lädt eine einzelne Vorlage frisch von GET /api/v1/checklisten/:id und aktualisiert den Eintrag in `window.CL_VORLAGEN`.
+ * Wichtig für die Checklisten-UI: Liste kommt von der API, Detail beim Klick immer konsistent mit DB.
+ * @param {string} checklisteId
+ * @param {(msg: string) => void} [showToast]
+ * @returns {Promise<Record<string, unknown>|null>}
+ */
+export async function refreshChecklisteVorlageFromApi(checklisteId, showToast) {
+  const id = checklisteId != null ? String(checklisteId).trim() : '';
+  if (!id || !isUuid(id)) return null;
+  try {
+    const d = await fetchChecklisteDetailForVorlage(id);
+    const mapped = mapChecklisteDetailToVorlage(/** @type {Record<string, unknown>|null} */ (d));
+    if (!mapped || !mapped.id) return null;
+    if (typeof window === 'undefined' || !Array.isArray(window.CL_VORLAGEN)) return mapped;
+    const idx = window.CL_VORLAGEN.findIndex(function (x) {
+      return x && String(x.id || '').trim() === id;
+    });
+    if (idx < 0) {
+      window.CL_VORLAGEN.push(mapped);
+      return mapped;
+    }
+    const prev = /** @type {Record<string, unknown>} */ (window.CL_VORLAGEN[idx]);
+    const merged = Object.assign({}, prev, mapped);
+    merged.punkte = Array.isArray(mapped.punkte) ? mapped.punkte.slice() : [];
+    merged.name = mapped.name;
+    merged.id = mapped.id;
+    if (prev.ico != null && prev.ico !== '📋') merged.ico = prev.ico;
+    if (prev.farbe) merged.farbe = prev.farbe;
+    if (prev.beschr != null && String(prev.beschr).trim() !== '') merged.beschr = prev.beschr;
+    if (typeof prev.aktiv === 'boolean') merged.aktiv = prev.aktiv;
+    window.CL_VORLAGEN[idx] = merged;
+    return merged;
+  } catch (e) {
+    logCockpitApiFailure('[ccintern-cockpit-api] refreshChecklisteVorlageFromApi', e, { checklisteId: id });
+    if (showToast) showToast('⚠ Checkliste laden: ' + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}
+
+/**
  * @param {string} checklisteId
  * @param {(msg: string) => void} [showToast]
  */
@@ -1846,6 +2553,116 @@ export async function deleteChecklisteFromApi(checklisteId, showToast) {
   } catch (e) {
     logCockpitApiFailure('[ccintern-cockpit-api] deleteChecklisteFromApi', e, { checklisteId: id });
     if (showToast) showToast('⚠ Checkliste löschen: ' + (e instanceof Error ? e.message : String(e)));
+    return e instanceof Error ? e : new Error(String(e));
+  }
+}
+
+/**
+ * POST /api/v1/checklisten/:id/eintraege
+ * @param {string} checklisteId
+ * @param {{ text: string, erledigt?: boolean, reihenfolge?: number }} payload
+ * @param {(msg: string) => void} [showToast]
+ * @returns {Promise<Error|null>}
+ */
+export async function postChecklisteEintragFromApi(checklisteId, payload, showToast) {
+  const id = checklisteId != null ? String(checklisteId).trim() : '';
+  if (!isUuid(id)) return new Error('Checklisten-Eintrag: keine gültige Checklisten-ID.');
+  const fid = firmaIdForCcInternApi();
+  if (!fid) {
+    const msg = 'Checklisten-Eintrag: firma_id fehlt (Cockpit-Kontext).';
+    if (showToast) showToast('⚠ ' + msg);
+    return new Error(msg);
+  }
+  const text = payload && payload.text != null ? String(payload.text).trim() : '';
+  if (!text) return new Error('Checklisten-Eintrag: text fehlt.');
+  try {
+    const body = { firma_id: fid, text };
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'erledigt')) {
+      body.erledigt = !!payload.erledigt;
+    }
+    if (payload && Object.prototype.hasOwnProperty.call(payload, 'reihenfolge')) {
+      const ro = Number(payload.reihenfolge);
+      if (Number.isFinite(ro)) body.reihenfolge = ro;
+    }
+    await apiFetch('/api/v1/checklisten/' + encodeURIComponent(id) + '/eintraege', {
+      method: 'POST',
+      body,
+    });
+    return null;
+  } catch (e) {
+    logCockpitApiFailure('[ccintern-cockpit-api] postChecklisteEintragFromApi', e, { checklisteId: id });
+    if (showToast) showToast('⚠ Eintrag anlegen: ' + (e instanceof Error ? e.message : String(e)));
+    return e instanceof Error ? e : new Error(String(e));
+  }
+}
+
+/**
+ * PUT /api/v1/checklisten/eintraege/:eintragId (Backend: kein PATCH)
+ * @param {string} eintragId
+ * @param {{ text?: string, erledigt?: boolean, reihenfolge?: number }} patch
+ * @param {(msg: string) => void} [showToast]
+ * @returns {Promise<Error|null>}
+ */
+export async function putChecklisteEintragFromApi(eintragId, patch, showToast) {
+  const eid = eintragId != null ? String(eintragId).trim() : '';
+  if (!eid) return new Error('Checklisten-Eintrag: keine Eintrag-ID.');
+  const fid = firmaIdForCcInternApi();
+  if (!fid) {
+    const msg = 'Checklisten-Eintrag: firma_id fehlt (Cockpit-Kontext).';
+    if (showToast) showToast('⚠ ' + msg);
+    return new Error(msg);
+  }
+  try {
+    const body = { firma_id: fid };
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'text')) {
+      body.text = patch.text != null ? String(patch.text).trim() : '';
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'erledigt')) {
+      body.erledigt = !!patch.erledigt;
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'reihenfolge')) {
+      const ro = Number(patch.reihenfolge);
+      if (Number.isFinite(ro)) body.reihenfolge = ro;
+    }
+    if (Object.keys(body).length <= 1) {
+      return new Error('Checklisten-Eintrag: kein gültiges Update-Feld.');
+    }
+    await apiFetch('/api/v1/checklisten/eintraege/' + encodeURIComponent(eid), {
+      method: 'PUT',
+      body,
+    });
+    return null;
+  } catch (e) {
+    logCockpitApiFailure('[ccintern-cockpit-api] putChecklisteEintragFromApi', e, { eintragId: eid });
+    if (showToast) showToast('⚠ Eintrag speichern: ' + (e instanceof Error ? e.message : String(e)));
+    return e instanceof Error ? e : new Error(String(e));
+  }
+}
+
+/**
+ * DELETE /api/v1/checklisten/eintraege/:eintragId
+ * @param {string} eintragId
+ * @param {(msg: string) => void} [showToast]
+ * @returns {Promise<Error|null>}
+ */
+export async function deleteChecklisteEintragFromApi(eintragId, showToast) {
+  const eid = eintragId != null ? String(eintragId).trim() : '';
+  if (!eid) return new Error('Checklisten-Eintrag: keine Eintrag-ID.');
+  const fid = firmaIdForCcInternApi();
+  if (!fid) {
+    const msg = 'Checklisten-Eintrag löschen: firma_id fehlt (Cockpit-Kontext).';
+    if (showToast) showToast('⚠ ' + msg);
+    return new Error(msg);
+  }
+  try {
+    await apiFetch('/api/v1/checklisten/eintraege/' + encodeURIComponent(eid), {
+      method: 'DELETE',
+      body: { firma_id: fid },
+    });
+    return null;
+  } catch (e) {
+    logCockpitApiFailure('[ccintern-cockpit-api] deleteChecklisteEintragFromApi', e, { eintragId: eid });
+    if (showToast) showToast('⚠ Eintrag löschen: ' + (e instanceof Error ? e.message : String(e)));
     return e instanceof Error ? e : new Error(String(e));
   }
 }
@@ -2119,7 +2936,9 @@ export async function saveMitarbeiterToApi(maData, showToast) {
     throw new Error('Projekt fehlt');
   }
   const list = Array.isArray(maData) ? maData : [];
-  const firmaPin = readOptionalCockpitFirmaIdForMitarbeiterApi();
+  const firmaPin =
+    readOptionalCockpitFirmaIdForMitarbeiterApi() ||
+    (firmaIdForCcInternApi() != null ? String(firmaIdForCcInternApi()).trim() : '');
   let apiUsers = [];
   try {
     const usersRes = await apiFetch(API_ROUTES.cockpit.users);
@@ -2230,7 +3049,6 @@ export async function saveMitarbeiterToApi(maData, showToast) {
         method: 'PATCH',
         body: {
           name: String(ma.n || ma.name || '').trim() || null,
-          global_role: mapMaToApiGlobalRole(ma),
           soll: su.soll,
           urlaub: su.urlaub,
         },
@@ -2292,12 +3110,19 @@ export async function saveMitarbeiterToApi(maData, showToast) {
         const name = String(ma.n || ma.name || '').trim();
         const global_role = mapMaToApiGlobalRole(ma);
         const su = mitarbeiterSollUrlaubForApi(ma);
+        if (!firmaPin) {
+          const msg =
+            'Keine Firma gewählt — bitte im Cockpit oben eine Firma auswählen, dann erneut speichern.';
+          if (showToast) showToast('⚠ ' + msg);
+          throw new Error(msg);
+        }
         const res = await apiFetch(API_ROUTES.cockpit.users, {
           method: 'POST',
           body: {
             email: emailRaw,
             name: name || null,
             global_role,
+            company_id: firmaPin,
             modules: ['ccintern'],
             rights: {},
             soll: su.soll,
@@ -2353,10 +3178,10 @@ export function revokeCcInternServerDateienBlobUrls(auftrag) {
 function ccInternTypToUiLabel(typ) {
   const t = String(typ || '').toLowerCase();
   const map = {
-    layout_grafik: 'Layout/Grafik',
-    druckdatei: 'Druckdatei',
+    layout_grafik: 'Layout / Grafik',
+    druckdatei: 'Finale Druckdatei',
     kundenfreigabe: 'Kundenfreigabe',
-    montagefoto: 'Montagefotos',
+    montagefoto: 'Montagefoto',
     entwurf: 'Entwurf',
     vorher: 'Vorher',
     nachher: 'Nachher',
@@ -2419,6 +3244,115 @@ export async function fetchCcInternAuftragDateienUi(ccApiId, auftragOpt) {
     );
   }
   if (auftragOpt && typeof auftragOpt === 'object') auftragOpt.__ccinternDateiBlobUrls = blobUrls;
+  return out;
+}
+
+/** Dateiname / Originalname für Merge-Dedupe (klein, getrimmt). */
+export function ccInternNormDateiName(row) {
+  if (!row || typeof row !== 'object') return '';
+  const n = row.name != null ? String(row.name) : row.originalname != null ? String(row.originalname) : '';
+  return n.trim().toLowerCase();
+}
+
+/** URL-/Data-Signatur (data:, blob:, …) für Dublettenabgleich. */
+export function ccInternRowDateiUrlSig(row) {
+  if (!row || typeof row !== 'object') return '';
+  return String(row.dataUrl || row.data || row.localUrl || '').trim();
+}
+
+/** API-`typ` klein; Legacy: `ccinternApiTyp` oder aus Anzeige-`typ` ableiten. */
+export function ccInternRowApiTypLower(row) {
+  if (!row || typeof row !== 'object') return '';
+  if (row.ccinternApiTyp != null && String(row.ccinternApiTyp).trim() !== '') {
+    return String(row.ccinternApiTyp).trim().toLowerCase();
+  }
+  if (row.apiTyp != null && String(row.apiTyp).trim() !== '') return String(row.apiTyp).trim().toLowerCase();
+  const tl = String(row.typ || '').toLowerCase();
+  if (tl.includes('layout') && tl.includes('grafik')) return 'layout_grafik';
+  if (tl.includes('finale') && tl.includes('druck')) return 'druckdatei';
+  if (tl.includes('druckdatei') || (tl.includes('druck') && tl.includes('final'))) return 'druckdatei';
+  if (tl.includes('nachher')) return 'nachher';
+  if (tl.includes('vorher')) return 'vorher';
+  if (tl.includes('montagefoto') || (tl.includes('montage') && tl.includes('foto'))) return 'montagefoto';
+  return '';
+}
+
+export function ccInternRowPhaseLower(row) {
+  if (!row || typeof row !== 'object') return '';
+  const ph =
+    row.ccinternPhase != null ? String(row.ccinternPhase) : row.phase != null ? String(row.phase) : '';
+  return ph.trim().toLowerCase();
+}
+
+export function ccInternRowPositionLower(row) {
+  if (!row || typeof row !== 'object') return '';
+  const po =
+    row.ccinternPosition != null ? String(row.ccinternPosition) : row.position != null ? String(row.position) : '';
+  return po.trim().toLowerCase();
+}
+
+/**
+ * `candidateRow` gilt als bereits durch `existingRow` abgedeckt, wenn eine der Regeln zutrifft:
+ * gleiche serverDateiId, gleiche URL, gleicher Name+Größe, oder gleicher Name+API-Typ+Phase+Position+Größe.
+ * @param {Record<string, unknown>} existingRow
+ * @param {Record<string, unknown>} candidateRow
+ * @returns {boolean}
+ */
+export function ccInternDateiRowIsDuplicateOf(existingRow, candidateRow) {
+  if (!existingRow || !candidateRow || typeof existingRow !== 'object' || typeof candidateRow !== 'object') {
+    return false;
+  }
+  const eSid = existingRow.serverDateiId != null ? String(existingRow.serverDateiId).trim() : '';
+  const cSid = candidateRow.serverDateiId != null ? String(candidateRow.serverDateiId).trim() : '';
+  if (eSid && cSid && eSid === cSid) return true;
+  const u1 = ccInternRowDateiUrlSig(existingRow);
+  const u2 = ccInternRowDateiUrlSig(candidateRow);
+  if (u1 && u2 && u1 === u2) return true;
+  const n1 = ccInternNormDateiName(existingRow);
+  const n2 = ccInternNormDateiName(candidateRow);
+  const s1 = Number(existingRow.size || 0);
+  const s2 = Number(candidateRow.size || 0);
+  if (n1 && n2 && n1 === n2 && s1 === s2 && s1 > 0) return true;
+  const t1 = ccInternRowApiTypLower(existingRow);
+  const t2 = ccInternRowApiTypLower(candidateRow);
+  const ph1 = ccInternRowPhaseLower(existingRow);
+  const ph2 = ccInternRowPhaseLower(candidateRow);
+  const po1 = ccInternRowPositionLower(existingRow);
+  const po2 = ccInternRowPositionLower(candidateRow);
+  if (n1 && n2 && n1 === n2 && t1 && t2 && t1 === t2 && ph1 === ph2 && po1 === po2 && s1 === s2) return true;
+  return false;
+}
+
+/**
+ * Anzeige-Merge: Server-Zeilen zuerst, Legacy nur ergänzend ohne Dubletten zu Server (oder untereinander).
+ * @param {unknown[]} serverRows UI-Zeilen von `fetchCcInternAuftragDateienUi`
+ * @param {unknown[]} legacyRows Roh- oder UI-Zeilen (z. B. `a.dateien`, Planung)
+ * @returns {any[]}
+ */
+export function mergeCcInternDateienDisplayRows(serverRows, legacyRows) {
+  const srv = Array.isArray(serverRows) ? serverRows : [];
+  const leg = Array.isArray(legacyRows) ? legacyRows : [];
+  /** @type {any[]} */
+  const out = [];
+  let si;
+  for (si = 0; si < srv.length; si++) {
+    out.push(Object.assign({}, srv[si]));
+  }
+  let lj;
+  for (lj = 0; lj < leg.length; lj++) {
+    const c = leg[lj];
+    if (!c || typeof c !== 'object') continue;
+    let dup = false;
+    let k;
+    for (k = 0; k < out.length; k++) {
+      if (ccInternDateiRowIsDuplicateOf(out[k], c)) {
+        dup = true;
+        break;
+      }
+    }
+    if (dup) continue;
+    out.push(Object.assign({}, c));
+  }
   return out;
 }
 
@@ -2548,10 +3482,59 @@ export function urlaubApiRowToUiRecord(row) {
 }
 
 /**
+ * POST/PUT /api/v1/urlaub: Feld `mitarbeiter_id` ist FK auf `users.id` (Backend: getUserById).
+ * UI-`maId` kann Stamm-UUID, User-UUID oder Kürzel sein — wie Aufgaben-Matching.
+ *
+ * @param {unknown} maIdRaw
+ * @returns {{ userId: string, stammMitarbeiterId: string|null, kuerzel: string|null, via: string }}
+ */
+export function resolveCcInternUserIdFromWorkflowMaKey(maIdRaw) {
+  const raw = maIdRaw != null ? String(maIdRaw).trim() : '';
+  if (!raw) {
+    return { userId: '', stammMitarbeiterId: null, kuerzel: null, via: 'empty' };
+  }
+  const list = maDataListForResolve();
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
+    if (!m || typeof m !== 'object') continue;
+    const userId = rowToCockpitUserUuid(m);
+    const stammId = m.mitarbeiter_id != null ? String(m.mitarbeiter_id).trim() : '';
+    const k = m.k != null ? String(m.k).trim() : '';
+    if (stammId && stammId === raw && userId) {
+      return { userId, stammMitarbeiterId: stammId, kuerzel: k || null, via: 'stamm_id_to_user' };
+    }
+    if (userId && (String(m.id).trim() === raw || String(m.maId).trim() === raw)) {
+      return { userId, stammMitarbeiterId: stammId || null, kuerzel: k || null, via: 'user_id' };
+    }
+    if (k && k.toUpperCase() === raw.toUpperCase() && userId) {
+      return { userId, stammMitarbeiterId: stammId || null, kuerzel: k, via: 'kuerzel_to_user' };
+    }
+  }
+  if (cockpitUserUuidLooksValid(raw)) {
+    return { userId: raw, stammMitarbeiterId: null, kuerzel: null, via: 'raw_uuid' };
+  }
+  return { userId: raw, stammMitarbeiterId: null, kuerzel: null, via: 'unresolved' };
+}
+
+/** Mitarbeiter-App-only: kein Desktop-Kalender (Recht ccintern.kalender.sehen fehlt oft). */
+function skipKalenderFeedForMaAppOnly() {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (window.__CCINTERN_MITARBEITER_APP_BOOT__ === true) return true;
+    const ui = window.CC_SHELL_UI_ACCESS;
+    if (ui && ui.isMitarbeiterAppOnlyShell === true) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/**
  * @param {Record<string, unknown>} a
  */
 function uiUrlaubRecordToApiBody(a) {
-  const mitarbeiter_id = String(a.maId || '').trim();
+  const ident = resolveCcInternUserIdFromWorkflowMaKey(a.maId);
+  const mitarbeiter_id = ident.userId;
   const today = new Date().toISOString().slice(0, 10);
   let typ = 'urlaub';
   const typUi = String(a.typ || '');
@@ -2612,7 +3595,25 @@ export async function reloadUrlaubFromApiIntoMemory(showToast) {
  * @param {(msg: string) => void} [showToast]
  */
 export async function postUrlaubAntragFromUi(a, showToast) {
+  const ident = resolveCcInternUserIdFromWorkflowMaKey(a.maId);
   const body = uiUrlaubRecordToApiBody(a);
+  const W = typeof window !== 'undefined' ? /** @type {Window & { MOB_MA_ID?: unknown; COCKPIT_FIRMA_ID?: unknown; CURRENT_USER_ID?: unknown }} */ (window) : null;
+  console.warn('[MA_URLAUB_IDENT]', {
+    uiMaId: a.maId,
+    mob_ma_id: W && W.MOB_MA_ID != null ? W.MOB_MA_ID : null,
+    user_id: ident.userId,
+    stamm_mitarbeiter_id: ident.stammMitarbeiterId,
+    kuerzel: ident.kuerzel,
+    resolvedVia: ident.via,
+    company_id: W && W.COCKPIT_FIRMA_ID != null ? W.COCKPIT_FIRMA_ID : null,
+    currentUserId: W && W.CURRENT_USER_ID != null ? W.CURRENT_USER_ID : null,
+  });
+  console.warn('[MA_URLAUB_PAYLOAD]', body);
+  console.warn('[MA_URLAUB_BACKEND_MATCH]', {
+    backendExpects: 'users.id via store.getUserById(body.mitarbeiter_id)',
+    sentMitarbeiter_id: body.mitarbeiter_id,
+    resolvedVia: ident.via,
+  });
   const data = await apiFetch(API_V1_URLAUB, { method: 'POST', body });
   const row = data && /** @type {{ urlaub?: unknown }} */ (data).urlaub;
   if (!row || typeof row !== 'object') throw new Error('Urlaub POST: leere Antwort');
@@ -2883,7 +3884,8 @@ export async function reloadMitarbeiterAnwesenheitFromApiIntoMemory(showToast) {
  * @param {(msg: string) => void} [showToast]
  */
 export async function postMitarbeiterAnwesenheitFromUi(entry, showToast) {
-  const user_id = String(entry.maId || '').trim();
+  const ident = resolveCcInternUserIdFromWorkflowMaKey(entry.maId);
+  const user_id = ident.userId;
   const datum = isoOrNull(entry.datum);
   if (!user_id || !datum) throw new Error('postMitarbeiterAnwesenheitFromUi: maId/datum fehlt.');
   const body = {
@@ -2900,4 +3902,176 @@ export async function postMitarbeiterAnwesenheitFromUi(entry, showToast) {
   const row = data && /** @type {{ anwesenheit?: unknown }} */ (data).anwesenheit;
   if (!row || typeof row !== 'object') throw new Error('Anwesenheit POST: leere Antwort');
   return row;
+}
+
+const API_ARBEITSZEIT = `${API_V1_CCINTERN_MITARBEITER_OP}/arbeitszeit`;
+
+/**
+ * @param {unknown} data
+ * @returns {Record<string, unknown>|null}
+ */
+function arbeitszeitSessionFromEnvelope(data) {
+  const session = data && /** @type {{ session?: unknown }} */ (data).session;
+  if (!session || typeof session !== 'object') return null;
+  return /** @type {Record<string, unknown>} */ (session);
+}
+
+/** GET /ccintern/mitarbeiter/arbeitszeit/aktiv — JWT-user, keine user_id im Body. */
+export async function fetchArbeitszeitSessionAktiv() {
+  const data = await apiFetch(`${API_ARBEITSZEIT}/aktiv`);
+  const session = arbeitszeitSessionFromEnvelope(data);
+  console.info('[ARBEITSZEIT_SESSION_GET]', session);
+  return session;
+}
+
+/** POST /arbeitszeit/start */
+export async function postArbeitszeitStart() {
+  const data = await apiFetch(`${API_ARBEITSZEIT}/start`, { method: 'POST', body: {} });
+  const session = arbeitszeitSessionFromEnvelope(data);
+  if (!session) throw new Error('Arbeitszeit start: leere Session');
+  console.info('[ARBEITSZEIT_START]', session);
+  return session;
+}
+
+/** POST /arbeitszeit/pause */
+export async function postArbeitszeitPause() {
+  const data = await apiFetch(`${API_ARBEITSZEIT}/pause`, { method: 'POST', body: {} });
+  const session = arbeitszeitSessionFromEnvelope(data);
+  if (!session) throw new Error('Arbeitszeit pause: leere Session');
+  console.info('[ARBEITSZEIT_PAUSE]', session);
+  return session;
+}
+
+/** POST /arbeitszeit/weiter */
+export async function postArbeitszeitWeiter() {
+  const data = await apiFetch(`${API_ARBEITSZEIT}/weiter`, { method: 'POST', body: {} });
+  const session = arbeitszeitSessionFromEnvelope(data);
+  if (!session) throw new Error('Arbeitszeit weiter: leere Session');
+  console.info('[ARBEITSZEIT_WEITER]', session);
+  return session;
+}
+
+/**
+ * POST /arbeitszeit/stop — erzeugt Anwesenheit serverseitig.
+ * @returns {Promise<{ session: null, anwesenheit: Record<string, unknown>|null }>}
+ */
+export async function postArbeitszeitStop() {
+  const data = await apiFetch(`${API_ARBEITSZEIT}/stop`, { method: 'POST', body: {} });
+  const anw =
+    data && typeof data === 'object' && /** @type {{ anwesenheit?: unknown }} */ (data).anwesenheit;
+  const anwesenheit = anw && typeof anw === 'object' ? /** @type {Record<string, unknown>} */ (anw) : null;
+  console.info('[ARBEITSZEIT_STOP]', { session: null, anwesenheit });
+  return { session: null, anwesenheit };
+}
+
+const API_AUFTRAG_ARBEITSZEIT = `${API_V1_CCINTERN_MITARBEITER_OP}/auftrag-arbeitszeit`;
+
+/**
+ * @param {unknown} data
+ * @returns {Record<string, unknown>|null}
+ */
+function auftragArbeitsSessionFromEnvelope(data) {
+  const session = data && /** @type {{ session?: unknown }} */ (data).session;
+  if (!session || typeof session !== 'object') return null;
+  return /** @type {Record<string, unknown>} */ (session);
+}
+
+/**
+ * @param {string} auftragId ccintern_auftraege.id
+ * @param {string} schrittKey
+ */
+function auftragArbeitsBody(auftragId, schrittKey) {
+  return {
+    auftrag_id: String(auftragId).trim(),
+    schritt_key: String(schrittKey).trim(),
+  };
+}
+
+/** GET /auftrag-arbeitszeit/alle-aktiv — alle laufenden Sessions für Desktop-Anzeige */
+export async function fetchAlleAktiveAuftragArbeitszeiten() {
+  try {
+    const pid = getCurrentProjectId();
+    const extraHeaders = pid ? { 'x-project-id': pid } : {};
+    const fid = firmaIdForCcInternApi();
+    const qs = fid ? '?firma_id=' + encodeURIComponent(fid) : '';
+    const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/alle-aktiv` + qs, { headers: extraHeaders });
+    const d = data && typeof data === 'object' ? data : {};
+    const raw = (d.data && Array.isArray(d.data.sessions)) ? d.data.sessions
+      : Array.isArray(d.sessions) ? d.sessions : [];
+    return raw.map((r) => auftragArbeitsSessionFromEnvelope({ data: { session: r } })).filter(Boolean);
+  } catch (err) {
+    console.warn('[ALLE_AKTIV_ARBEITSZEIT]', err);
+    return [];
+  }
+}
+
+/** GET /auftrag-arbeitszeit/aktiv */
+export async function fetchAuftragArbeitszeitAktiv() {
+  const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/aktiv`);
+  const session = auftragArbeitsSessionFromEnvelope(data);
+  console.info('[AUFTRAG_ARBEITSZEIT_SESSION_GET]', session);
+  return session;
+}
+
+/**
+ * @param {string} auftragId
+ * @param {string} schrittKey
+ */
+export async function postAuftragArbeitszeitStart(auftragId, schrittKey) {
+  const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/start`, {
+    method: 'POST',
+    body: auftragArbeitsBody(auftragId, schrittKey),
+  });
+  const session = auftragArbeitsSessionFromEnvelope(data);
+  if (!session) throw new Error('Auftrag-Arbeitszeit start: leere Session');
+  console.info('[AUFTRAG_ARBEITSZEIT_START]', session);
+  return session;
+}
+
+/**
+ * @param {string} auftragId
+ * @param {string} schrittKey
+ */
+export async function postAuftragArbeitszeitPause(auftragId, schrittKey) {
+  const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/pause`, {
+    method: 'POST',
+    body: auftragArbeitsBody(auftragId, schrittKey),
+  });
+  const session = auftragArbeitsSessionFromEnvelope(data);
+  if (!session) throw new Error('Auftrag-Arbeitszeit pause: leere Session');
+  console.info('[AUFTRAG_ARBEITSZEIT_PAUSE]', session);
+  return session;
+}
+
+/**
+ * @param {string} auftragId
+ * @param {string} schrittKey
+ */
+export async function postAuftragArbeitszeitWeiter(auftragId, schrittKey) {
+  const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/weiter`, {
+    method: 'POST',
+    body: auftragArbeitsBody(auftragId, schrittKey),
+  });
+  const session = auftragArbeitsSessionFromEnvelope(data);
+  if (!session) throw new Error('Auftrag-Arbeitszeit weiter: leere Session');
+  console.info('[AUFTRAG_ARBEITSZEIT_WEITER]', session);
+  return session;
+}
+
+/**
+ * @param {string} auftragId
+ * @param {string} schrittKey
+ */
+export async function postAuftragArbeitszeitStop(auftragId, schrittKey) {
+  const data = await apiFetch(`${API_AUFTRAG_ARBEITSZEIT}/stop`, {
+    method: 'POST',
+    body: auftragArbeitsBody(auftragId, schrittKey),
+  });
+  const session = auftragArbeitsSessionFromEnvelope(data);
+  const zeitbuchung =
+    data && typeof data.zeitbuchung === 'object' && data.zeitbuchung !== null
+      ? /** @type {Record<string, unknown>} */ (data.zeitbuchung)
+      : null;
+  console.info('[AUFTRAG_ARBEITSZEIT_STOP]', { session, zeitbuchung });
+  return { session, zeitbuchung };
 }

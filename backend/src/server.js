@@ -108,10 +108,16 @@ logDatabaseStartupDiagnostics();
 const { allowedOrigins, isProduction } = buildCorsAllowedOriginsSet();
 const corsOrigin = createCorsOriginCallback(allowedOrigins, isProduction);
 
+const CC_CORS_LOCAL_VITE_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+
 const app = express();
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, cb) => {
+      const o = origin == null ? '' : String(origin).trim().replace(/\/+$/, '');
+      if (o && CC_CORS_LOCAL_VITE_ORIGINS.includes(o)) return cb(null, o);
+      return corsOrigin(origin, cb);
+    },
     credentials: true,
     optionsSuccessStatus: 204,
   }),
@@ -132,6 +138,34 @@ app.get('/fusa-clean-test', (_req, res) => {
 
 backupSqliteDatabaseBeforeOpen();
 const store = await openDatabase();
+
+async function logKalenderDbStartCheck(storeArg) {
+  const host = String(process.env.MYSQL_HOST || '').trim();
+  const user = String(process.env.MYSQL_USER || '').trim();
+  const database = String(process.env.MYSQL_DATABASE || '').trim();
+  const mysqlOn = Boolean(host && user && database);
+  const backendRoot = path.resolve(__dirname, '..');
+  const sqlitePath =
+    String(process.env.SQLITE_DB_PATH || '').trim() ||
+    path.join(backendRoot, 'data', 'cc-cockpit.db');
+  let countTableAll = null;
+  try {
+    if (typeof storeArg.countKalenderTermineTableAll === 'function') {
+      countTableAll = await storeArg.countKalenderTermineTableAll();
+    }
+  } catch (e) {
+    countTableAll = 'error:' + (e instanceof Error ? e.message : String(e));
+  }
+  console.log('[KALENDER_DB_START_CHECK]', {
+    NODE_ENV: process.env.NODE_ENV ?? null,
+    dbMode: mysqlOn ? 'mysql' : 'sqlite',
+    sqliteDbPath: mysqlOn ? null : path.resolve(sqlitePath),
+    mysqlDatabase: mysqlOn ? database : null,
+    countKalenderTermineTableAll: countTableAll,
+  });
+}
+
+await logKalenderDbStartCheck(store);
 
 let serverShutdownDone = false;
 function gracefulShutdown(signal) {
@@ -159,6 +193,15 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 await ensureDevTestLoginUser(store);
 await ensureDefaultProject(store);
+
+if (
+  String(process.env.NODE_ENV || '').toLowerCase() !== 'production' &&
+  String(process.env.CC_DEV_PROVISION_KEY || '').trim().length >= 8
+) {
+  console.warn(
+    '[server] CC_DEV_PROVISION_KEY ist gesetzt: Dev-Provision-Auth nur Loopback + non-production (siehe middleware/dev-provision-auth.js).',
+  );
+}
 
 app.use('/api/v1', createApiV1Router(store));
 console.log('[server] Router unter /api/v1 eingebunden (createApiV1Router).');

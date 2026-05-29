@@ -3,6 +3,14 @@
   "name": "cc-cockpit",
   "type": "module",
   "scripts": {
-    "serve:frontend": "npx --yes serve frontend -l 5370"
+    "serve:frontend": "npx --yes serve frontend -l 5370",
+    "test:pflicht-api": "node --test backend/src/test/e2e-invite-redeem-myrights.integration.test.mjs",
+    "test:pflicht-audit": "node scripts/pflicht-legacy-sync-audit.mjs",
+    "test:pflicht": "npm run test:pflicht-api && npm run test:pflicht-audit",
+    "test:e2e:install": "playwright install chromium",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }

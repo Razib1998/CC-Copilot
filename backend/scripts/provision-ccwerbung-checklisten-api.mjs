@@ -1,24 +1,43 @@
 /**
- * Legt CC-Werbung-Standard-Checklisten nur über die HTTP-API an (POST /api/v1/checklisten + Einträge).
+ * Legt bzw. ergänzt die 6 Standard-Checklisten nur über die HTTP-API (GET/POST /api/v1/checklisten + Einträge).
  *
- * Voraussetzungen: Backend läuft, gültige Zugangsdaten.
+ * Upsert-Regeln (idempotent, mehrfach ausführbar):
+ * - Vorlage wird anhand exakt gleichen Titels (trim) in GET …/checklisten gesucht.
+ * - Fehlt sie → POST neu anlegen.
+ * - Existiert sie → optional PUT titel (Synchronisation), keine doppelten Einträge.
+ * - Pro Vorlage: fehlende Prüfpunkte (Text trim) werden per POST …/eintraege ergänzt; vorhandene Texte bleiben.
+ * - Keine Aufträge, keine DB-Struktur, keine Routen-Änderung.
  *
- *   set CC_LOGIN_EMAIL=...
- *   set CC_LOGIN_PASSWORD=...
- *   node scripts/provision-ccwerbung-checklisten-api.mjs
- *
- * Alternativ (Bearer aus Browser sessionStorage cc_cockpit_access_token):
+ * Voraussetzungen: Backend läuft, gültiger Bearer (kein E-Mail-Login in diesem Skript).
  *
  *   set CC_BEARER_TOKEN=eyJ...
  *   node scripts/provision-ccwerbung-checklisten-api.mjs
  *
+ * Oder einmal Token-Datei erzeugen (sessionStorage cc_cockpit_access_token → backend/.cc-local-bearer):
+ *
+ *   node scripts/sync-cc-local-bearer.mjs
+ *
+ * Dann Provision ohne manuelles Kopieren:
+ *
+ *   node scripts/provision-ccwerbung-checklisten-api.mjs
+ *
  * Optional: CC_API_BASE (Default http://127.0.0.1:5371), CC_PROJECT_ID (sonst erstes Projekt aus GET /projects).
+ * Oder CC_DEV_PROVISION_KEY (nur lokal, NODE_ENV ≠ production) + Header x-dev-provision-key.
  */
 import process from 'node:process';
 import { isApiV1ProjectContextOptionalPath } from '../src/middleware/api-v1-project-context.js';
+import {
+  buildProvisionAuthHeaders,
+  loadBackendDotenv,
+  resolveBackendRoot,
+  resolveProvisionRequestAuth,
+} from './lib/cc-provision-bearer.mjs';
+
+loadBackendDotenv(resolveBackendRoot(import.meta.url));
 
 const BASE = (process.env.CC_API_BASE || 'http://127.0.0.1:5371').replace(/\/$/, '');
 
+/** Kanonische Reihenfolge + Titel exakt wie im Checklisten-Modul / CL_LEGACY-Zuordnung erwartet. */
 const VORLAGEN = [
   {
     titel: 'Druckdatenprüfung',
@@ -31,6 +50,8 @@ const VORLAGEN = [
       'Farbmodus geprüft',
       'Kunde / Auftrag / Motiv korrekt',
       'Freigabe vorhanden',
+      'Workflow Grafik: Freigabe für Druck / Produktion liegt vor',
+      'Workflow: nächster Schritt im Auftrag ist vorbesprochen',
     ],
   },
   {
@@ -45,43 +66,8 @@ const VORLAGEN = [
       'Vorher-Fotos erforderlich',
       'Nachher-Fotos erforderlich',
       'Endkontrolle durchgeführt',
-    ],
-  },
-  {
-    titel: 'Montage allgemein',
-    punkte: [
-      'Auftrag vollständig',
-      'Material vorbereitet',
-      'Werkzeug vorbereitet',
-      'Adresse / Einsatzort geprüft',
-      'Ansprechpartner bekannt',
-      'Montagezeit bestätigt',
-      'Fotos vor Ort machen',
-      'Abschluss dokumentieren',
-    ],
-  },
-  {
-    titel: 'Schilder / Dibond',
-    punkte: [
-      'Materialstärke geprüft',
-      'Format geprüft',
-      'Druckdatei freigegeben',
-      'Bohrungen / Befestigung geklärt',
-      'Kanten / Zuschnitt geprüft',
-      'Montageart geklärt',
-      'Endkontrolle durchgeführt',
-    ],
-  },
-  {
-    titel: 'Fensterfolie / Glasdekor',
-    punkte: [
-      'Glasfläche gemessen',
-      'Folientyp geprüft',
-      'Motiv / Schnittdatei freigegeben',
-      'Reinigung vorbereitet',
-      'Montage-Termin abgestimmt',
-      'Blasen / Kanten geprüft',
-      'Fotos nach Montage',
+      'Workflow: Druck und Laminat vor Montage abgeschlossen',
+      'Workflow: Montage-Termin im Auftragspfad dokumentiert',
     ],
   },
   {
@@ -95,6 +81,51 @@ const VORLAGEN = [
       'Produktionsübergabe an Druck geprüft',
       'Montagehilfe / PDF vorhanden',
       'Abschluss dokumentiert',
+      'Workflow: MesseFlow-Übergabe nach CC Intern geprüft',
+      'Workflow: Produktion bis Auslieferung / Montage verfolgt',
+    ],
+  },
+  {
+    titel: 'Montage allgemein',
+    punkte: [
+      'Auftrag vollständig',
+      'Material vorbereitet',
+      'Werkzeug vorbereitet',
+      'Adresse / Einsatzort geprüft',
+      'Ansprechpartner bekannt',
+      'Montagezeit bestätigt',
+      'Fotos vor Ort machen',
+      'Abschluss dokumentieren',
+      'Workflow: Vorgängerleistung (Produktion / Material) erledigt',
+      'Workflow: Abschluss und Fotos im Auftrag vermerkt',
+    ],
+  },
+  {
+    titel: 'Schilder / Dibond',
+    punkte: [
+      'Materialstärke geprüft',
+      'Format geprüft',
+      'Druckdatei freigegeben',
+      'Bohrungen / Befestigung geklärt',
+      'Kanten / Zuschnitt geprüft',
+      'Montageart geklärt',
+      'Endkontrolle durchgeführt',
+      'Workflow: Produktion / Zuschnitt vor Übergabe fertig',
+      'Workflow: Versand oder Montage angestoßen',
+    ],
+  },
+  {
+    titel: 'Fensterfolie / Glasdekor',
+    punkte: [
+      'Glasfläche gemessen',
+      'Folientyp geprüft',
+      'Motiv / Schnittdatei freigegeben',
+      'Reinigung vorbereitet',
+      'Montage-Termin abgestimmt',
+      'Blasen / Kanten geprüft',
+      'Fotos nach Montage',
+      'Workflow: Messung vor Produktion abgeschlossen',
+      'Workflow: Nach Montage im Auftrag nachgetragen',
     ],
   },
 ];
@@ -102,14 +133,14 @@ const VORLAGEN = [
 /**
  * @param {string} method
  * @param {string} pathWithQuery
- * @param {string} token
+ * @param {{ bearerToken?: string|null, devProvisionKey?: string|null }} auth
  * @param {string} projectId
  * @param {object|null} body
  */
-async function apiJson(method, pathWithQuery, token, projectId, body) {
+async function apiJson(method, pathWithQuery, auth, projectId, body) {
   const url = pathWithQuery.startsWith('http') ? pathWithQuery : `${BASE}${pathWithQuery.startsWith('/') ? '' : '/'}${pathWithQuery}`;
   /** @type {Record<string, string>} */
-  const headers = { Accept: 'application/json', Authorization: `Bearer ${token}` };
+  const headers = { Accept: 'application/json', ...buildProvisionAuthHeaders(auth) };
   const pathOnly = url.replace(BASE, '').split('?')[0] || pathWithQuery.split('?')[0];
   const apiPath = pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`;
   const needsProject =
@@ -151,33 +182,14 @@ async function apiJson(method, pathWithQuery, token, projectId, body) {
 }
 
 async function main() {
-  let token = (process.env.CC_BEARER_TOKEN || '').trim();
-  if (!token) {
-    const email = (process.env.CC_LOGIN_EMAIL || '').trim();
-    const password = (process.env.CC_LOGIN_PASSWORD || '').trim();
-    if (!email || !password) {
-      console.error(
-        'Bitte CC_BEARER_TOKEN setzen oder CC_LOGIN_EMAIL + CC_LOGIN_PASSWORD (oder interaktiv einloggen und Token aus sessionStorage cc_cockpit_access_token).',
-      );
-      process.exit(1);
-    }
-    const loginRes = await fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const loginBody = await loginRes.json();
-    if (!loginRes.ok || !loginBody.access_token) {
-      console.error('Login fehlgeschlagen:', loginRes.status, loginBody);
-      process.exit(1);
-    }
-    token = loginBody.access_token;
-    console.log('Login OK:', loginBody.user?.email || email);
-  } else {
-    console.log('Nutze CC_BEARER_TOKEN');
+  const auth = await resolveProvisionRequestAuth(import.meta.url);
+  if (auth.bearerToken) {
+    console.log('Authentifizierung: Bearer (Token / Datei / CDP).');
+  } else if (auth.devProvisionKey) {
+    console.log('Authentifizierung: CC_DEV_PROVISION_KEY (nur lokal, Header x-dev-provision-key).');
   }
 
-  const me = await apiJson('GET', '/auth/me', token, '', null);
+  const me = await apiJson('GET', '/auth/me', auth, '', null);
   const user = me && typeof me === 'object' && 'user' in me ? /** @type {{ user?: { company_id?: string } }} */ (me).user : null;
   const firmaId = user?.company_id != null ? String(user.company_id).trim() : '';
   if (!firmaId) {
@@ -188,7 +200,7 @@ async function main() {
 
   let projectId = (process.env.CC_PROJECT_ID || '').trim();
   if (!projectId) {
-    const pdata = await apiJson('GET', '/api/v1/projects', token, '', null);
+    const pdata = await apiJson('GET', '/api/v1/projects', auth, '', null);
     const projects =
       pdata && typeof pdata === 'object' && pdata !== null && 'projects' in pdata
         ? /** @type {{ projects?: unknown }} */ (pdata).projects
@@ -207,14 +219,13 @@ async function main() {
   }
   console.log('x-project-id:', projectId);
 
-  /** @type {{ titel: string; punkte: number; status: string }[]} */
-  const report = [];
-
-  for (const v of VORLAGEN) {
+  /** @type {{ id?: unknown; titel?: string }[]} */
+  let itemsSnapshot = [];
+  {
     const existingData = await apiJson(
       'GET',
       `/api/v1/checklisten?page=1&limit=200&firma_id=${encodeURIComponent(firmaId)}`,
-      token,
+      auth,
       projectId,
       null,
     );
@@ -224,13 +235,20 @@ async function main() {
       existingData !== null &&
       'items' in existingData &&
       Array.isArray(/** @type {{ items?: unknown }} */ (existingData).items)
-        ? /** @type {{ items: { titel?: string }[] }} */ (existingData).items
+        ? /** @type {{ items: { id?: unknown; titel?: string }[] }} */ (existingData).items
         : [];
-    const hit = items.find((row) => String(row?.titel || '').trim() === v.titel);
+    itemsSnapshot = items.slice();
+  }
+
+  /** @type {{ titel: string; punkte: number; status: string }[]} */
+  const report = [];
+
+  for (const v of VORLAGEN) {
+    const hit = itemsSnapshot.find((row) => String(row?.titel || '').trim() === v.titel);
     let checklisteId = hit && typeof hit.id === 'string' ? hit.id : hit && hit.id != null ? String(hit.id) : '';
 
     if (!checklisteId) {
-      const created = await apiJson('POST', '/api/v1/checklisten', token, projectId, {
+      const created = await apiJson('POST', '/api/v1/checklisten', auth, projectId, {
         titel: v.titel,
         firma_id: firmaId,
       });
@@ -242,15 +260,24 @@ async function main() {
         console.error('POST checklist ohne id:', created);
         process.exit(1);
       }
+      itemsSnapshot.push({ id: checklisteId, titel: v.titel });
       console.log('Angelegt:', v.titel, checklisteId);
     } else {
-      console.log('Vorhanden, überspringe Kopf:', v.titel, checklisteId);
+      try {
+        await apiJson('PUT', `/api/v1/checklisten/${encodeURIComponent(checklisteId)}`, auth, projectId, {
+          titel: v.titel,
+          firma_id: firmaId,
+        });
+      } catch (e) {
+        console.warn('PUT titel (optional):', v.titel, e instanceof Error ? e.message : e);
+      }
+      console.log('Vorhanden, Kopf synchronisiert:', v.titel, checklisteId);
     }
 
     const detail = await apiJson(
       'GET',
       `/api/v1/checklisten/${encodeURIComponent(checklisteId)}?firma_id=${encodeURIComponent(firmaId)}`,
-      token,
+      auth,
       projectId,
       null,
     );
@@ -274,7 +301,7 @@ async function main() {
       await apiJson(
         'POST',
         `/api/v1/checklisten/${encodeURIComponent(checklisteId)}/eintraege`,
-        token,
+        auth,
         projectId,
         { text: t, erledigt: false, firma_id: firmaId },
       );
@@ -291,7 +318,7 @@ async function main() {
   const verify = await apiJson(
     'GET',
     `/api/v1/checklisten?page=1&limit=50&firma_id=${encodeURIComponent(firmaId)}`,
-    token,
+        auth,
     projectId,
     null,
   );
@@ -318,7 +345,7 @@ async function main() {
     const d = await apiJson(
       'GET',
       `/api/v1/checklisten/${encodeURIComponent(String(row.id))}?firma_id=${encodeURIComponent(firmaId)}`,
-      token,
+      auth,
       projectId,
       null,
     );

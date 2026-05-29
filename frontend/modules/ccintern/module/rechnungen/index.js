@@ -109,6 +109,22 @@
     return body;
   }
 
+  /** @param {Record<string, unknown>} ui */
+  function rechnungBetragGtZero(ui) {
+    if (!ui || typeof ui !== 'object') return false;
+    var pos = Array.isArray(ui.positionen) ? ui.positionen : null;
+    if (pos && pos.length) {
+      var n = pos.reduce(function (s, p) {
+        return s + (Number(p.menge) || 0) * (Number(p.ep) || 0);
+      }, 0);
+      if (n > 0) return true;
+    }
+    if (ui.netto != null && Number(ui.netto) > 0) return true;
+    if (ui.brutto != null && Number(ui.brutto) > 0) return true;
+    if (ui.betrag != null && Number(ui.betrag) > 0) return true;
+    return false;
+  }
+
   /** @param {Record<string, unknown>} r @param {unknown} saved */
   function mergeApiRechnungIntoRow(r, saved) {
     var pack = /** @type {{ rechnung?: Record<string, unknown> }} */ (saved);
@@ -157,6 +173,12 @@
     }
 
     var tasks = pending.map(function (r) {
+      if (!rechnungBetragGtZero(/** @type {Record<string, unknown>} */ (r))) {
+        console.warn('[rechnungen/index] Sync übersprungen (Betrag ≤ 0):', r);
+        r._apiLocalOnly = true;
+        r._apiSynced = true;
+        return Promise.resolve();
+      }
       var body = rechnungUiToApiBody(/** @type {Record<string, unknown>} */ (r));
       if (!body.auftrag_id) {
         console.warn('[rechnungen/index] Sync übersprungen (kein auftrag_id / keine UUID):', r);

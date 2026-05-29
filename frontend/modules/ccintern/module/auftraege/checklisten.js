@@ -41,6 +41,9 @@ window.AuftragChecklisten = (function() {
 
     a.schritte[step].checkliste = existing.concat(neueItems);
     var apiCl = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+    if (apiCl && typeof apiCl.touchAuftragDirty === 'function') {
+      apiCl.touchAuftragDirty(auftragId);
+    }
     if (apiCl && typeof apiCl.logCcInternChecklistAuditFromUi === 'function') {
       apiCl.logCcInternChecklistAuditFromUi(a, 'UI (Vorlage): schritte.checkliste nach Anwenden', {
         auftragId: auftragId,
@@ -72,6 +75,9 @@ window.AuftragChecklisten = (function() {
     ccInternConfirm('Checkliste für "' + step + '" wirklich leeren?', function() {
     a.schritte[step].checkliste = [];
     var apiLeer = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+    if (apiLeer && typeof apiLeer.touchAuftragDirty === 'function') {
+      apiLeer.touchAuftragDirty(auftragId);
+    }
     if (apiLeer && typeof apiLeer.logCcInternChecklistAuditFromUi === 'function') {
       apiLeer.logCcInternChecklistAuditFromUi(a, 'UI (Vorlage): schritte.checkliste geleert', { auftragId: auftragId, step: step });
     }
@@ -199,15 +205,34 @@ window.AuftragChecklisten = (function() {
     document.body.appendChild(overlay);
   }
 
+  // ── CL_VORLAGEN aus API nachladen (Auftrag-Detail öffnet Modul Checklisten nicht) ──
+  function ensureClVorlagenForDetail(done) {
+    var list = typeof window !== 'undefined' && window.CL_VORLAGEN;
+    var empty = !Array.isArray(list) || list.length === 0;
+    var api = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+    if (empty && api && typeof api.reloadChecklistenVorlagenFromApi === 'function') {
+      api.reloadChecklistenVorlagenFromApi(null).then(function () {
+        if (done) done();
+      }).catch(function () {
+        if (done) done();
+      });
+      return;
+    }
+    if (done) done();
+  }
+
   // ── Checklisten-Overview in Detail injizieren ───────────────────────
   function initInDetail(auftragId) {
     // Nach openAuftragDetail: Checklisten-Overview hinter dem dpBody anhängen
-    // Finden: "dp-cl-items-{id}" Container — sein Elternteil ist die CL-Section
+    // Anker: "dp-cl-items-{id}" (auch bei leerer aktiver Schritt-Checkliste)
     var clSection = document.getElementById('dp-cl-items-' + auftragId);
-    if (!clSection) return; // Keine aktive CL → keine Übersicht nötig
+    if (!clSection) return;
 
     var parent = clSection.parentElement; // dp-section
     if (!parent) return;
+
+    var oldOverview = document.getElementById('dp-cl-overview-' + auftragId);
+    if (oldOverview) oldOverview.remove();
 
     // Overview-Block NACH der bestehenden CL-Section einfügen
     var overviewEl = document.createElement('div');
@@ -221,7 +246,9 @@ window.AuftragChecklisten = (function() {
     var _prev = window.auftragDetailModuleInit;
     window.auftragDetailModuleInit = function(id) {
       if (typeof _prev === 'function') _prev(id);
-      setTimeout(function() { initInDetail(id); }, 50);
+      ensureClVorlagenForDetail(function () {
+        setTimeout(function () { initInDetail(id); }, 50);
+      });
     };
   }
   if (document.readyState === 'loading') {

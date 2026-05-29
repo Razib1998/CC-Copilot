@@ -1547,11 +1547,6 @@ window.CCIntern.templates.getShellHTML = function() {
             <div class="fg"><label class="fl">Kunde / Firma <span>*</span></label>
               <select class="fs" id="ag-kunde">
                 <option value="">— wählen —</option>
-                <option>Ruhrbahn GmbH</option><option>DVG Duisburg</option>
-                <option>Bogestra AG</option><option>Radio Essen</option>
-                <option>Stadt Essen</option><option>Sparkasse Essen</option>
-                <option>NRZ</option><option>Neue Ruhr Zeitung</option>
-                <option>Essen Marketing GmbH</option><option>TÜV Rheinland</option>
               </select>
             </div>
             <div class="fg"><label class="fl">Ansprechpartner</label><input class="fi" id="ag-ap" type="text" placeholder="z.B. Hr. Müller"></div>
@@ -2404,42 +2399,77 @@ window.CCIntern.templates.getShellHTML = function() {
             <span class="ac-num">5</span>
             <div>
               <div class="ac-title">Dateien</div>
-              <div class="ac-sub" id="ac-sub-5">Layout, Druckdatei, Freigabe, Fotos</div>
+              <div class="ac-sub" id="ac-sub-5">Layout, Druckdatei, Montage, Vorher/Nachher (Fahrzeug)</div>
             </div>
           </div>
           <span class="ac-arrow" id="ac-arrow-5">›</span>
         </div>
         <div class="ac-body ac-closed" id="ac-body-5">
-          <!-- Upload Slots -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-            <label id="slot-layout" class="au-upload-slot" style="border-color:var(--purple);">
-              <div style="font-size:24px;margin-bottom:4px;">🎨</div>
-              <div style="font-size:12px;font-weight:700;color:var(--purple);">Layout / Grafik</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;">AI, PDF, PNG, EPS</div>
-              <div id="slot-layout-name" style="margin-top:4px;font-size:11px;color:var(--green);font-weight:600;"></div>
-              <input type="file" accept=".ai,.pdf,.png,.jpg,.eps" style="display:none;" id="inp-layout" onchange="auFileAdd(event,'layout')">
+          <!-- Upload-Slots (gleiche Kategorien wie Auftrag-Detail / Mitarbeiter-App; Vorher/Nachher nur bei Fahrzeug-Leistung) -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-bottom:10px;">
+            <label id="au-slot-layout_grafik" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 108px;min-width:96px;max-width:220px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(106,27,154,.45);background:var(--purple-l);cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:11px;font-weight:700;color:var(--purple);text-align:center;line-height:1.25;">🎨 Layout / Grafik</span>
+              <span style="font-size:9px;color:var(--text2);margin-top:2px;text-align:center;">PDF, PNG, AI …</span>
+              <span id="au-slot-layout_grafik-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png,application/pdf,.pdf,.ai,.eps" multiple style="display:none;" onchange="auFileAdd(event,'layout_grafik')">
             </label>
-            <label id="slot-druckdatei" class="au-upload-slot" style="border-color:var(--blue);">
-              <div style="font-size:24px;margin-bottom:4px;">🖨️</div>
-              <div style="font-size:12px;font-weight:700;color:var(--blue);">Druckdatei</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;">PDF, TIFF, PNG</div>
-              <div id="slot-druckdatei-name" style="margin-top:4px;font-size:11px;color:var(--green);font-weight:600;"></div>
-              <input type="file" accept=".pdf,.tif,.tiff,.png" style="display:none;" id="inp-druckdatei" onchange="auFileAdd(event,'druckdatei')">
+            <label id="au-slot-druckdatei" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 108px;min-width:96px;max-width:220px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(106,27,154,.45);background:var(--purple-l);cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:11px;font-weight:700;color:var(--purple);text-align:center;line-height:1.25;">🖨 Finale Druckdatei</span>
+              <span style="font-size:9px;color:var(--text2);margin-top:2px;text-align:center;">PDF, PNG, TIFF …</span>
+              <span id="au-slot-druckdatei-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png,application/pdf,.pdf,.tif,.tiff" multiple style="display:none;" onchange="auFileAdd(event,'druckdatei')">
             </label>
-            <label id="slot-freigabe" class="au-upload-slot" style="border-color:var(--green);">
-              <div style="font-size:24px;margin-bottom:4px;">✅</div>
-              <div style="font-size:12px;font-weight:700;color:var(--green);">Kundenfreigabe</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;">PDF, JPG, PNG</div>
-              <div id="slot-freigabe-name" style="margin-top:4px;font-size:11px;color:var(--green);font-weight:600;"></div>
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" id="inp-freigabe" onchange="auFileAdd(event,'freigabe')">
+            <label id="au-slot-montagefoto" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 108px;min-width:96px;max-width:220px;padding:8px 10px;border-radius:8px;border:1.5px solid rgba(230,81,0,.45);background:var(--amber-l);cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:11px;font-weight:700;color:var(--amber);text-align:center;line-height:1.25;">📷 Montagefoto</span>
+              <span style="font-size:9px;color:var(--text2);margin-top:2px;text-align:center;">Foto</span>
+              <span id="au-slot-montagefoto-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png" capture="environment" multiple style="display:none;" onchange="auFileAdd(event,'montagefoto')">
             </label>
-            <label id="slot-montage" class="au-upload-slot" style="border-color:var(--amber);">
-              <div style="font-size:24px;margin-bottom:4px;">📷</div>
-              <div style="font-size:12px;font-weight:700;color:var(--amber);">Montagefotos</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;">JPG, PNG — mehrere möglich</div>
-              <div id="slot-montage-name" style="margin-top:4px;font-size:11px;color:var(--green);font-weight:600;"></div>
-              <input type="file" accept="image/*" multiple style="display:none;" id="inp-montage" onchange="auFileAdd(event,'montage')">
+            <label id="au-slot-vorher-front" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #A5D6A7;background:#E8F5E9;cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:10px;font-weight:700;color:#1B5E20;text-align:center;line-height:1.2;">📷 Vorher Front (hoch)</span>
+              <span id="au-slot-vorher-front-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'vorher:front')">
             </label>
+            <label id="au-slot-vorher-seite1" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #A5D6A7;background:#E8F5E9;cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:10px;font-weight:700;color:#1B5E20;text-align:center;line-height:1.2;">📷 Vorher Seite 1 (quer)</span>
+              <span id="au-slot-vorher-seite1-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'vorher:seite1')">
+            </label>
+            <label id="au-slot-vorher-seite2" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #A5D6A7;background:#E8F5E9;cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:10px;font-weight:700;color:#1B5E20;text-align:center;line-height:1.2;">📷 Vorher Seite 2 (quer)</span>
+              <span id="au-slot-vorher-seite2-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'vorher:seite2')">
+            </label>
+            <label id="au-slot-vorher-heck" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #A5D6A7;background:#E8F5E9;cursor:pointer;box-sizing:border-box;">
+              <span style="font-size:10px;font-weight:700;color:#1B5E20;text-align:center;line-height:1.2;">📷 Vorher Heck (hoch)</span>
+              <span id="au-slot-vorher-heck-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+              <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'vorher:heck')">
+            </label>
+          </div>
+          <div id="au-neu-datei-nachher-wrap" style="display:none;margin-bottom:10px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.04em;margin-bottom:6px;">NACHHER (Fahrzeug)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;">
+              <label id="au-slot-nachher-front" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #ffb380;background:#ffe5cc;cursor:pointer;box-sizing:border-box;">
+                <span style="font-size:10px;font-weight:700;color:#a65300;text-align:center;line-height:1.2;">📷 Nachher Front (hoch)</span>
+                <span id="au-slot-nachher-front-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+                <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'nachher:front')">
+              </label>
+              <label id="au-slot-nachher-seite1" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #ffb380;background:#ffe5cc;cursor:pointer;box-sizing:border-box;">
+                <span style="font-size:10px;font-weight:700;color:#a65300;text-align:center;line-height:1.2;">📷 Nachher Seite 1 (quer)</span>
+                <span id="au-slot-nachher-seite1-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+                <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'nachher:seite1')">
+              </label>
+              <label id="au-slot-nachher-seite2" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #ffb380;background:#ffe5cc;cursor:pointer;box-sizing:border-box;">
+                <span style="font-size:10px;font-weight:700;color:#a65300;text-align:center;line-height:1.2;">📷 Nachher Seite 2 (quer)</span>
+                <span id="au-slot-nachher-seite2-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+                <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'nachher:seite2')">
+              </label>
+              <label id="au-slot-nachher-heck" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 100px;min-width:92px;max-width:200px;padding:8px 8px;border-radius:8px;border:1.5px solid #ffb380;background:#ffe5cc;cursor:pointer;box-sizing:border-box;">
+                <span style="font-size:10px;font-weight:700;color:#a65300;text-align:center;line-height:1.2;">📷 Nachher Heck (hoch)</span>
+                <span id="au-slot-nachher-heck-name" style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;min-height:14px;text-align:center;"></span>
+                <input type="file" accept="image/jpeg,image/png" capture="environment" style="display:none;" onchange="auFileAdd(event,'nachher:heck')">
+              </label>
+            </div>
           </div>
           <!-- Dateiliste -->
           <div id="au-file-list-wrap" style="display:none;">

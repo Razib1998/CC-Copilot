@@ -2,7 +2,9 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express, { Router } from 'express';
+import { normalizeInviteAccessForRedeem } from '../auth/invite-redeem-normalize.js';
 import { generateInviteToken } from '../auth/invite-token.js';
 import { hashPassword } from '../auth/password.js';
 import { accessProfileToJson, loadAccessProfile } from '../auth/access-profile.js';
@@ -16,7 +18,14 @@ import {
 import { attachAccessProfile } from '../middleware/attach-access-profile.js';
 import { chainMiddleware } from '../middleware/project-access.js';
 import { requireAuth } from '../middleware/require-auth.js';
-import { requireModule, requireRight, requireSuperAdmin } from '../middleware/require-rights.js';
+import { maybeAttachDevProvisionAuth } from '../middleware/dev-provision-auth.js';
+import {
+  requireModule,
+  requireRight,
+  requireSuperAdmin,
+  requireCockpitBenutzerSehenOrMitarbeiterAppSelfList,
+  requireCockpitFirmenSehenOrMitarbeiterAppOwnFirma,
+} from '../middleware/require-rights.js';
 import { buildKundenStammDetailEnvelope } from '../lib/kunden-stamm-detail.js';
 import {
   buildFormMetaPayload,
@@ -53,6 +62,7 @@ import { createGeraeteRouter } from './geraete.js';
 import { createCrmRouter } from './crm/index.js';
 import { createMobileRouter } from './ccintern/mobile.js';
 import { createCcInternMitarbeiterOperativRouter } from './ccintern/mitarbeiter-operativ.js';
+import { createCcInternChecklistenZuordnungRouter } from './ccintern/checklisten-zuordnung.js';
 import { handleAuthRefresh } from '../lib/auth-refresh-handler.js';
 import { createApiV1SchaedenRouter } from './api-v1/schaeden.js';
 import { createFahrzeugeRouter } from './fahrzeuge.js';
@@ -106,6 +116,20 @@ function userRowSollUrlaub(row) {
 }
 
 /**
+ * @param {import('../auth/access-profile.js').AccessProfile|null|undefined} p
+ */
+function canListAllUsersForApi(p) {
+  return !!(p && (p.isSuperAdmin() || (p.hasModule('cockpit') && p.has('cockpit', 'benutzer', 'sehen'))));
+}
+
+/**
+ * @param {import('../auth/access-profile.js').AccessProfile|null|undefined} p
+ */
+function canListAllFirmenForApi(p) {
+  return !!(p && (p.isSuperAdmin() || (p.hasModule('cockpit') && p.has('cockpit', 'firmen', 'sehen'))));
+}
+
+/**
  * @param {unknown} raw
  * @returns {string} getrimmte Kleinbuchstaben-E-Mail oder leer bei ungültig
  */
@@ -114,6 +138,43 @@ function normalizeApiEmail(raw) {
   const t = raw.trim().toLowerCase();
   if (!t || !t.includes('@')) return '';
   return t;
+}
+
+/**
+ * Ziel-User für Einladung: optional user_id / mitarbeiter_id — E-Mail immer aus users (nicht Admin-Session).
+ * @param {object} store
+ * @param {{ email: string, userId?: string, mitarbeiterId?: string, firmaId?: string|null }} opts
+ */
+async function resolveInviteTargetUserForCreate(store, opts) {
+  let targetUserId = opts.userId != null ? String(opts.userId).trim() : '';
+  const mitarbeiterId = opts.mitarbeiterId != null ? String(opts.mitarbeiterId).trim() : '';
+  const firmaId = opts.firmaId != null ? String(opts.firmaId).trim() : '';
+
+  if (!targetUserId && mitarbeiterId && firmaId && typeof store.getMitarbeiterById === 'function') {
+    const m = await store.getMitarbeiterById(mitarbeiterId, firmaId);
+    if (m?.user_id != null) targetUserId = String(m.user_id).trim();
+  }
+
+  if (!targetUserId) {
+    return { email: opts.email, targetUser: null, emailOverridden: false, mitarbeiterId: mitarbeiterId || null };
+  }
+
+  const targetUser = await store.getUserById(targetUserId);
+  if (!targetUser) {
+    return { error: 'VALIDATION_ERROR', message: 'Ziel-user_id unbekannt.' };
+  }
+  const canonical = normalizeApiEmail(targetUser.email);
+  if (!canonical) {
+    return { error: 'VALIDATION_ERROR', message: 'Zielbenutzer hat keine gültige E-Mail.' };
+  }
+  const emailOverridden = canonical !== opts.email;
+  return {
+    email: canonical,
+    targetUser,
+    targetUserId: String(targetUser.id),
+    emailOverridden,
+    mitarbeiterId: mitarbeiterId || null,
+  };
 }
 
 /**
@@ -343,14 +404,22 @@ function mergeRightsPatch(expanded, patchRights) {
     out[k] = { ...expanded[k] };
   }
   if (!patchRights || typeof patchRights !== 'object') return out;
-  for (const mod of Object.keys(patchRights)) {
+  for (const modRaw of Object.keys(patchRights)) {
+    const mod = typeof modRaw === 'string' ? modRaw.trim().toLowerCase() : '';
     if (!isValidModuleKey(mod)) continue;
-    const be = /** @type {Record<string, unknown>} */ (patchRights)[mod];
+    const be = /** @type {Record<string, unknown>} */ (patchRights)[modRaw];
     if (!be || typeof be !== 'object') continue;
     if (!out[mod]) out[mod] = {};
-    for (const b of Object.keys(be)) {
+    for (const bRaw of Object.keys(be)) {
+      let b = typeof bRaw === 'string' ? bRaw.trim() : '';
+      if (!b) continue;
+      const blo = b.toLowerCase();
+      const prefix = `${mod}_`;
+      if (blo.startsWith(prefix)) b = blo.slice(prefix.length);
+      else if (mod === 'ccintern' && blo.startsWith('ccintern_')) b = blo.slice('ccintern_'.length);
+      else b = blo;
       if (!isKnownBereich(mod, b)) continue;
-      out[mod][b] = normalizeRightsJson(/** @type {Record<string, unknown>} */ (be)[b]);
+      out[mod][b] = normalizeRightsJson(/** @type {Record<string, unknown>} */ (be)[bRaw]);
     }
   }
   return out;
@@ -1015,19 +1084,45 @@ export function createApiV1Router(store) {
   /**
    * Öffentlicher Link zur Einladungsaktivierung (`GET/POST /invites/:token` auf dem App-Server, nicht unter `/api/v1`).
    * Ohne gesetzte Basis-URL: relativer Pfad (Frontend kann mit eigener Origin kombinieren).
+   *
+   * Lokal: Wenn der Browser `Origin`/`Referer` von localhost (o. 127.0.0.1) sendet, diese Basis nutzen
+   * (Vite-Port z. B. 3001), damit Einladungslinks nicht an Production-Env hängen bleiben.
    */
-  function buildInviteUrl(token) {
+  function invitePublicBaseFromRequest(req) {
+    if (!req || typeof req.get !== 'function') return '';
+    const tryUrl = (raw) => {
+      if (raw == null || String(raw).trim() === '') return '';
+      try {
+        const u = new URL(String(raw).trim());
+        const h = u.hostname.toLowerCase();
+        if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]') {
+          return u.origin.replace(/\/+$/, '');
+        }
+      } catch {
+        /* ignore */
+      }
+      return '';
+    };
+    const fromOrigin = tryUrl(req.get('origin'));
+    if (fromOrigin) return fromOrigin;
+    return tryUrl(req.get('referer'));
+  }
+
+  function buildInviteUrl(token, req) {
     const safeToken = encodeURIComponent(String(token || '').trim());
     if (!safeToken) return '/invites/';
-    const base = String(
-      process.env.COCKPIT_PUBLIC_URL ||
-        process.env.FRONTEND_URL ||
-        process.env.PUBLIC_APP_BASE_URL ||
-        process.env.APP_BASE_URL ||
-        '',
-    )
-      .trim()
-      .replace(/\/+$/, '');
+    const localBase = invitePublicBaseFromRequest(req);
+    const base = localBase
+      ? localBase
+      : String(
+            process.env.COCKPIT_PUBLIC_URL ||
+              process.env.FRONTEND_URL ||
+              process.env.PUBLIC_APP_BASE_URL ||
+              process.env.APP_BASE_URL ||
+              '',
+          )
+            .trim()
+            .replace(/\/+$/, '');
     return base ? `${base}/?cc_invite=${safeToken}` : `/?cc_invite=${safeToken}`;
   }
 
@@ -1043,7 +1138,7 @@ export function createApiV1Router(store) {
     },
   );
 
-  const apiAuthProfile = [requireAuth, attachAccessProfile(store)];
+  const apiAuthProfile = [maybeAttachDevProvisionAuth(store), requireAuth, attachAccessProfile(store)];
 
   router.use(...apiAuthProfile, requireApiV1ProjectHeaderUnlessWhitelisted());
 
@@ -1056,10 +1151,6 @@ export function createApiV1Router(store) {
   router.use('/fusa/quartale', ...apiAuthProfile, createFusaQuartaleRouter(store));
   router.use('/ccintern/dashboard', ...apiAuthProfile, createCcinternDashboardRouter(store));
 
-  const benutzerSehen = chainMiddleware(
-    requireModule('cockpit'),
-    requireRight('cockpit', 'benutzer', 'sehen'),
-  );
   const rollenSehen = chainMiddleware(requireModule('cockpit'), requireRight('cockpit', 'rollen', 'sehen'));
   const rollenBearbeiten = chainMiddleware(
     requireModule('cockpit'),
@@ -1069,7 +1160,6 @@ export function createApiV1Router(store) {
     requireModule('cockpit'),
     requireRight('cockpit', 'benutzer', 'erstellen'),
   );
-  const firmenSehen = chainMiddleware(requireModule('cockpit'), requireRight('cockpit', 'firmen', 'sehen'));
   const firmenErstellen = chainMiddleware(
     requireModule('cockpit'),
     requireRight('cockpit', 'firmen', 'erstellen'),
@@ -1240,16 +1330,21 @@ export function createApiV1Router(store) {
     }
     return sendError(res, 403, 'FORBIDDEN', 'Keine Berechtigung, den MesseFlow-Arbeitsbereich zu speichern.');
   });
-  const kundeStammLesen = chainMiddleware(requireAuth, attachAccessProfile(store), (req, res, next) => {
-    const p = req.accessProfile;
-    if (!p) {
-      return sendError(res, 500, 'INTERNAL_ERROR', 'Profil fehlt.');
-    }
-    if (p.has('cockpit', 'firmen', 'sehen')) return next();
-    if (p.has('fusa', 'kunden', 'sehen')) return next();
-    if (p.has('ccintern', 'kunden', 'sehen')) return next();
-    return sendError(res, 403, 'FORBIDDEN', 'Keine Berechtigung, Kunden-Stammdaten zu lesen.');
-  });
+  const kundeStammLesen = chainMiddleware(
+    maybeAttachDevProvisionAuth(store),
+    requireAuth,
+    attachAccessProfile(store),
+    (req, res, next) => {
+      const p = req.accessProfile;
+      if (!p) {
+        return sendError(res, 500, 'INTERNAL_ERROR', 'Profil fehlt.');
+      }
+      if (p.has('cockpit', 'firmen', 'sehen')) return next();
+      if (p.has('fusa', 'kunden', 'sehen')) return next();
+      if (p.has('ccintern', 'kunden', 'sehen')) return next();
+      return sendError(res, 403, 'FORBIDDEN', 'Keine Berechtigung, Kunden-Stammdaten zu lesen.');
+    },
+  );
 
   /** @param {unknown} v */
   function jsonDbScalar(v) {
@@ -1441,9 +1536,18 @@ export function createApiV1Router(store) {
     }
   });
 
-  router.get('/users', ...apiAuthProfile, benutzerSehen, async (req, res, next) => {
+  router.get('/users', ...apiAuthProfile, requireCockpitBenutzerSehenOrMitarbeiterAppSelfList(), async (req, res, next) => {
     try {
-      const rows = await store.listUsers();
+      const p = req.accessProfile;
+      /** @type {Awaited<ReturnType<typeof store.listUsers>>} */
+      let rows;
+      if (canListAllUsersForApi(p)) {
+        rows = await store.listUsers();
+      } else {
+        const uid = typeof req.auth?.userId === 'string' ? req.auth.userId.trim() : '';
+        const one = uid ? await store.getUserById(uid) : null;
+        rows = one ? [one] : [];
+      }
       const users = rows.map((u) => {
         const { soll, urlaub } = userRowSollUrlaub(u);
         return {
@@ -1453,6 +1557,7 @@ export function createApiV1Router(store) {
           kuerzel: String(u.kuerzel || '').trim().toUpperCase(),
           global_role: u.global_role ?? 'INTERN',
           companyId: u.company_id ?? null,
+          company_id: u.company_id ?? null,
           modules: parseModulesCsv(u.modules_csv),
           soll,
           urlaub,
@@ -1499,13 +1604,13 @@ export function createApiV1Router(store) {
       const coPost = parseCompanyIdFromBody(req.body);
       /** @type {string|null} */
       let companyIdToSet = null;
-      if (gr === 'INTERN' || gr === 'EXTERN') {
+      if (gr === 'INTERN' || gr === 'EXTERN' || gr === 'MITARBEITER') {
         if (!coPost.present || !coPost.value) {
           return sendError(
             res,
             400,
             'COMPANY_REQUIRED',
-            'Für Rolle INTERN oder EXTERN ist company_id erforderlich.',
+            'Für Rolle INTERN, EXTERN oder MITARBEITER ist company_id erforderlich.',
           );
         }
         const firmaOk = await store.getFirmaById(coPost.value);
@@ -1614,12 +1719,12 @@ export function createApiV1Router(store) {
           return sendError(res, 400, 'INVALID_COMPANY', 'Firma nicht gefunden.');
         }
       }
-      if ((effRole === 'INTERN' || effRole === 'EXTERN') && !intendedCompany) {
+      if ((effRole === 'INTERN' || effRole === 'EXTERN' || effRole === 'MITARBEITER') && !intendedCompany) {
         return sendError(
           res,
           400,
           'COMPANY_REQUIRED',
-          'Für Rolle INTERN oder EXTERN ist eine gültige company_id erforderlich.',
+          'Für Rolle INTERN, EXTERN oder MITARBEITER ist eine gültige company_id erforderlich.',
         );
       }
       /** @type {{ name?: string|null, global_role?: string, status?: string, soll?: number, urlaub?: number }} */
@@ -1757,7 +1862,7 @@ export function createApiV1Router(store) {
           res,
           400,
           'VALIDATION_ERROR',
-          'Feld „global_role“ muss SUPER_ADMIN, INTERN oder EXTERN sein.',
+          'Feld „global_role“ muss SUPER_ADMIN, INTERN, EXTERN oder MITARBEITER sein.',
         );
       }
       if (!Array.isArray(req.body?.modules)) {
@@ -1766,12 +1871,32 @@ export function createApiV1Router(store) {
       if (!req.body?.rights || typeof req.body.rights !== 'object') {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Feld „rights“ muss ein Objekt sein.');
       }
-      const modules = req.body.modules.filter((m) => isValidModuleKey(m));
+      /** @type {string[]} */
+      const modules = [];
+      const seenMod = new Set();
+      for (const m of req.body.modules) {
+        if (typeof m !== 'string') continue;
+        const x = m.trim().toLowerCase();
+        if (!isValidModuleKey(x)) continue;
+        if (seenMod.has(x)) continue;
+        seenMod.add(x);
+        modules.push(x);
+      }
+      if (modules.length === 0) {
+        return sendError(
+          res,
+          400,
+          'VALIDATION_ERROR',
+          'Mindestens ein gültiges Modul (cockpit, fusa, ccintern) ist erforderlich — leere Zuweisung wird abgelehnt.',
+        );
+      }
+      const { rights: rightsPartial } = normalizeInviteAccessForRedeem([], req.body.rights);
+      const rights = expandRightsForModuleList(modules, rightsPartial);
       await store.replaceUserAccessBundle({
         userId: uid,
         globalRole: gr,
         modules,
-        rights: req.body.rights,
+        rights,
       });
       await logAudit(store, {
         user: req.auth,
@@ -1835,9 +1960,24 @@ export function createApiV1Router(store) {
     }
   });
 
-  router.get('/firmen', ...apiAuthProfile, firmenSehen, async (req, res) => {
+  router.get('/firmen', ...apiAuthProfile, requireCockpitFirmenSehenOrMitarbeiterAppOwnFirma(), async (req, res) => {
     try {
-      const rows = await store.listFirmen();
+      const p = req.accessProfile;
+      /** @type {Awaited<ReturnType<typeof store.listFirmen>>} */
+      let rows;
+      if (canListAllFirmenForApi(p)) {
+        rows = await store.listFirmen();
+      } else {
+        const uid = typeof req.auth?.userId === 'string' ? req.auth.userId.trim() : '';
+        const urow = uid ? await store.getUserById(uid) : null;
+        const cid = urow?.company_id != null ? String(urow.company_id).trim() : '';
+        if (!cid) {
+          rows = [];
+        } else {
+          const f = await store.getFirmaById(cid);
+          rows = f ? [f] : [];
+        }
+      }
       const firmen = rows.map((r) => mapFirmaRowToFirmenApiJson(r)).filter(Boolean);
       return sendSuccess(res, 200, { firmen });
     } catch (e) {
@@ -1846,11 +1986,20 @@ export function createApiV1Router(store) {
     }
   });
 
-  router.get('/firmen/:id', ...apiAuthProfile, firmenSehen, async (req, res) => {
+  router.get('/firmen/:id', ...apiAuthProfile, requireCockpitFirmenSehenOrMitarbeiterAppOwnFirma(), async (req, res) => {
     try {
       const id = String(req.params.id || '').trim();
       if (!id) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Firmen-ID.');
+      }
+      const p = req.accessProfile;
+      if (!canListAllFirmenForApi(p)) {
+        const uid = typeof req.auth?.userId === 'string' ? req.auth.userId.trim() : '';
+        const urow = uid ? await store.getUserById(uid) : null;
+        const cid = urow?.company_id != null ? String(urow.company_id).trim() : '';
+        if (!cid || cid !== id) {
+          return sendError(res, 403, 'FORBIDDEN', 'Kein Zugriff auf diese Firma.');
+        }
       }
       let row = await store.getFirmaKundeStammById(id);
       if (!row) {
@@ -2914,6 +3063,12 @@ export function createApiV1Router(store) {
     createCcInternMitarbeiterOperativRouter(store, { resolveFirmaIdForRequest }),
   );
 
+  router.use(
+    '/ccintern/checklisten-zuordnung',
+    ...apiAuthProfile,
+    createCcInternChecklistenZuordnungRouter(store, { resolveFirmaIdForRequest }),
+  );
+
   /**
    * @param {unknown} raw
    * @returns {boolean|undefined}
@@ -2994,6 +3149,35 @@ export function createApiV1Router(store) {
     return ((end - start) / 86400000) + 1;
   }
 
+  /** IST-Diagnose Kalender-API (immer bei GET, keine andere Termin-Quelle in dieser Route). */
+  async function logKalenderApiIst(storeArg, payload) {
+    const apiV1Dir = path.dirname(fileURLToPath(import.meta.url));
+    const sqlitePath =
+      String(process.env.SQLITE_DB_PATH || '').trim() ||
+      path.join(apiV1Dir, '..', '..', 'data', 'cc-cockpit.db');
+    const mysqlOn = Boolean(
+      String(process.env.MYSQL_HOST || '').trim() &&
+        String(process.env.MYSQL_USER || '').trim() &&
+        String(process.env.MYSQL_DATABASE || '').trim(),
+    );
+    let countTableAll = null;
+    try {
+      if (typeof storeArg.countKalenderTermineTableAll === 'function') {
+        countTableAll = await storeArg.countKalenderTermineTableAll();
+      }
+    } catch (e) {
+      countTableAll = 'error:' + (e instanceof Error ? e.message : String(e));
+    }
+    console.log('[KALENDER_API_IST]', {
+      ...payload,
+      countKalenderTermineTableAll: countTableAll,
+      dbDriver: mysqlOn ? 'mysql' : 'sqlite',
+      sqliteDbPath: mysqlOn ? null : sqlitePath,
+      datenquelle: 'nur kalender_termine (listKalenderTermineByFirma); mapKalenderTerminWithCcInternAuftragContext reichert nur an',
+      kalenderFusionCache: 'n/a (nur Frontend cockpit-kalender-view.js)',
+    });
+  }
+
   function createKalenderRouter(storeArg) {
     const kalenderR = Router();
     kalenderR.get('/', ccinternKalenderSehen, async (req, res, next) => {
@@ -3010,6 +3194,16 @@ export function createApiV1Router(store) {
       const total = await storeArg.countKalenderTermineByFirma(firmaId, { typ, von, bis });
       const rows = await storeArg.listKalenderTermineByFirma(firmaId, { offset, limit, typ, von, bis });
       const data = await Promise.all(rows.map((row) => mapKalenderTerminWithCcInternAuftragContext(storeArg, row)));
+      await logKalenderApiIst(storeArg, {
+        route: 'GET /api/v1/stammdaten/kalender',
+        firmaId,
+        query: { page, limit, typ, von, bis },
+        countKalenderTermineByFirma: total,
+        rowsFromDb: rows.length,
+        responseTermineLength: data.length,
+        ersteTitel: data.slice(0, 5).map((t) => t?.titel ?? null),
+        quellen: [...new Set(data.map((t) => t?.quelle).filter(Boolean))],
+      });
       return sendSuccess(res, 200, { termine: data, total });
     } catch (e) {
       return next(e);
@@ -5372,7 +5566,7 @@ export function createApiV1Router(store) {
         expires_at: r.expires_at,
         redeemed_at: r.redeemed_at ?? null,
         created_at: r.created_at,
-        invite_url: buildInviteUrl(r.token),
+        invite_url: buildInviteUrl(r.token, req),
         kind: 'cockpit',
       }));
       return sendSuccess(res, 200, { invites });
@@ -5388,13 +5582,13 @@ export function createApiV1Router(store) {
       if (typeof emailRaw !== 'string' || !normalizeApiEmail(emailRaw)) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Feld „email“ ist erforderlich.');
       }
-      const email = normalizeApiEmail(emailRaw);
+      let email = normalizeApiEmail(emailRaw);
       if (!isValidGlobalRole(req.body?.global_role)) {
         return sendError(
           res,
           400,
           'VALIDATION_ERROR',
-          'Feld „global_role“ muss SUPER_ADMIN, INTERN oder EXTERN sein.',
+          'Feld „global_role“ muss SUPER_ADMIN, INTERN, EXTERN oder MITARBEITER sein.',
         );
       }
       const gr = req.body.global_role;
@@ -5409,18 +5603,19 @@ export function createApiV1Router(store) {
       if (!Array.isArray(req.body?.modules)) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Feld „modules“ muss ein nicht leeres Array sein.');
       }
-      const modules = req.body.modules.filter((m) => isValidModuleKey(m));
+      /** @type {string[]} */
+      const modules = [];
+      const seenInv = new Set();
+      for (const m of req.body.modules) {
+        if (typeof m !== 'string') continue;
+        const x = m.trim().toLowerCase();
+        if (!isValidModuleKey(x)) continue;
+        if (seenInv.has(x)) continue;
+        seenInv.add(x);
+        modules.push(x);
+      }
       if (modules.length === 0) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Mindestens ein gültiges Modul ist erforderlich.');
-      }
-      const pending = await store.getPendingCockpitInviteByEmail(email);
-      if (pending) {
-        return sendError(
-          res,
-          409,
-          'CONFLICT',
-          'Für diese E-Mail existiert bereits eine offene Einladung.',
-        );
       }
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
@@ -5439,16 +5634,48 @@ export function createApiV1Router(store) {
           return sendError(res, 400, 'VALIDATION_ERROR', 'Firma nicht gefunden.');
         }
       }
-      const rights = req.body?.rights && typeof req.body.rights === 'object' ? req.body.rights : {};
+      const targetUserIdRaw =
+        req.body?.user_id ?? req.body?.target_user_id ?? req.body?.benutzerId ?? null;
+      const mitarbeiterIdRaw = req.body?.mitarbeiter_id ?? null;
+      const resolved = await resolveInviteTargetUserForCreate(store, {
+        email,
+        userId: targetUserIdRaw != null ? String(targetUserIdRaw) : '',
+        mitarbeiterId: mitarbeiterIdRaw != null ? String(mitarbeiterIdRaw) : '',
+        firmaId,
+      });
+      if (resolved.error) {
+        return sendError(res, 400, resolved.error, resolved.message || 'Ungültiger Zielbenutzer.');
+      }
+      email = resolved.email;
+      console.info('[INVITE_CREATE_DEBUG]', {
+        targetEmail: email,
+        targetUserId: resolved.targetUserId ?? resolved.targetUser?.id ?? null,
+        targetUserName: resolved.targetUser?.name ?? null,
+        createdByUserId: req.auth?.userId ?? null,
+        mitarbeiterId: resolved.mitarbeiterId ?? null,
+        emailOverridden: resolved.emailOverridden === true,
+        bodyEmailRaw: normalizeApiEmail(emailRaw),
+      });
+      const pending = await store.getPendingCockpitInviteByEmail(email);
+      if (pending) {
+        return sendError(
+          res,
+          409,
+          'CONFLICT',
+          'Für diese E-Mail existiert bereits eine offene Einladung.',
+        );
+      }
+      const rightsRaw = req.body?.rights && typeof req.body.rights === 'object' ? req.body.rights : {};
+      const storedAccess = normalizeInviteAccessForRedeem(modules, rightsRaw);
       const id = randomUUID();
       const token = generateInviteToken();
       await store.insertCockpitInvite({
         id,
         email,
         globalRole: gr,
-        modulesJson: JSON.stringify(modules),
+        modulesJson: JSON.stringify(storedAccess.modules),
         areasJson: JSON.stringify(areas),
-        rightsJson: JSON.stringify(rights),
+        rightsJson: JSON.stringify(storedAccess.rights),
         firmaId,
         token,
         expiresAtIso,
@@ -5459,12 +5686,12 @@ export function createApiV1Router(store) {
           id,
           email,
           global_role: gr,
-          modules,
+          modules: storedAccess.modules,
           areas,
-          rights,
+          rights: storedAccess.rights,
           firma_id: firmaId,
           token,
-          invite_url: buildInviteUrl(token),
+          invite_url: buildInviteUrl(token, req),
           status: 'offen',
           expires_at: expiresAtIso,
         },

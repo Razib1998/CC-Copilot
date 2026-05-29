@@ -135,7 +135,6 @@ export async function runMesseflowCockpitMount(containerEl) {
 
   let usersResponse;
   let firmenResponse;
-  let templatesResponse = { templates: [] };
   try {
     await loadCcInternScripts();
     usersResponse = await apiFetch('/api/v1/users');
@@ -143,13 +142,6 @@ export async function runMesseflowCockpitMount(containerEl) {
   } catch (e) {
     containerEl.innerHTML = `<p class="ckp-api-error" role="alert">${esc(formatApiErrorForUi(e))}</p>`;
     return;
-  }
-  try {
-    const rawTpl = await apiFetch('/api/v1/role-templates');
-    const list = Array.isArray(rawTpl?.templates) ? rawTpl.templates : [];
-    templatesResponse = { templates: list };
-  } catch {
-    templatesResponse = { templates: [] };
   }
 
   if (window.CCIntern && typeof window.CCIntern.loadCockpitData === 'function') {
@@ -166,10 +158,9 @@ export async function runMesseflowCockpitMount(containerEl) {
   } catch {
     rightsBundle = null;
   }
-  // Wenn /auth/my-rights nicht erreichbar oder keine Rechte-Daten → SUPER_ADMIN-Fallback:
-  // Cockpit hat Auth bereits übernommen, daher alle MesseFlow-Rechte gewähren.
+  // Fehlendes/fehlerhaftes Rechte-Bundle: kein Vollzugriff (kein SUPER_ADMIN-Fallback).
   if (!rightsBundle || !rightsBundle.rights) {
-    rightsBundle = { global_role: 'SUPER_ADMIN', rights: {} };
+    rightsBundle = { global_role: 'NONE', rights: {} };
   }
   window.__mfCockpitRightsBundle = rightsBundle;
   window.mfCockpitMesseflowRight = function (flag) {
@@ -277,9 +268,7 @@ export async function runMesseflowCockpitMount(containerEl) {
   if (typeof window.mfLoadCockpitData === 'function') {
     window.mfLoadCockpitData(usersResponse, firmenResponse);
   }
-  if (typeof window.mfLoadCockpitRoleTemplates === 'function') {
-    window.mfLoadCockpitRoleTemplates(templatesResponse);
-  }
+  // Phase 1D: Kein GET /api/v1/role-templates — Rollen kommen ausschließlich aus dem Cockpit; MF baut keine ROLES-Liste aus Templates.
 
   const uid = getCurrentUserIdFromAccessToken();
   if (typeof window.messeflowCockpitBoot === 'function') {

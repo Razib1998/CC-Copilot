@@ -1,0 +1,74 @@
+{
+  "ok": true,
+  "base": "http://localhost:3000",
+  "email": "test@cc-cockpit.local",
+  "results": [
+    {
+      "ok": true,
+      "reason": "Home: 1 Karte(n) OK",
+      "samples": [
+        {
+          "kunde": "TEST FIRMA · B-CC 99",
+          "au": "AU-2026-002",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "reason": "Aufgaben: 1 Karte(n) OK",
+      "samples": [
+        {
+          "kunde": "TEST FIRMA",
+          "au": "AU-2026-002",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "reason": "Fotos: 1 Karte(n) OK",
+      "samples": [
+        {
+          "kunde": "TEST FIRMA",
+          "au": "AU-2026-002",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "textProbe": {
+    "home": {
+      "kunde": "TEST FIRMA · B-CC 99",
+      "au": "AU-2026-002"
+    },
+    "aufgaben": {
+      "kunde": "TEST FIRMA",
+      "au": "AU-2026-002"
+    },
+    "fotos": {
+      "kunde": "TEST FIRMA",
+      "au": "AU-2026-002"
+    },
+    "hasUndefined": false
+  },
+  "consoleErrorCount": 15,
+  "consoleErrorsSample": [
+    "KEIN PROJEKT BEIM SAVE {path: /api/v1/auftraege}",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "undefinedKundeAu": []
+}

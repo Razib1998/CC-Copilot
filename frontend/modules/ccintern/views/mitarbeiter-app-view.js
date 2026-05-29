@@ -9,7 +9,42 @@
 // TODO [Cockpit]: Mobile-Auth-Rolle prüfen: nur eigene Schritte sichtbar
 // ════════════════════════════════════════════════════════════════════
 
+/** MA-App / App-only: kein INTERN_AUFGABEN-Bulk beim dalInit-Boot (F5). */
+function mobMaAppAufgabenBootBlocked(){
+  try {
+    if (typeof window === 'undefined') return false;
+    if (window.__MOB_AUFTRAG_RESTORE_RUNNING__ === true) return true;
+    if (window.__CCINTERN_MITARBEITER_APP_BOOT__ === true) return true;
+    if (window.__CCINTERN_MITARBEITER_APP_ACTIVE__ === true) return true;
+    var snap = window.CC_SHELL_UI_ACCESS;
+    if (snap && snap.isMitarbeiterAppOnlyShell === true) return true;
+    if (window.__CCINTERN_COCKPIT_MOUNT__ === true) {
+      if (typeof document !== 'undefined') {
+        if (
+          document.body &&
+          document.body.classList &&
+          document.body.classList.contains('ckp-shell-layout--mitarbeiter-app-only')
+        ) {
+          return true;
+        }
+        if (
+          document.querySelector(
+            '.cc-intern-mitarbeiter-app-only.cc-intern-root, .ccw-ccintern-container.cc-intern-mitarbeiter-app-only',
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
 function mobAufgabenNacherzeugen(){
+  if (mobMaAppAufgabenBootBlocked()) {
+    console.info('[AUFGABEN_NACHERZEUGEN_BLOCKED_MA_APP_BOOT]');
+    return;
+  }
   var isVorlagenView = (typeof currentPage !== 'undefined' && currentPage === 'checklisten');
   if(isVorlagenView) return;
   var vorher = INTERN_AUFGABEN.length;

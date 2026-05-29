@@ -185,6 +185,54 @@ function agAcToggle(n){
   arrow.classList.toggle('open',closed);
 }
 
+// ── Kunden-Dropdown — zentrale Firmen-Quelle ─────────────────────────
+// 1. Versucht window.CCINTERN_KUNDEN / CCState.firmenStamm (bereits geladen)
+// 2. Fallback: API-Call /ccintern/kunden (einmalig, dann cached)
+var _agKundenCache = null;
+function _agFillSelectFromRows(sel, rows, currentValue) {
+  sel.innerHTML = '<option value="">— wählen —</option>';
+  rows.forEach(function (k) {
+    if (!k || typeof k !== 'object') return;
+    var name = (k.name || k.firmenname || k.firma_name || k.bezeichnung || '').trim();
+    if (!name) return;
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (currentValue != null) sel.value = currentValue;
+}
+function agFillKundenSelect(currentValue) {
+  var sel = document.getElementById('ag-kunde');
+  console.log('[agFillKundenSelect] aufgerufen, sel=', sel, 'COCKPIT_FIRMEN=', window.COCKPIT_FIRMEN, 'CCINTERN_KUNDEN=', window.CCINTERN_KUNDEN);
+  if (!sel) return;
+
+  // 1. Aus COCKPIT_FIRMEN (synchron beim CC-Intern-Start befüllt, immer verfügbar)
+  var rows = [];
+  var pf = typeof window !== 'undefined' ? window.COCKPIT_FIRMEN : null;
+  if (Array.isArray(pf) && pf.length) { rows = pf.slice(); }
+  // 1b. Fallback: CCINTERN_KUNDEN
+  if (!rows.length) {
+    var ck = typeof window !== 'undefined' ? window.CCINTERN_KUNDEN : null;
+    if (Array.isArray(ck) && ck.length) { rows = ck.slice(); }
+  }
+  if (rows.length) { _agFillSelectFromRows(sel, rows, currentValue); return; }
+
+  // 2. Cache vorhanden
+  if (_agKundenCache) { _agFillSelectFromRows(sel, _agKundenCache, currentValue); return; }
+
+  // 3. Fallback: API-Call
+  agApiFetch('/api/v1/ccintern/kunden')
+    .then(function (data) {
+      var d = agPickPayload(data);
+      var list = (d && Array.isArray(d.kunden)) ? d.kunden : [];
+      _agKundenCache = list.map(function(k){ return { name: k.firma_name || k.name || '' }; });
+      var s2 = document.getElementById('ag-kunde');
+      if (s2) _agFillSelectFromRows(s2, _agKundenCache, currentValue);
+    })
+    .catch(function (e) { console.warn('[agFillKundenSelect API]', e); });
+}
+
 function agModalOpen(id){
   agFlaeche = 0;
   ['ag-mass-b','ag-mass-h'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
@@ -207,7 +255,7 @@ function agModalOpen(id){
     const a=AG_DATEN.find(x=>x.id===id); if(!a) return;
     document.getElementById('agModalTitle').textContent=a.id;
     document.getElementById('agModalId').textContent=a.status==='vonAnfrage'?'Aus Schnell-Anfrage':'';
-    document.getElementById('ag-kunde').value=a.kunde;
+    agFillKundenSelect(a.kunde);
     document.getElementById('ag-ap').value=a.ap||'';
     document.getElementById('ag-datum').value=agDateReverse(a.datum);
     document.getElementById('ag-gueltig').value=agDateReverse(a.gueltig);
@@ -228,6 +276,7 @@ function agModalOpen(id){
     ['ag-kunde','ag-ap','ag-betreff','ag-einleitung','ag-schluss','ag-inotiz'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.value='';
     });
+    agFillKundenSelect(null);
     document.getElementById('ag-rabatt').value=0;
     document.getElementById('ag-mwst').value=19;
     // Default dates

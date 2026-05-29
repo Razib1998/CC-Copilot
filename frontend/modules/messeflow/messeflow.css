@@ -33,13 +33,18 @@
 }
 .mf-cockpit-embed *{box-sizing:border-box;}
 .mf-cockpit-embed{font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100%;}
+/* Phase 1A: Rollen-/Test-Chrome im Embed ausblenden (Markup kann im Mount bleiben). */
+.mf-cockpit-embed #role-display,
+.mf-cockpit-embed #role-sel,
+.mf-cockpit-embed #testmodus-badge{display:none !important;}
+#mf-sidebar-testmode,
+#role-sel-sidebar{display:none !important;}
 
 /* ── TOPBAR ── (Standalone only — im Cockpit von body.ckp-module überschrieben) */
 body:not(.ckp-module) #topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100;}
 body.ckp-module #topbar{display:none;}
 .brand{font-size:18px;font-weight:800;margin-right:auto;letter-spacing:-.3px;}
 .brand span{color:var(--blue);}
-.role-pill-active{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;}
 .btn,.sel{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;transition:filter .12s;}
 .btn:hover{filter:brightness(.95);}
 .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
@@ -263,8 +268,7 @@ body.role-cc-intern .st-pill{font-size:13px;padding:5px 12px;}
 @media(max-width:800px){
   #topbar{flex-wrap:wrap;gap:8px;padding:8px 12px;row-gap:8px;}
   .brand{font-size:16px;margin-right:0;width:100%;order:0;}
-  #role-display{max-width:100%;flex:1;min-width:0;font-size:11px;}
-  #role-sel,#server-status-indicator,#notif-btn,#mf-devices-btn,#mf-logout-btn,.mf-mod-btn{min-height:44px;touch-action:manipulation;}
+  #server-status-indicator,#notif-btn,#mf-devices-btn,#mf-logout-btn,.mf-mod-btn{min-height:44px;touch-action:manipulation;}
   .mf-module-bar{width:100%;order:3;justify-content:flex-start;}
   .btn,.sel{min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
   .proj-item{padding:12px 12px;min-height:48px;}

@@ -476,6 +476,95 @@ test('POST /api/v1/ccintern/me/foto — Upload unter ccintern-fotos/…', async 
   assert.ok(rel.includes(ccAuftragWorker), rel);
 });
 
+test('Arbeitszeit-Session: start → aktiv → pause → weiter → stop', async () => {
+  const [{ signAccessToken }] = await Promise.all([import(toImport('../auth/jwt.js'))]);
+  const tok = signAccessToken({ sub: workerId, email: workerEmail });
+  const headers = {
+    authorization: `Bearer ${tok}`,
+    'x-project-id': projectId,
+  };
+  const base = new URL('/api/v1/ccintern/mitarbeiter/arbeitszeit', serverOrigin).toString();
+
+  let res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.equal(res.res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body?.success, true);
+  assert.equal(res.body?.data?.session, null);
+
+  res = await httpJson('POST', `${base}/start`, { headers, jsonBody: {} });
+  assert.equal(res.res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body?.data?.session?.status, 'running');
+  assert.equal(res.body?.data?.session?.user_id, workerId);
+
+  res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.ok(res.body?.data?.session?.id);
+
+  res = await httpJson('POST', `${base}/pause`, { headers, jsonBody: {} });
+  assert.equal(res.body?.data?.session?.status, 'paused');
+  assert.ok(res.body?.data?.session?.pause_started_at);
+
+  res = await httpJson('POST', `${base}/weiter`, { headers, jsonBody: {} });
+  assert.equal(res.body?.data?.session?.status, 'running');
+
+  res = await httpJson('POST', `${base}/stop`, { headers, jsonBody: {} });
+  assert.equal(res.res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body?.data?.session, null);
+  assert.ok(res.body?.data?.anwesenheit?.id);
+  assert.equal(res.body?.data?.anwesenheit?.user_id, workerId);
+
+  res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.equal(res.body?.data?.session, null);
+});
+
+test('Auftrag-Arbeitszeit-Session: start → aktiv → stop, nur eine aktiv', async () => {
+  const [{ signAccessToken }] = await Promise.all([import(toImport('../auth/jwt.js'))]);
+  const tok = signAccessToken({ sub: workerId, email: workerEmail });
+  const headers = { authorization: `Bearer ${tok}`, 'x-project-id': projectId };
+  const base = new URL('/api/v1/ccintern/mitarbeiter/auftrag-arbeitszeit', serverOrigin).toString();
+  const bodyStart = { auftrag_id: ccAuftragWorker, schritt_key: 'bau' };
+
+  let res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.equal(res.res.status, 200);
+  assert.equal(res.body?.data?.session, null);
+
+  res = await httpJson('POST', `${base}/start`, { headers, jsonBody: bodyStart });
+  assert.equal(res.res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body?.data?.session?.status, 'running');
+  assert.equal(res.body?.data?.session?.auftrag_id, ccAuftragWorker);
+
+  res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.equal(res.body?.data?.session?.schritt_key, 'bau');
+
+  res = await httpJson('POST', `${base}/pause`, { headers, jsonBody: bodyStart });
+  assert.equal(res.body?.data?.session?.status, 'paused');
+
+  res = await httpJson('POST', `${base}/weiter`, { headers, jsonBody: bodyStart });
+  assert.equal(res.body?.data?.session?.status, 'running');
+
+  res = await httpJson('POST', `${base}/stop`, { headers, jsonBody: bodyStart });
+  assert.equal(res.body?.data?.session?.status, 'stopped');
+  assert.ok(res.body?.data?.zeitbuchung?.dauer >= 1, JSON.stringify(res.body?.data?.zeitbuchung));
+  assert.equal(res.body?.data?.zeitbuchung?.maId, workerId);
+
+  const { parseCcinternBemerkungPayload } = await import(toImport('../lib/ccintern-workflow-bemerkung.js'));
+  const aufNachStop = await store.getCcInternAuftragById(ccAuftragWorker, firmaId);
+  const payloadNachStop = parseCcinternBemerkungPayload(aufNachStop?.bemerkung);
+  assert.ok(Array.isArray(payloadNachStop?.zeiten) && payloadNachStop.zeiten.length >= 1);
+  assert.equal(payloadNachStop.zeiten[0].maId, workerId);
+  assert.equal(payloadNachStop.zeiten[0].step, 'bau');
+
+  res = await httpJson('GET', `${base}/aktiv`, { headers });
+  assert.equal(res.body?.data?.session, null);
+
+  res = await httpJson('POST', `${base}/start`, { headers, jsonBody: bodyStart });
+  assert.equal(res.body?.data?.session?.status, 'running');
+  const firstId = res.body?.data?.session?.id;
+
+  res = await httpJson('POST', `${base}/start`, { headers, jsonBody: bodyStart });
+  assert.equal(res.body?.data?.session?.id, firstId);
+
+  await httpJson('POST', `${base}/stop`, { headers, jsonBody: bodyStart });
+});
+
 test('GET /api/v1/ccintern/me ohne mitarbeiterapp → 403', async () => {
   const [{ signAccessToken }] = await Promise.all([import(toImport('../auth/jwt.js'))]);
   const tok = signAccessToken({

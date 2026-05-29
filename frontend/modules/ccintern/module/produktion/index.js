@@ -113,6 +113,54 @@
     };
   }
 
+  // ── Desktop: laufende App-Sessions in ZEIT_AKTIV eintragen ──────────
+  // Nur auf Desktop (nicht App), nur additiv (kein Überschreiben).
+  function ccDesktopZeitAktivRestore() {
+    // Nicht in der Mitarbeiter-App ausführen
+    if (typeof window !== 'undefined' && (
+      window.__CCINTERN_MITARBEITER_APP_BOOT__ === true ||
+      (window.CC_SHELL_UI_ACCESS && window.CC_SHELL_UI_ACCESS.isMitarbeiterAppOnlyShell === true)
+    )) return;
+
+    var api = window.CCIntern && window.CCIntern.cockpitApi;
+    if (!api || typeof api.fetchAlleAktiveAuftragArbeitszeiten !== 'function') return;
+
+    api.fetchAlleAktiveAuftragArbeitszeiten().then(function (sessions) {
+      if (!Array.isArray(sessions) || !sessions.length) return;
+      if (typeof ZEIT_AKTIV === 'undefined') return;
+
+      var changed = false;
+      sessions.forEach(function (sess) {
+        if (!sess || !sess.auftrag_id || !sess.schritt_key) return;
+        if (sess.status === 'stopped') return;
+
+        // Auftrag im RAM finden (ccApiId = Backend-UUID, id = lokale ID)
+        var auftr = null;
+        if (typeof AUFTRAEGE !== 'undefined') {
+          auftr = AUFTRAEGE.find(function (a) {
+            return a && (a.ccApiId === sess.auftrag_id || a.id === sess.auftrag_id);
+          });
+        }
+        if (!auftr) return; // Auftrag nicht im RAM — überspringen
+
+        var key = auftr.id + '_' + sess.schritt_key;
+        if (ZEIT_AKTIV[key]) return; // bereits gesetzt — nicht überschreiben
+
+        ZEIT_AKTIV[key] = {
+          start: sess.started_at ? new Date(String(sess.started_at)) : new Date(),
+          pauseSek: sess.pause_seconds || 0,
+          paused: sess.status === 'paused',
+          fromServer: true,
+        };
+        changed = true;
+      });
+
+      if (changed && typeof renderKanban === 'function') renderKanban();
+    }).catch(function (e) {
+      console.warn('[ProduktionDesktop] ccDesktopZeitAktivRestore', e);
+    });
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────
   function init() {
     _installWraps();
@@ -120,6 +168,7 @@
     if (typeof loadAuftraege === 'function') {
       loadAuftraege(function (loaded) {
         if (loaded && typeof renderKanban === 'function') renderKanban();
+        ccDesktopZeitAktivRestore();
       });
     }
   }

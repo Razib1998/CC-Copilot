@@ -16,6 +16,67 @@ let einladungenFirmen = [];
 /** @type {AbortController|null} */
 let einladungenHandlersAbort = null;
 
+/** Preset Rechte-Paket Mitarbeiter-App (nur UI — POST /invites unverändert). */
+const MITARBEITER_APP_INVITE_RIGHTS = {
+  ccintern: {
+    mitarbeiter: { sehen: true },
+    mitarbeiterapp: { sehen: true, erstellen: true, bearbeiten: true },
+    urlaub: { sehen: true, erstellen: true, bearbeiten: true },
+    materiallager: { sehen: true, erstellen: true, bearbeiten: true },
+    auftraege: { sehen: true, bearbeiten: true },
+    produktion: { sehen: true, erstellen: true, bearbeiten: true },
+    checklisten: { sehen: true, bearbeiten: true },
+    kommunikation: { sehen: true, erstellen: true, bearbeiten: true },
+  },
+};
+
+/**
+ * @param {ParentNode} root
+ */
+/**
+ * @param {string[]} modules
+ * @param {Record<string, unknown>} rights
+ */
+function ensureMitarbeiterAppRightsOnSubmit(modules, rights) {
+  if (modules.length !== 1 || modules[0] !== 'ccintern') return rights;
+  const ci = rights?.ccintern;
+  if (ci && typeof ci === 'object' && !Array.isArray(ci)) {
+    for (const b of Object.keys(ci)) {
+      const row = /** @type {Record<string, unknown>} */ (ci)[b];
+      if (row && typeof row === 'object' && Object.keys(row).some((k) => row[k])) {
+        return rights;
+      }
+    }
+  }
+  return { ...MITARBEITER_APP_INVITE_RIGHTS };
+}
+
+function applyMitarbeiterAppInvitePreset(root) {
+  const roleEl = root.querySelector('[data-ccw-cockpit-inv-role]');
+  if (roleEl instanceof HTMLSelectElement) {
+    roleEl.value = 'MITARBEITER';
+  }
+  root.querySelectorAll('[data-ccw-cockpit-inv-mod]').forEach(cb => {
+    if (!(cb instanceof HTMLInputElement)) return;
+    const v = String(cb.value || '').trim();
+    cb.checked = v === 'ccintern';
+  });
+  const rightsEl = root.querySelector('[data-ccw-cockpit-inv-rights]');
+  if (rightsEl instanceof HTMLTextAreaElement) {
+    rightsEl.value = JSON.stringify(MITARBEITER_APP_INVITE_RIGHTS, null, 2);
+  }
+  const areasEl = root.querySelector('[data-ccw-cockpit-inv-areas]');
+  if (areasEl instanceof HTMLInputElement) {
+    areasEl.value = '';
+  }
+  const msg = root.querySelector('[data-ccw-cockpit-inv-msg]');
+  if (msg instanceof HTMLElement) {
+    msg.textContent =
+      'Preset „Mitarbeiter-App“ übernommen (ccintern + Rechte). Bitte E-Mail und Firma wählen.';
+    msg.hidden = false;
+  }
+}
+
 function esc(s) {
   if (s == null || s === '') return '';
   return String(s)
@@ -356,14 +417,19 @@ function renderApiInviteFormHtml() {
     <select id="ckp-cockpit-inv-role" data-ccw-cockpit-inv-role style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
       <option value="INTERN" selected>INTERN</option>
       <option value="EXTERN">EXTERN</option>
+      <option value="MITARBEITER">MITARBEITER</option>
       <option value="SUPER_ADMIN">SUPER_ADMIN</option>
     </select>
   </div>
   <div class="ckp-einladungen-api-form__row" style="margin-bottom:10px;">
-    <label for="ckp-cockpit-inv-firma">Firma (Pflicht für INTERN/EXTERN)</label>
+    <label for="ckp-cockpit-inv-firma">Firma (Pflicht für INTERN / EXTERN / MITARBEITER)</label>
     <select id="ckp-cockpit-inv-firma" data-ccw-cockpit-inv-firma style="min-width:280px;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
       ${renderFirmaOptionsHtml()}
     </select>
+  </div>
+  <div class="ckp-einladungen-api-form__row" style="margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+    <button type="button" class="ckp-einladungen-api-invite-preset-ma" data-ccw-cockpit-inv-preset-ma style="padding:10px 18px;font-size:14px;font-weight:700;border:2px solid #0D47A1;border-radius:8px;background:#1565C0;color:#fff;cursor:pointer;box-shadow:0 2px 6px rgba(13,71,161,.25);">Mitarbeiter-App</button>
+    <span style="font-size:12px;color:#475569;max-width:420px;">Preset: nur Modul ccintern + volles App-Rechtepaket. Firma und E-Mail bitte weiterhin selbst ausfüllen.</span>
   </div>
   <fieldset style="border:none;margin:0;padding:0;margin-bottom:10px;">
     <legend style="font-size:13px;margin-bottom:6px;">Module</legend>
@@ -489,6 +555,12 @@ export function attachCockpitEinladungenHandlers(mount) {
       return;
     }
 
+    if (t.closest('[data-ccw-cockpit-inv-preset-ma]')) {
+      ev.preventDefault();
+      applyMitarbeiterAppInvitePreset(root);
+      return;
+    }
+
     if (t.closest('[data-ccw-cockpit-inv-submit]')) {
       ev.preventDefault();
       const msg = root.querySelector('[data-ccw-cockpit-inv-msg]');
@@ -544,7 +616,7 @@ export function attachCockpitEinladungenHandlers(mount) {
         return;
       }
       if (
-        (global_role === 'INTERN' || global_role === 'EXTERN') &&
+        (global_role === 'INTERN' || global_role === 'EXTERN' || global_role === 'MITARBEITER') &&
         (firmaId == null || String(firmaId).trim() === '')
       ) {
         if (msg instanceof HTMLElement) {
@@ -560,10 +632,14 @@ export function attachCockpitEinladungenHandlers(mount) {
         }
         return;
       }
+      const rightsForInvite = ensureMitarbeiterAppRightsOnSubmit(modules, rights);
+      if (rightsEl instanceof HTMLTextAreaElement && rightsForInvite !== rights) {
+        rightsEl.value = JSON.stringify(rightsForInvite, null, 2);
+      }
       try {
         await apiFetch('/api/v1/invites', {
           method: 'POST',
-          body: toApiIdPayload({ email, global_role, modules, areas, rights, firmaId }),
+          body: toApiIdPayload({ email, global_role, modules, areas, rights: rightsForInvite, firmaId }),
         });
         if (mailEl instanceof HTMLInputElement) mailEl.value = '';
         if (areasEl instanceof HTMLInputElement) areasEl.value = '';

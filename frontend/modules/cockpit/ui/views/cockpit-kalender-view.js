@@ -2005,6 +2005,7 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
   }
 
   try {
+  kalenderFusionCache = null;
   loadCockpitLocalGeneralTermineFromBrowser();
   if (perf) perf.lap('01_session');
 
@@ -2019,6 +2020,23 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
   projects = kalenderProjectsCache;
   auftraege = feed && Array.isArray(feed.auftraege) ? feed.auftraege : [];
   cockpitKalenderFeedSnapshot = { projects, auftraege };
+
+  try {
+    const root = typeof document !== 'undefined' ? document.getElementById('cockpit-root') : null;
+    const activeModule = root?.getAttribute('data-app-module') ?? null;
+    const activeView = root?.getAttribute('data-active-view') ?? null;
+    console.log('[KALENDER_FRONTEND_IST]', {
+      phase: 'nach getCalendarFeedFromApi',
+      responseAuftraegeLength: auftraege.length,
+      ersteTitel: auftraege.slice(0, 5).map((a) => a?.name ?? a?.title ?? null),
+      kalenderTyp: 'cockpit-kalender-view Wochenraster (renderCcwCockpitKalenderViewHtml)',
+      activeModule,
+      activeView,
+      feedNull: feed == null,
+    });
+  } catch {
+    /* ignore */
+  }
 
   if (perf) perf.lap('02_feed');
 
@@ -2062,6 +2080,23 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
     };
   }
 
+  try {
+    const root = typeof document !== 'undefined' ? document.getElementById('cockpit-root') : null;
+    console.log('[KALENDER_FRONTEND_IST]', {
+      phase: 'nach Mapping',
+      finalEventsLength: allValidated.length,
+      gefilterteEventsLength: filterCalendarEvents(allValidated, kalenderFilterState).length,
+      fusionCacheHit: kalenderFusionHit,
+      lokaleGeneralTermine: cockpitLocalGeneralTermine.length,
+      ersteFinalTitel: allValidated.slice(0, 5).map((ev) => ev?.titel ?? null),
+      kalenderViewMode: kalenderFilterState.viewMode,
+      activeModule: root?.getAttribute('data-app-module') ?? null,
+      activeView: root?.getAttribute('data-active-view') ?? null,
+    });
+  } catch {
+    /* ignore */
+  }
+
   if (perf) perf.lap('03_fusion');
 
   syncKalenderZeitraumFromAnchorAndViewMode();
@@ -2069,6 +2104,22 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
   /** @type {CalendarEvent[]} */
   let events = filterCalendarEvents(allValidated, kalenderFilterState);
   if (perf) perf.lap('04_filter');
+
+  try {
+    const finalEvents = events;
+    console.log(
+      '[KALENDER_FINAL_EVENTS]',
+      finalEvents.map((e) => ({
+        id: e.eventId ?? e.id,
+        title: e.title ?? e.titel,
+        source: e.source ?? e._source ?? e.typ,
+        start: e.start ?? e.von,
+      })),
+    );
+  } catch {
+    /* ignore */
+  }
+
   events.sort((a, b) => {
     const ta = new Date(a.start).getTime();
     const tb = new Date(b.start).getTime();

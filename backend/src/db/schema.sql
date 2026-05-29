@@ -710,3 +710,42 @@ CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_zeiten (
 
 CREATE INDEX IF NOT EXISTS idx_cc_me_zeiten_user ON ccintern_mitarbeiter_zeiten(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_cc_me_zeiten_auftrag ON ccintern_mitarbeiter_zeiten(ccintern_auftrag_id);
+
+-- CC Intern: laufende Tages-Arbeitszeit-Session (max. eine pro user_id + project_id)
+CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_arbeitszeit_session (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL,
+  project_id TEXT,
+  status TEXT NOT NULL CHECK (status IN ('running', 'paused')),
+  started_at TEXT NOT NULL,
+  pause_seconds INTEGER NOT NULL DEFAULT 0,
+  pause_started_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_az_sess_user_proj
+  ON ccintern_mitarbeiter_arbeitszeit_session(user_id, COALESCE(project_id, ''));
+
+-- CC Intern: laufende Auftrags-Arbeit (max. eine aktiv pro user_id)
+CREATE TABLE IF NOT EXISTS ccintern_auftrag_arbeits_session (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL,
+  auftrag_id TEXT NOT NULL,
+  schritt_key TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running', 'paused', 'stopped')),
+  started_at TEXT NOT NULL,
+  pause_started_at TEXT,
+  pause_seconds INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (auftrag_id) REFERENCES ccintern_auftraege (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_user_active
+  ON ccintern_auftrag_arbeits_session(user_id)
+  WHERE status IN ('running', 'paused');
+
+CREATE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_auftrag ON ccintern_auftrag_arbeits_session(auftrag_id);

@@ -1,5 +1,12 @@
 import { Router } from 'express';
+import { inviteRowField, parseInviteModulesFromRow, parseInviteRightsFromRow } from '../auth/invite-redeem-normalize.js';
 import { hashPassword } from '../auth/password.js';
+
+/** Mindestlänge Aktivierungspasswort: MITARBEITER-App-Rolle kürzer, sonst Standard. */
+function minPasswordLenForInvite(invRow) {
+  const gr = String(invRow?.global_role ?? '').trim().toUpperCase();
+  return gr === 'MITARBEITER' ? 4 : 8;
+}
 
 function inviteEffectiveStatus(inv) {
   if (!inv) return null;
@@ -15,9 +22,9 @@ function mapInviteForPublicGet(inv) {
   return {
     email: inv.email,
     global_role: String(inv.global_role || 'INTERN'),
-    modules: safeJsonArray(inv.modules_json),
-    areas: safeJsonArray(inv.areas_json),
-    rights: safeJsonObject(inv.rights_json),
+    modules: parseInviteModulesFromRow(inviteRowField(inv, 'modules_json')),
+    areas: safeJsonArray(inviteRowField(inv, 'areas_json')),
+    rights: parseInviteRightsFromRow(inviteRowField(inv, 'rights_json')),
     status: eff,
     expires_at: inv.expires_at,
     created_at: inv.created_at,
@@ -65,6 +72,16 @@ export function createInvitePublicRouter(store) {
       if (eff === 'abgelaufen' && String(inv.status) === 'offen') {
         inv.status = 'abgelaufen';
       }
+      if (typeof console !== 'undefined' && console.info) {
+        console.info('[INVITE_REDEEM_DEBUG]', {
+          phase: 'get_token',
+          inviteId: inv.id ?? null,
+          inviteEmail: inv.email ?? null,
+          inviteUserId: null,
+          redeemedUserId: null,
+          reqAuthUserId: req.auth?.userId ?? null,
+        });
+      }
       return res.status(200).json({ invite: mapInviteForPublicGet(inv) });
     } catch (e) {
       return next(e);
@@ -82,10 +99,22 @@ export function createInvitePublicRouter(store) {
           message: 'Passwort und Passwort-Bestätigung sind erforderlich.',
         });
       }
-      if (password.length < 8) {
+      const invPre = await store.getCockpitInviteByToken(token);
+      if (invPre && typeof console !== 'undefined' && console.info) {
+        console.info('[INVITE_REDEEM_DEBUG]', {
+          phase: 'activate_start',
+          inviteId: invPre.id ?? null,
+          inviteEmail: invPre.email ?? null,
+          inviteUserId: null,
+          redeemedUserId: null,
+          reqAuthUserId: req.auth?.userId ?? null,
+        });
+      }
+      const minLen = minPasswordLenForInvite(invPre);
+      if (invPre && inviteEffectiveStatus(invPre) === 'offen' && password.length < minLen) {
         return res.status(400).json({
           error: 'VALIDATION_ERROR',
-          message: 'Passwort muss mindestens 8 Zeichen haben.',
+          message: `Passwort muss mindestens ${minLen} Zeichen haben.`,
         });
       }
       if (password !== passwordConfirm) {
@@ -98,6 +127,19 @@ export function createInvitePublicRouter(store) {
       if (!result.ok) {
         const { status, body } = activateErrorToHttp(result.code);
         return res.status(status).json(body);
+      }
+
+      if (typeof console !== 'undefined' && console.info) {
+        console.info('[INVITE_REDEEM_DEBUG]', {
+          phase: 'activate_done',
+          inviteId: invPre?.id ?? null,
+          inviteEmail: invPre?.email ?? null,
+          inviteUserId: null,
+          redeemedUserId: result.user?.id ?? null,
+          redeemedUserEmail: result.user?.email ?? null,
+          redeemedUserName: result.user?.name ?? null,
+          reqAuthUserId: req.auth?.userId ?? null,
+        });
       }
 
       return res.status(200).json({

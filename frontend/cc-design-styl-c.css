@@ -225,7 +225,7 @@
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--ccds-text);
 }
@@ -607,6 +607,14 @@
 .ccds-benutzer-layout .ccds-table-card {
   flex: 1;
   min-height: 280px;
+}
+
+.ccds-table-area > [data-ccw-benutzer-main] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .ckp-benutzer-edit-modal {
@@ -1076,6 +1084,7 @@ body.ccw-kunden-dialog-open #cockpit-main.cockpit-main--styl-c #cockpit-content 
 .ccds-table-body {
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .ccds-table-row {

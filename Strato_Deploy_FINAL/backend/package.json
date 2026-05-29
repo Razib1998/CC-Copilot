@@ -1,0 +1,42 @@
+{
+  "private": true,
+  "name": "cc-cockpit-backend",
+  "type": "module",
+  "scripts": {
+    "test:fusa-belegung": "node --test src/lib/fusa-belegung-phase3.test.mjs",
+    "test:fusa-flaechen": "node --test src/lib/fusa-flaechen-konflikt.test.mjs",
+    "test:fusa-verfuegbarkeit": "node --test src/lib/fusa-fahrzeug-verfuegbarkeit.test.mjs",
+    "test:api-bridge": "node --test src/test/api-fusa-ccintern-bridge.integration.test.mjs",
+    "test:api-stability": "node --test src/test/api-routes-stability.integration.test.mjs src/test/api-v1-logs.integration.test.mjs src/test/api-v1-dashboard.integration.test.mjs src/test/api-v1-geraete.integration.test.mjs src/test/api-v1-fusa-quartale.integration.test.mjs src/test/api-v1-crm.integration.test.mjs src/test/api-v1-b6-refresh-mobile.integration.test.mjs",
+    "test:dev-provision-auth": "node --test src/test/dev-provision-auth.integration.test.mjs",
+    "test:api-project-isolation": "node --test src/test/api-v1-project-isolation.integration.test.mjs",
+    "test:api-core-consistency": "node --test src/test/api-v1-core-consistency.integration.test.mjs",
+    "test:e2e-invite-myrights": "node --test src/test/e2e-invite-redeem-myrights.integration.test.mjs",
+    "test:audit-log": "node --test src/test/audit-log.integration.test.mjs",
+    "test:upload-storage": "node --test src/test/upload-storage.unit.test.mjs",
+    "start": "node src/server.js",
+    "cleanup:kalender-termine-au": "node src/scripts/cleanup-kalender-termine-keep-au.js",
+    "seed:test-user": "node src/seed-test-user.js",
+    "seed:e2e-super-admin": "node src/seed-e2e-super-admin.mjs",
+    "seed:phase5-access": "node src/seed-phase5-access.js",
+    "seed:phase6-invite": "node src/seed-phase6-invite.js",
+    "seed:ruhrbahn": "node src/seed-ruhrbahn-project.js",
+    "seed:lager": "node scripts/seed-lager-material.js",
+    "fix:lager-firma": "node scripts/realign-lager-material-firma.js",
+    "cleanup:urlaub-kalender": "node scripts/cleanup-urlaub-kalender-blocks.js",
+    "sync:cc-bearer": "node scripts/sync-cc-local-bearer.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.0",
+    "sql.js": "^1.12.0"
+  }
+}

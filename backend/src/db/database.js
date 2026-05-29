@@ -4,6 +4,12 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import initSqlJs from 'sql.js';
 import { defaultFlagsForRole } from '../auth/project-access-rules.js';
+import {
+  inviteRowField,
+  normalizeInviteAccessForRedeem,
+  parseInviteModulesFromRow,
+  parseInviteRightsFromRow,
+} from '../auth/invite-redeem-normalize.js';
 import { bereicheForModule, normalizeRightsJson, rightsJsonFullForModule } from '../auth/rights-spec.js';
 import { createMysqlStore } from './mysql-store.js';
 import {
@@ -1184,6 +1190,32 @@ function migratePhase58CcInternAuftragDateiUpdatedAt(db, persist) {
   }
 }
 
+/** Phase 59: CC Intern — Produkt × Schritt → Checklisten-Vorlage (Tabelle; P0 nur Lesen). */
+function migratePhase59CcInternChecklistenZuordnung(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ccintern_checklisten_zuordnung (
+      id TEXT PRIMARY KEY,
+      firma_id TEXT NOT NULL,
+      produkt_id TEXT NOT NULL,
+      schritt TEXT NOT NULL,
+      checkliste_id TEXT NOT NULL,
+      sortierung INTEGER NOT NULL DEFAULT 0,
+      aktiv INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT,
+      FOREIGN KEY (firma_id) REFERENCES firmen (id) ON DELETE CASCADE,
+      FOREIGN KEY (checkliste_id) REFERENCES checklisten (id) ON DELETE CASCADE,
+      CHECK (schritt IN ('grafik','druck','laminat','montage','doku'))
+    )`);
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_ccintern_clz_lookup ON ccintern_checklisten_zuordnung (firma_id, produkt_id, schritt, aktiv, sortierung)',
+    );
+    persist();
+  } catch (e) {
+    console.error('[migratePhase59] ccintern_checklisten_zuordnung', e);
+  }
+}
+
 /** Phase 35: CC Intern Anfragen. */
 function migratePhase35CcInternAnfragen(db, persist) {
   try {
@@ -1501,8 +1533,92 @@ function migratePhase54CcInternMitarbeiterOperativ(db, persist) {
   persist();
 }
 
+/** CC Intern: laufende Tages-Arbeitszeit-Session (ein Datensatz pro user_id + project_id). */
+function migratePhase60CcInternArbeitszeitSession(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_arbeitszeit_session (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      project_id TEXT,
+      status TEXT NOT NULL CHECK (status IN ('running', 'paused')),
+      started_at TEXT NOT NULL,
+      pause_seconds INTEGER NOT NULL DEFAULT 0,
+      pause_started_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_az_sess_user_proj
+       ON ccintern_mitarbeiter_arbeitszeit_session(user_id, COALESCE(project_id, ''))`,
+    );
+  } catch (e) {
+    console.error('[migratePhase60] arbeitszeit session', e);
+  }
+  persist();
+}
+
+/** CC Intern: laufende Auftrags-Arbeit pro Mitarbeiter (max. eine aktiv: running|paused). */
+function migratePhase61CcInternAuftragArbeitsSession(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ccintern_auftrag_arbeits_session (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      auftrag_id TEXT NOT NULL,
+      schritt_key TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('running', 'paused', 'stopped')),
+      started_at TEXT NOT NULL,
+      pause_started_at TEXT,
+      pause_seconds INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+      FOREIGN KEY (auftrag_id) REFERENCES ccintern_auftraege (id) ON DELETE CASCADE
+    )`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_user_active
+       ON ccintern_auftrag_arbeits_session(user_id)
+       WHERE status IN ('running', 'paused')`,
+    );
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_auftrag ON ccintern_auftrag_arbeits_session(auftrag_id)',
+    );
+  } catch (e) {
+    console.error('[migratePhase61] auftrag arbeits session', e);
+  }
+  persist();
+}
+
 /**
- * Nutzer mit Cockpit oder CC-Intern, aber ohne FUSA-Modul: Modul `fusa` + volle FUSA-Berechtigungen.
+ * Phase 62: Duplikate in ccintern_checklisten_zuordnung entfernen und
+ * UNIQUE-Constraint auf (firma_id, produkt_id, schritt, checkliste_id) setzen.
+ * Hintergrund: POST-Route hat bisher keinen Duplikat-Schutz gehabt.
+ */
+function migratePhase62ChecklistenZuordnungUnique(db, persist) {
+  try {
+    // Duplikate entfernen — ältesten Eintrag pro Kombination behalten (niedrigster rowid)
+    db.exec(`
+      DELETE FROM ccintern_checklisten_zuordnung
+      WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM ccintern_checklisten_zuordnung
+        GROUP BY firma_id, produkt_id, schritt, checkliste_id
+      )
+    `);
+    // UNIQUE-Index anlegen (verhindert künftige Duplikate)
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uk_ccintern_clz_combo
+       ON ccintern_checklisten_zuordnung (firma_id, produkt_id, schritt, checkliste_id)`,
+    );
+    persist();
+  } catch (e) {
+    console.error('[migratePhase62] checklisten_zuordnung unique cleanup', e);
+  }
+}
+
+/**
+ * Nutzer mit Cockpit-Modul, aber ohne FUSA-Modul: Modul `fusa` + volle FUSA-Berechtigungen.
+ * Nur `cockpit` — reine `ccintern`-only-User (Mitarbeiter-App) werden nicht ergänzt.
  * Behebt 403 auf GET /api/v1/fusa/dashboard (requireDashboardModule) und fehlende requireRight-Pfade.
  */
 function migratePhase55EnsureFusaModuleForCollaboratorUsers(db, persist) {
@@ -1511,7 +1627,7 @@ function migratePhase55EnsureFusaModuleForCollaboratorUsers(db, persist) {
       db,
       `SELECT DISTINCT u.id AS uid FROM users u
        WHERE EXISTS (
-         SELECT 1 FROM user_modules um WHERE um.user_id = u.id AND um.module IN ('cockpit','ccintern')
+         SELECT 1 FROM user_modules um WHERE um.user_id = u.id AND um.module = 'cockpit'
        )
        AND NOT EXISTS (
          SELECT 1 FROM user_modules um2 WHERE um2.user_id = u.id AND um2.module = 'fusa'
@@ -1771,6 +1887,10 @@ async function buildSqliteStore() {
   migratePhase56LagerMaterialArtikelnummer(db, persist);
   migratePhase57UrlaubKalenderTerminIds(db, persist);
   migratePhase58CcInternAuftragDateiUpdatedAt(db, persist);
+  migratePhase59CcInternChecklistenZuordnung(db, persist);
+  migratePhase60CcInternArbeitszeitSession(db, persist);
+  migratePhase61CcInternAuftragArbeitsSession(db, persist);
+  migratePhase62ChecklistenZuordnungUnique(db, persist);
 
   return {
     db,
@@ -1791,7 +1911,10 @@ async function buildSqliteStore() {
     },
     insertUser({ id, email, passwordHash, name, globalRole, soll, urlaub }) {
       const gr =
-        globalRole === 'SUPER_ADMIN' || globalRole === 'INTERN' || globalRole === 'EXTERN'
+        globalRole === 'SUPER_ADMIN' ||
+        globalRole === 'INTERN' ||
+        globalRole === 'EXTERN' ||
+        globalRole === 'MITARBEITER'
           ? globalRole
           : 'INTERN';
       let sollN = 160;
@@ -1878,7 +2001,7 @@ async function buildSqliteStore() {
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'global_role')) {
         const g = String(patch.global_role || '').trim();
-        if (g === 'SUPER_ADMIN' || g === 'EXTERN' || g === 'INTERN') globalRole = g;
+        if (g === 'SUPER_ADMIN' || g === 'EXTERN' || g === 'INTERN' || g === 'MITARBEITER') globalRole = g;
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
         status = patch.status === 'deaktiviert' ? 'deaktiviert' : 'aktiv';
@@ -1989,7 +2112,10 @@ async function buildSqliteStore() {
       const uid = typeof userId === 'string' ? userId.trim() : '';
       if (!uid) throw new Error('replaceUserAccessBundle: userId fehlt');
       const gr =
-        globalRole === 'SUPER_ADMIN' || globalRole === 'INTERN' || globalRole === 'EXTERN'
+        globalRole === 'SUPER_ADMIN' ||
+        globalRole === 'INTERN' ||
+        globalRole === 'EXTERN' ||
+        globalRole === 'MITARBEITER'
           ? globalRole
           : 'INTERN';
       db.run('BEGIN');
@@ -2566,20 +2692,28 @@ async function buildSqliteStore() {
             stmtRun(db, 'UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, uid]);
           }
         }
-        let mods = [];
-        try {
-          mods = JSON.parse(String(inv.modules_json || '[]'));
-        } catch {
-          mods = [];
+        const redeemedRow = stmtGet(db, 'SELECT id, email, name FROM users WHERE id = ? LIMIT 1', [uid]);
+        const redeemedEmail = redeemedRow?.email != null ? String(redeemedRow.email).trim().toLowerCase() : '';
+        if (redeemedEmail && redeemedEmail !== email) {
+          console.error('[INVITE_REDEEM_DEBUG]', {
+            phase: 'redeem_email_mismatch',
+            inviteId: inv.id,
+            inviteEmail: email,
+            redeemedUserId: uid,
+            redeemedUserEmail: redeemedEmail,
+          });
+          return { ok: false, code: 'DATABASE_ERROR' };
         }
-        let rights = {};
-        try {
-          rights = JSON.parse(String(inv.rights_json || '{}'));
-        } catch {
-          rights = {};
-        }
+        const modsRaw = parseInviteModulesFromRow(inviteRowField(inv, 'modules_json'));
+        const rightsRaw = parseInviteRightsFromRow(inviteRowField(inv, 'rights_json'));
+        const normalizedAccess = normalizeInviteAccessForRedeem(modsRaw, rightsRaw);
         const gr = String(inv.global_role || 'INTERN');
-        this.replaceUserAccessBundle({ userId: uid, globalRole: gr, modules: mods, rights });
+        this.replaceUserAccessBundle({
+          userId: uid,
+          globalRole: gr,
+          modules: normalizedAccess.modules,
+          rights: normalizedAccess.rights,
+        });
         stmtRun(
           db,
           `UPDATE cockpit_invites SET status = 'eingeloest', redeemed_at = datetime('now') WHERE id = ?`,
@@ -4176,6 +4310,10 @@ async function buildSqliteStore() {
         params,
       );
     },
+    countKalenderTermineTableAll() {
+      const row = stmtGet(db, 'SELECT COUNT(*) AS c FROM kalender_termine LIMIT 1', []);
+      return Number(row?.c || 0);
+    },
     countKalenderTermineByFirma(firmaId, { typ = null, von = null, bis = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
@@ -4591,6 +4729,212 @@ async function buildSqliteStore() {
          LIMIT ?`,
         params,
       );
+    },
+    getCcInternArbeitszeitSessionByUserProject(userId, projectId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      const pid = projectId != null && String(projectId).trim() !== '' ? String(projectId).trim() : null;
+      if (pid) {
+        return stmtGet(
+          db,
+          `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+           FROM ccintern_mitarbeiter_arbeitszeit_session
+           WHERE user_id = ? AND project_id = ?
+           LIMIT 1`,
+          [uid, pid],
+        );
+      }
+      return stmtGet(
+        db,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session
+         WHERE user_id = ? AND project_id IS NULL
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    insertCcInternArbeitszeitSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      stmtRun(
+        db,
+        `INSERT INTO ccintern_mitarbeiter_arbeitszeit_session
+          (id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+        [
+          row.id,
+          row.user_id,
+          row.project_id ?? null,
+          row.status === 'paused' ? 'paused' : 'running',
+          startedAt,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+          row.pause_started_at ?? null,
+        ],
+      );
+      persist();
+      return this.getCcInternArbeitszeitSessionById(row.id);
+    },
+    getCcInternArbeitszeitSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    updateCcInternArbeitszeitSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = ["updated_at = datetime('now')"];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        sets.push('status = ?');
+        params.push(patch.status === 'paused' ? 'paused' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternArbeitszeitSessionById(iid);
+      params.push(iid);
+      stmtRun(
+        db,
+        `UPDATE ccintern_mitarbeiter_arbeitszeit_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      persist();
+      return this.getCcInternArbeitszeitSessionById(iid);
+    },
+    deleteCcInternArbeitszeitSession(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return false;
+      stmtRun(db, `DELETE FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ?`, [iid]);
+      persist();
+      return true;
+    },
+    listCcInternAuftragArbeitsSessionsAllActive(firmaId) {
+      const fid = String(firmaId || '').trim();
+      if (!fid) return [];
+      return stmtAll(
+        db,
+        `SELECT s.id, s.user_id, s.auftrag_id, s.schritt_key, s.status, s.started_at, s.pause_started_at, s.pause_seconds, s.created_at, s.updated_at
+         FROM ccintern_auftrag_arbeits_session s
+         JOIN ccintern_auftraege a ON s.auftrag_id = a.id
+         WHERE a.firma_id = ? AND s.status IN ('running', 'paused')`,
+        [fid],
+      );
+    },
+    getCcInternAuftragArbeitsSessionActiveByUser(userId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')
+         ORDER BY datetime(updated_at) DESC
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    getCcInternAuftragArbeitsSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    stopCcInternAuftragArbeitsSessionsForUser(userId, { exceptId = null } = {}) {
+      const uid = String(userId || '').trim();
+      if (!uid) return;
+      const rows = stmtAll(
+        db,
+        `SELECT id, status, pause_seconds, pause_started_at FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')`,
+        [uid],
+      );
+      for (const row of rows) {
+        if (exceptId && String(row.id) === String(exceptId)) continue;
+        let pauseSec = Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0));
+        if (row.status === 'paused' && row.pause_started_at) {
+          const ps = new Date(row.pause_started_at);
+          if (!Number.isNaN(ps.getTime())) {
+            pauseSec += Math.max(0, Math.floor((Date.now() - ps.getTime()) / 1000));
+          }
+        }
+        stmtRun(
+          db,
+          `UPDATE ccintern_auftrag_arbeits_session
+           SET status = 'stopped', pause_seconds = ?, pause_started_at = NULL, updated_at = datetime('now')
+           WHERE id = ?`,
+          [pauseSec, row.id],
+        );
+      }
+      persist();
+    },
+    insertCcInternAuftragArbeitsSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      const st = row.status === 'paused' ? 'paused' : row.status === 'stopped' ? 'stopped' : 'running';
+      stmtRun(
+        db,
+        `INSERT INTO ccintern_auftrag_arbeits_session
+          (id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+        [
+          row.id,
+          row.user_id,
+          row.auftrag_id,
+          row.schritt_key,
+          st,
+          startedAt,
+          row.pause_started_at ?? null,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+        ],
+      );
+      persist();
+      return this.getCcInternAuftragArbeitsSessionById(row.id);
+    },
+    updateCcInternAuftragArbeitsSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = ["updated_at = datetime('now')"];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        const st = String(patch.status).trim();
+        sets.push('status = ?');
+        params.push(st === 'paused' ? 'paused' : st === 'stopped' ? 'stopped' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternAuftragArbeitsSessionById(iid);
+      params.push(iid);
+      stmtRun(
+        db,
+        `UPDATE ccintern_auftrag_arbeits_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      persist();
+      return this.getCcInternAuftragArbeitsSessionById(iid);
     },
     listLagerMaterialByFirma(firmaId, { offset = 0, limit = 50, kategorie = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
@@ -5351,7 +5695,11 @@ async function buildSqliteStore() {
     countChecklistenByFirma(firmaId) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
-      const row = stmtGet(db, 'SELECT COUNT(*) AS c FROM checklisten WHERE firma_id = ? LIMIT 1', [fid]);
+      const row = stmtGet(
+        db,
+        'SELECT COUNT(*) AS c FROM checklisten WHERE firma_id = ? OR firma_id IS NULL LIMIT 1',
+        [fid],
+      );
       return Number(row?.c || 0);
     },
     listChecklistenByFirma(firmaId, { offset = 0, limit = 50 } = {}) {
@@ -5363,7 +5711,7 @@ async function buildSqliteStore() {
         db,
         `SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at
          FROM checklisten
-         WHERE firma_id = ?
+         WHERE firma_id = ? OR firma_id IS NULL
          ORDER BY datetime(created_at) DESC, id
          LIMIT ? OFFSET ?`,
         [fid, lim, off],
@@ -5375,7 +5723,10 @@ async function buildSqliteStore() {
       if (!cid || !fid) return null;
       return stmtGet(
         db,
-        'SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at FROM checklisten WHERE id = ? AND firma_id = ? LIMIT 1',
+        `SELECT id, titel, firma_id, auftrag_id, erstellt_von, created_at
+         FROM checklisten
+         WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)
+         LIMIT 1`,
         [cid, fid],
       );
     },
@@ -5415,7 +5766,7 @@ async function buildSqliteStore() {
       const next = { ...cur, ...patch };
       stmtRun(
         db,
-        'UPDATE checklisten SET titel = ?, auftrag_id = ? WHERE id = ? AND firma_id = ?',
+        'UPDATE checklisten SET titel = ?, auftrag_id = ? WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)',
         [String(next.titel || '').trim() || cur.titel, next.auftrag_id ?? null, String(id).trim(), String(firmaId).trim()],
       );
       persist();
@@ -5425,7 +5776,7 @@ async function buildSqliteStore() {
       const cid = typeof id === 'string' ? id.trim() : '';
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!cid || !fid) return false;
-      stmtRun(db, 'DELETE FROM checklisten WHERE id = ? AND firma_id = ?', [cid, fid]);
+      stmtRun(db, 'DELETE FROM checklisten WHERE id = ? AND (firma_id = ? OR firma_id IS NULL)', [cid, fid]);
       persist();
       return true;
     },
@@ -5438,7 +5789,7 @@ async function buildSqliteStore() {
         `SELECT e.id, e.checkliste_id, e.text, e.erledigt, e.reihenfolge
          FROM checklisten_eintraege e
          INNER JOIN checklisten c ON c.id = e.checkliste_id
-         WHERE e.id = ? AND c.firma_id = ?
+         WHERE e.id = ? AND (c.firma_id = ? OR c.firma_id IS NULL)
          LIMIT 1`,
         [eid, fid],
       );
@@ -5466,7 +5817,7 @@ async function buildSqliteStore() {
         db,
         `UPDATE checklisten_eintraege
          SET text = ?, erledigt = ?, reihenfolge = ?
-         WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ?)`,
+         WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ? OR firma_id IS NULL)`,
         [String(next.text || '').trim() || cur.text, erl, Number(next.reihenfolge) || 0, String(eintragId).trim(), String(firmaId).trim()],
       );
       persist();
@@ -5478,9 +5829,145 @@ async function buildSqliteStore() {
       if (!eid || !fid) return false;
       stmtRun(
         db,
-        'DELETE FROM checklisten_eintraege WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ?)',
+        'DELETE FROM checklisten_eintraege WHERE id = ? AND checkliste_id IN (SELECT id FROM checklisten WHERE firma_id = ? OR firma_id IS NULL)',
         [eid, fid],
       );
+      persist();
+      return true;
+    },
+    listCcInternChecklistenZuordnung(firmaId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!fid) return [];
+      return stmtAll(
+        db,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.firma_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         ORDER BY z.produkt_id ASC, z.schritt ASC, z.sortierung ASC, z.id ASC`,
+        [fid],
+      );
+    },
+    listCcInternChecklistenZuordnungForProdukt(firmaId, produktId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      if (!fid || !pid) return [];
+      return stmtAll(
+        db,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.firma_id = ?
+           AND z.produkt_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         ORDER BY z.schritt ASC, z.sortierung ASC, z.id ASC`,
+        [fid, pid],
+      );
+    },
+    getCcInternChecklistenZuordnungRowJoined(id, firmaId) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid) return null;
+      return stmtGet(
+        db,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         INNER JOIN checklisten c ON c.id = z.checkliste_id AND (c.firma_id = z.firma_id OR c.firma_id IS NULL)
+         WHERE z.id = ? AND z.firma_id = ?
+           AND z.schritt IN ('grafik','druck','laminat','montage','doku')
+         LIMIT 1`,
+        [zid, fid],
+      );
+    },
+    findCcInternChecklistenZuordnungByKey(firmaId, produktId, schritt, checklisteId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      const st = typeof schritt === 'string' ? schritt.trim() : '';
+      const cid = typeof checklisteId === 'string' ? checklisteId.trim() : '';
+      if (!fid || !pid || !st || !cid) return null;
+      return stmtGet(
+        db,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         WHERE z.firma_id = ? AND z.produkt_id = ? AND z.schritt = ? AND z.checkliste_id = ?
+         LIMIT 1`,
+        [fid, pid, st, cid],
+      );
+    },
+    createCcInternChecklistenZuordnung(firmaId, row) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const produkt_id = row && typeof row.produkt_id === 'string' ? row.produkt_id.trim() : '';
+      const schritt = row && typeof row.schritt === 'string' ? row.schritt.trim() : '';
+      const checkliste_id = row && typeof row.checkliste_id === 'string' ? row.checkliste_id.trim() : '';
+      if (!fid || !produkt_id || !schritt || !checkliste_id) return null;
+      const ro = row && row.sortierung != null ? Number(row.sortierung) : 0;
+      const sortierung = Number.isFinite(ro) ? Math.trunc(ro) : 0;
+      let aktiv = 1;
+      if (row && Object.prototype.hasOwnProperty.call(row, 'aktiv')) {
+        aktiv = row.aktiv === false || row.aktiv === 0 ? 0 : 1;
+      }
+      const id = randomUUID();
+      stmtRun(
+        db,
+        `INSERT INTO ccintern_checklisten_zuordnung (id, firma_id, produkt_id, schritt, checkliste_id, sortierung, aktiv, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), NULL)`,
+        [id, fid, produkt_id, schritt, checkliste_id, sortierung, aktiv],
+      );
+      persist();
+      return this.getCcInternChecklistenZuordnungRowJoined(id, fid);
+    },
+    updateCcInternChecklistenZuordnung(id, firmaId, patch) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid || !patch || typeof patch !== 'object') return null;
+      const cur = stmtGet(
+        db,
+        'SELECT id, firma_id, produkt_id, schritt, checkliste_id, sortierung, aktiv FROM ccintern_checklisten_zuordnung WHERE id = ? AND firma_id = ? LIMIT 1',
+        [zid, fid],
+      );
+      if (!cur) return null;
+      let produkt_id = String(cur.produkt_id || '').trim();
+      let schritt = String(cur.schritt || '').trim();
+      let checkliste_id = String(cur.checkliste_id || '').trim();
+      let sortierung = Number(cur.sortierung) || 0;
+      let aktiv = Number(cur.aktiv) ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(patch, 'produkt_id')) {
+        produkt_id = String(patch.produkt_id ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'schritt')) {
+        schritt = String(patch.schritt ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'checkliste_id')) {
+        checkliste_id = String(patch.checkliste_id ?? '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'sortierung')) {
+        const nr = Number(patch.sortierung);
+        sortierung = Number.isFinite(nr) ? Math.trunc(nr) : 0;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'aktiv')) {
+        aktiv = patch.aktiv === false || patch.aktiv === 0 ? 0 : 1;
+      }
+      stmtRun(
+        db,
+        `UPDATE ccintern_checklisten_zuordnung
+         SET produkt_id = ?, schritt = ?, checkliste_id = ?, sortierung = ?, aktiv = ?, updated_at = datetime('now')
+         WHERE id = ? AND firma_id = ?`,
+        [produkt_id, schritt, checkliste_id, sortierung, aktiv, zid, fid],
+      );
+      persist();
+      return this.getCcInternChecklistenZuordnungRowJoined(zid, fid);
+    },
+    deleteCcInternChecklistenZuordnung(id, firmaId) {
+      const zid = typeof id === 'string' ? id.trim() : '';
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      if (!zid || !fid) return false;
+      const before = stmtGet(db, 'SELECT 1 AS ok FROM ccintern_checklisten_zuordnung WHERE id = ? AND firma_id = ? LIMIT 1', [
+        zid,
+        fid,
+      ]);
+      if (!before) return false;
+      stmtRun(db, 'DELETE FROM ccintern_checklisten_zuordnung WHERE id = ? AND firma_id = ?', [zid, fid]);
       persist();
       return true;
     },
@@ -7056,7 +7543,7 @@ export function backupSqliteDatabaseBeforeOpen() {
 }
 
 /**
- * Einmaliges Start-Logging: welche DB-Konfiguration der Prozess sieht (keine Datenänderung).
+ * Einmaliges Start-Logging: welche DB-Konfiguration der Prozess sieht (keine Änderung).
  * DEV/Diagnose — bei Bedarf später entfernen oder hinter Flag legen.
  */
 export function logDatabaseStartupDiagnostics() {

@@ -35,6 +35,8 @@ const VORLAGEN = [
       'Farbmodus geprüft',
       'Kunde / Auftrag / Motiv korrekt',
       'Freigabe vorhanden',
+      'Workflow Grafik: Freigabe für Druck / Produktion liegt vor',
+      'Workflow: nächster Schritt im Auftrag ist vorbesprochen',
     ],
   },
   {
@@ -49,6 +51,8 @@ const VORLAGEN = [
       'Vorher-Fotos erforderlich',
       'Nachher-Fotos erforderlich',
       'Endkontrolle durchgeführt',
+      'Workflow: Druck und Laminat vor Montage abgeschlossen',
+      'Workflow: Montage-Termin im Auftragspfad dokumentiert',
     ],
   },
   {
@@ -62,6 +66,8 @@ const VORLAGEN = [
       'Montagezeit bestätigt',
       'Fotos vor Ort machen',
       'Abschluss dokumentieren',
+      'Workflow: Vorgängerleistung (Produktion / Material) erledigt',
+      'Workflow: Abschluss und Fotos im Auftrag vermerkt',
     ],
   },
   {
@@ -74,6 +80,8 @@ const VORLAGEN = [
       'Kanten / Zuschnitt geprüft',
       'Montageart geklärt',
       'Endkontrolle durchgeführt',
+      'Workflow: Produktion / Zuschnitt vor Übergabe fertig',
+      'Workflow: Versand oder Montage angestoßen',
     ],
   },
   {
@@ -86,6 +94,8 @@ const VORLAGEN = [
       'Montage-Termin abgestimmt',
       'Blasen / Kanten geprüft',
       'Fotos nach Montage',
+      'Workflow: Messung vor Produktion abgeschlossen',
+      'Workflow: Nach Montage im Auftrag nachgetragen',
     ],
   },
   {
@@ -99,6 +109,8 @@ const VORLAGEN = [
       'Produktionsübergabe an Druck geprüft',
       'Montagehilfe / PDF vorhanden',
       'Abschluss dokumentiert',
+      'Workflow: MesseFlow-Übergabe nach CC Intern geprüft',
+      'Workflow: Produktion bis Auslieferung / Montage verfolgt',
     ],
   },
 ];

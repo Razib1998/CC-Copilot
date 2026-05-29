@@ -324,6 +324,8 @@ function reAuftragImport(){
   });
   if(!candidates.length){ showToast('ℹ Keine neuen abgeschlossenen Aufträge ohne Rechnung'); return; }
   candidates.forEach(function(a){
+    var ep = a.betrag != null ? Number(a.betrag) : 0;
+    if (!(ep > 0)) return;
     var nr=reNextNr();
     var today=new Date().toISOString().split('T')[0];
     var faellig=new Date(Date.now()+14*86400000).toISOString().split('T')[0];

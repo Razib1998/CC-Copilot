@@ -15,12 +15,15 @@ var auVerwFilter = 'alle';
 /** Checklisten-Vorlagen: aktuell ausgewählte Vorlage (Listen-Highlight + Detail) — muss deklariert sein (Strict Mode) */
 var clAktivId = null;
 
-/** Gleiche Daten wie `CL_VORLAGEN` in `cc-intern-boot.js` — immer `window.CL_VORLAGEN` (Ladereihenfolge/Cockpit). */
+/**
+ * In-Memory-Cache der Checklisten-Vorlagen (Cockpit: gefüllt aus GET /api/v1/checklisten + Detail je id).
+ * Eine Quelle: Backend-DB über API; Aufträge speichern nur Kopien in `schritte[].checkliste` / `bemerkung`.
+ */
 if (typeof window !== 'undefined' && !Array.isArray(window.CL_VORLAGEN)) {
   window.CL_VORLAGEN = [];
 }
 
-function _ccInternPersistAuftraegeFromView() {
+function _ccInternPersistAuftraegeFromView(auftragIdHint) {
   var st =
     typeof window._ccShowToast === 'function'
       ? window._ccShowToast
@@ -29,7 +32,7 @@ function _ccInternPersistAuftraegeFromView() {
         : null;
   var api = window.CCIntern && window.CCIntern.cockpitApi;
   if (api && typeof api.runSaveAuftraege === 'function') {
-    return api.runSaveAuftraege(st) === true;
+    return api.runSaveAuftraege(st, auftragIdHint) === true;
   }
   console.error('[CC Intern] _ccInternPersistAuftraegeFromView: cockpitApi.runSaveAuftraege fehlt.');
   if (st) st('⚠ Aufträge: Speichern nicht möglich (kein API-Kontext).');
@@ -279,62 +282,302 @@ function renderChecklisten(){
   }
 }
 
+/** DB-Checkliste (Cockpit-API): Vorlagen-ID ist eine UUID. */
+function _clChecklisteIdIsApiUuid(idStr){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(idStr||'').trim());
+}
+
+var CL_ZUORD_SCHRITTE = ['grafik', 'druck', 'laminat', 'montage', 'doku'];
+
+function clZuordEscAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function clProdukteListeReadOnly() {
+  var list =
+    typeof window !== 'undefined' && Array.isArray(window.CC_PRODUKTE_LISTE_READ_ONLY)
+      ? window.CC_PRODUKTE_LISTE_READ_ONLY
+      : typeof CC_PRODUKTE_LISTE !== 'undefined' && Array.isArray(CC_PRODUKTE_LISTE)
+        ? CC_PRODUKTE_LISTE
+        : [];
+  return list;
+}
+
+function clZuordnungSchrittLabel(step) {
+  var map = { grafik: 'Grafik', druck: 'Druck', laminat: 'Laminat', montage: 'Montage', doku: 'Doku' };
+  return map[step] || step;
+}
+
+function clZuordnungPanelSkeletonHtml(checklisteId) {
+  var cid = clZuordEscAttr(checklisteId);
+  var schrittOpts = CL_ZUORD_SCHRITTE.map(function (st) {
+    return '<option value="' + clZuordEscAttr(st) + '">' + clZuordEscAttr(clZuordnungSchrittLabel(st)) + '</option>';
+  }).join('');
+  var produkte = clProdukteListeReadOnly();
+  var prodChecks = produkte
+    .map(function (p) {
+      if (!p || !p.id) return '';
+      var pid = clZuordEscAttr(String(p.id));
+      var plab = clZuordEscAttr(p.label || p.id);
+      return (
+        '<label style="display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 0;cursor:pointer;">'
+        + '<input type="checkbox" class="cl-zuord-prod-cb" value="' + pid + '" style="accent-color:var(--teal);">'
+        + '<span>' + plab + '</span></label>'
+      );
+    })
+    .join('');
+  return (
+    '<div id="cl-zuordnung-panel" data-checkliste-id="' + cid + '" style="border-top:2px solid var(--border);margin-top:8px;">'
+    + '<div style="padding:12px 16px 8px;">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:10px;">📋 ZUORDNUNG</div>'
+    + '<div class="frow" style="margin-bottom:8px;">'
+    + '<div class="fg" style="flex:1;">'
+    + '<label class="fl">Schritt</label>'
+    + '<select class="fs" id="cl-zuord-schritt">' + schrittOpts + '</select>'
+    + '</div></div>'
+    + '<div style="margin-bottom:8px;">'
+    + '<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:6px;">'
+    + '<input type="checkbox" id="cl-zuord-alle" onchange="clZuordAlleProdukteToggle(this.checked)" style="accent-color:var(--teal);"> Alle Produkte'
+    + '</label>'
+    + '<div id="cl-zuord-produkte" style="max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--gray-l);">'
+    + (prodChecks || '<span style="font-size:11px;color:var(--text3);">Keine Produkte geladen.</span>')
+    + '</div></div>'
+    + '<button type="button" class="btn p" style="width:100%;font-size:12px;margin-bottom:10px;" onclick="clZuordnungSpeichern(\'' + cid + '\')">Zuordnung speichern</button>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Bestehende Zuordnungen</div>'
+    + '<div id="cl-zuord-liste" style="font-size:11px;color:var(--text2);">Laden…</div>'
+    + '</div></div>'
+  );
+}
+
+function clZuordnungListeHtml(checklisteId, rows) {
+  var cid = String(checklisteId || '').trim();
+  var list = Array.isArray(rows) ? rows : [];
+  var mine = list.filter(function (r) {
+    return r && String(r.checkliste_id || '').trim() === cid;
+  });
+  if (!mine.length) {
+    return '<div style="padding:8px 0;color:var(--text3);">Keine Zuordnungen für diese Vorlage.</div>';
+  }
+  var prodMap = {};
+  clProdukteListeReadOnly().forEach(function (p) {
+    if (p && p.id) prodMap[String(p.id)] = p.label || p.id;
+  });
+  return mine
+    .map(function (r) {
+      var zid = clZuordEscAttr(String(r.id || ''));
+      var pid = String(r.produkt_id || '');
+      var plab = clZuordEscAttr(prodMap[pid] || pid);
+      var st = clZuordEscAttr(clZuordnungSchrittLabel(String(r.schritt || '')));
+      return (
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'
+        + '<span><strong>' + plab + '</strong> · ' + st + '</span>'
+        + '<button type="button" class="btn" style="font-size:10px;color:var(--red);padding:2px 8px;" onclick="clZuordnungLoeschen(\''
+        + zid + '\',\'' + clZuordEscAttr(cid) + '\')">Löschen</button></div>'
+      );
+    })
+    .join('');
+}
+
+function clZuordAlleProdukteToggle(checked) {
+  document.querySelectorAll('.cl-zuord-prod-cb').forEach(function (cb) {
+    cb.checked = !!checked;
+    cb.disabled = !!checked;
+  });
+  var wrap = document.getElementById('cl-zuord-produkte');
+  if (wrap) wrap.style.opacity = checked ? '0.55' : '1';
+}
+
+async function clLoadZuordnungPanel(checklisteId) {
+  var panel = document.getElementById('cl-zuordnung-panel');
+  var listEl = document.getElementById('cl-zuord-liste');
+  if (!panel || !listEl) return;
+  var cid = String(checklisteId || '').trim();
+  if (!_clChecklisteIdIsApiUuid(cid)) {
+    listEl.innerHTML =
+      '<div style="padding:8px 0;color:var(--text3);">Zuordnung nur für API-Vorlagen (UUID).</div>';
+    return;
+  }
+  listEl.textContent = 'Laden…';
+  var capi = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+  if (!capi || typeof capi.fetchCcInternChecklistenZuordnungAll !== 'function') {
+    listEl.innerHTML = '<div style="color:var(--red);">API nicht verfügbar.</div>';
+    return;
+  }
+  try {
+    var rows = await capi.fetchCcInternChecklistenZuordnungAll();
+    listEl.innerHTML = clZuordnungListeHtml(cid, rows);
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--red);">Zuordnungen konnten nicht geladen werden.</div>';
+  }
+}
+
+async function clZuordnungSpeichern(checklisteId) {
+  var cid = String(checklisteId || '').trim();
+  if (!_clChecklisteIdIsApiUuid(cid)) {
+    if (typeof showToast === 'function') showToast('⚠ Nur API-Vorlagen können zugeordnet werden.');
+    return;
+  }
+  var schrittEl = document.getElementById('cl-zuord-schritt');
+  var schritt = schrittEl ? String(schrittEl.value || '').trim() : '';
+  if (!schritt) {
+    if (typeof showToast === 'function') showToast('⚠ Bitte Schritt wählen.');
+    return;
+  }
+  var alleCb = document.getElementById('cl-zuord-alle');
+  var alle = alleCb && alleCb.checked;
+  var produktIds = [];
+  if (alle) {
+    clProdukteListeReadOnly().forEach(function (p) {
+      if (p && p.id) produktIds.push(String(p.id).trim());
+    });
+  } else {
+    document.querySelectorAll('.cl-zuord-prod-cb:checked').forEach(function (cb) {
+      if (cb.value) produktIds.push(String(cb.value).trim());
+    });
+  }
+  if (!produktIds.length) {
+    if (typeof showToast === 'function') showToast('⚠ Mindestens ein Produkt wählen.');
+    return;
+  }
+  var capi = window.CCIntern && window.CCIntern.cockpitApi;
+  if (!capi || typeof capi.createCcInternChecklistenZuordnung !== 'function') {
+    if (typeof showToast === 'function') showToast('⚠ API nicht verfügbar.');
+    return;
+  }
+  var ok = 0;
+  var fail = 0;
+  for (var i = 0; i < produktIds.length; i++) {
+    try {
+      await capi.createCcInternChecklistenZuordnung({
+        produkt_id: produktIds[i],
+        schritt: schritt,
+        checkliste_id: cid,
+        aktiv: true,
+        sortierung: 0,
+      });
+      ok += 1;
+    } catch (e) {
+      fail += 1;
+    }
+  }
+  await clLoadZuordnungPanel(cid);
+  if (typeof showToast === 'function') {
+    showToast(
+      ok > 0
+        ? '✓ ' + ok + ' Zuordnung(en) gespeichert' + (fail ? ' (' + fail + ' fehlgeschlagen)' : '')
+        : '⚠ Zuordnung fehlgeschlagen',
+    );
+  }
+}
+
+async function clZuordnungLoeschen(zuordnungId, checklisteId) {
+  var zid = String(zuordnungId || '').trim();
+  var cid = String(checklisteId || '').trim();
+  if (!zid) return;
+  var capi = window.CCIntern && window.CCIntern.cockpitApi;
+  if (!capi || typeof capi.deleteCcInternChecklistenZuordnung !== 'function') return;
+  try {
+    await capi.deleteCcInternChecklistenZuordnung(zid);
+    await clLoadZuordnungPanel(cid);
+    if (typeof showToast === 'function') showToast('✓ Zuordnung gelöscht');
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('⚠ Löschen fehlgeschlagen');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.clZuordAlleProdukteToggle = clZuordAlleProdukteToggle;
+  window.clZuordnungSpeichern = clZuordnungSpeichern;
+  window.clZuordnungLoeschen = clZuordnungLoeschen;
+}
+
 function clOpenVorlage(id){
   clAktivId=id;
   renderChecklisten();
-  const v=window.CL_VORLAGEN.find(x=>x.id===id); if(!v) return;
-  console.log('VORLAGE FINAL', (v.punkte||[]).map(function(p){ return p && (p.title||p.text) ? (p.title||p.text) : ''; }));
-  const ph=document.getElementById('cl-detail-ph');
-  const body=document.getElementById('cl-detail-body');
+  var ph=document.getElementById('cl-detail-ph');
+  var body=document.getElementById('cl-detail-body');
+  var idStr=String(id||'').trim();
 
-  if(ph) ph.innerHTML=
-    '<div style="display:flex;align-items:center;gap:10px;min-width:0;">'
-      +'<span style="font-size:20px;flex-shrink:0;">'+v.ico+'</span>'
-      +'<div style="min-width:0;">'
-        +'<div class="ph-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+v.name+'</div>'
-        +'<div style="font-size:11px;color:var(--text2);">'+v.punkte.length+' Punkte · <span style="color:'+(v.aktiv?'var(--green)':'var(--text3)')+';">'+(v.aktiv?'Aktiv':'Inaktiv')+'</span></div>'
+  function paintDetail(v){
+    if(!body) return;
+    if(!v){
+      body.innerHTML='<div style="padding:16px;color:var(--text3);font-size:13px;text-align:center;">Vorlage nicht gefunden.</div>';
+      if(ph) ph.innerHTML='<div class="ph-title">Vorlage auswählen</div>';
+      return;
+    }
+    var pts=Array.isArray(v.punkte)?v.punkte:[];
+    console.log('VORLAGE FINAL', pts.map(function(p){ return p && (p.title||p.text) ? (p.title||p.text) : ''; }));
+    var idJs=idStr.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var vidAttr=String(v.id||idStr).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    if(ph) ph.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0;">'
+        +'<span style="font-size:20px;flex-shrink:0;">'+(v.ico||'')+'</span>'
+        +'<div style="min-width:0;">'
+          +'<div class="ph-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+v.name+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);">'+pts.length+' Punkte · <span style="color:'+(v.aktiv?'var(--green)':'var(--text3)')+';">'+(v.aktiv?'Aktiv':'Inaktiv')+'</span></div>'
+        +'</div>'
       +'</div>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;">'
-      +'<button class="btn" onclick="clDrucken(\''+v.id+'\')" title="Checkliste drucken" style="font-size:12px;">🖨</button>'
-      +'<button class="btn" onclick="clDuplizieren(\''+v.id+'\')" title="Vorlage duplizieren" style="font-size:12px;">⎘</button>'
-      +'<button class="btn" onclick="clBearbeiten(\''+v.id+'\')" title="Name & Beschreibung bearbeiten" style="font-size:12px;">✏</button>'
-      +'<button class="btn" onclick="clToggleAktiv(\''+v.id+'\')" style="font-size:12px;color:'+(v.aktiv?'var(--amber)':'var(--green)')+'">'+(v.aktiv?'⏸':'▶')+'</button>'
-      +'<button class="btn p" onclick="clAddPunkt(\''+v.id+'\')" style="font-size:12px;">+ Punkt</button>'
-      +'<button class="btn" onclick="clDeleteVorlage(\''+v.id+'\')" style="color:var(--red);font-size:12px;">🗑</button>'
-    +'</div>';
-
-  if(!body) return;
-  const katIco={pflicht:'✅',optional:'○',foto:'📷'};
-  const katCol={pflicht:'var(--green)',optional:'var(--gray)',foto:'var(--purple)'};
-  const btnBase='background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:4px;font-size:13px;line-height:1;';
-
-  body.innerHTML=
-    '<div style="padding:10px 16px;background:var(--gray-l);font-size:12px;color:var(--text2);">'+v.beschr+'</div>'
-    +'<div style="padding:6px 14px;">'
-    +v.punkte.map(function(p,i){
-      return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">'
-        +'<span style="font-size:14px;flex-shrink:0;margin-top:2px;color:'+katCol[p.kat]+'" title="'+p.kat+'">'+katIco[p.kat]+'</span>'
-        +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-size:12.5px;font-weight:500;">'+p.text+'</div>'
-          +(p.hinweis?'<div style="font-size:10px;color:var(--text3);margin-top:2px;">💡 '+p.hinweis+'</div>':'')
-        +'</div>'
-        +'<div style="display:flex;gap:1px;flex-shrink:0;align-items:center;">'
-          +(i>0
-            ?'<button onclick="clMovePunkt(\''+id+'\','+i+',-1)" title="Nach oben" style="'+btnBase+'color:var(--text3);" onmouseover="this.style.background=\'var(--gray-l)\'" onmouseout="this.style.background=\'none\'">↑</button>'
-            :'<span style="width:22px;"></span>')
-          +(i<v.punkte.length-1
-            ?'<button onclick="clMovePunkt(\''+id+'\','+i+',1)" title="Nach unten" style="'+btnBase+'color:var(--text3);" onmouseover="this.style.background=\'var(--gray-l)\'" onmouseout="this.style.background=\'none\'">↓</button>'
-            :'<span style="width:22px;"></span>')
-          +'<button onclick="clEditPunkt(\''+id+'\','+i+')" title="Bearbeiten" style="'+btnBase+'color:var(--blue);" onmouseover="this.style.background=\'var(--blue-l)\'" onmouseout="this.style.background=\'none\'">✏</button>'
-          +'<button onclick="clDeletePunkt(\''+id+'\','+i+')" title="Löschen" style="'+btnBase+'color:var(--red);opacity:.5;" onmouseover="this.style.opacity=\'1\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.opacity=\'.5\';this.style.background=\'none\'">✕</button>'
-        +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;">'
+        +'<button class="btn" onclick="clDrucken(\''+vidAttr+'\')" title="Checkliste drucken" style="font-size:12px;">🖨</button>'
+        +'<button class="btn" onclick="clDuplizieren(\''+vidAttr+'\')" title="Vorlage duplizieren" style="font-size:12px;">⎘</button>'
+        +'<button class="btn" onclick="clBearbeiten(\''+vidAttr+'\')" title="Name & Beschreibung bearbeiten" style="font-size:12px;">✏</button>'
+        +'<button class="btn" onclick="clToggleAktiv(\''+vidAttr+'\')" style="font-size:12px;color:'+(v.aktiv?'var(--amber)':'var(--green)')+'">'+(v.aktiv?'⏸':'▶')+'</button>'
+        +'<button class="btn p" onclick="clAddPunkt(\''+vidAttr+'\')" style="font-size:12px;">+ Punkt</button>'
+        +'<button class="btn" onclick="clDeleteVorlage(\''+vidAttr+'\')" style="color:var(--red);font-size:12px;">🗑</button>'
       +'</div>';
-    }).join('')
-    +'</div>'
-    +'<div style="padding:10px 14px;border-top:1px solid var(--border);">'
-      +'<button class="btn p" style="width:100%;" onclick="clAddPunkt(\''+v.id+'\')">+ Prüfpunkt hinzufügen</button>'
-    +'</div>';
+
+    var katIco={pflicht:'✅',optional:'○',foto:'📷'};
+    var katCol={pflicht:'var(--green)',optional:'var(--gray)',foto:'var(--purple)'};
+    var btnBase='background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:4px;font-size:13px;line-height:1;';
+
+    body.innerHTML=
+      '<div style="padding:10px 16px;background:var(--gray-l);font-size:12px;color:var(--text2);">'+(v.beschr||'')+'</div>'
+      +'<div style="padding:6px 14px;">'
+      +pts.map(function(p,i){
+        return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">'
+          +'<span style="font-size:14px;flex-shrink:0;margin-top:2px;color:'+katCol[p.kat]+'" title="'+p.kat+'">'+katIco[p.kat]+'</span>'
+          +'<div style="flex:1;min-width:0;">'
+            +'<div style="font-size:12.5px;font-weight:500;">'+p.text+'</div>'
+            +(p.hinweis?'<div style="font-size:10px;color:var(--text3);margin-top:2px;">💡 '+p.hinweis+'</div>':'')
+          +'</div>'
+          +'<div style="display:flex;gap:1px;flex-shrink:0;align-items:center;">'
+            +(i>0
+              ?'<button onclick="clMovePunkt(\''+idJs+'\','+i+',-1)" title="Nach oben" style="'+btnBase+'color:var(--text3);" onmouseover="this.style.background=\'var(--gray-l)\'" onmouseout="this.style.background=\'none\'">↑</button>'
+              :'<span style="width:22px;"></span>')
+            +(i<pts.length-1
+              ?'<button onclick="clMovePunkt(\''+idJs+'\','+i+',1)" title="Nach unten" style="'+btnBase+'color:var(--text3);" onmouseover="this.style.background=\'var(--gray-l)\'" onmouseout="this.style.background=\'none\'">↓</button>'
+              :'<span style="width:22px;"></span>')
+            +'<button onclick="clEditPunkt(\''+idJs+'\','+i+')" title="Bearbeiten" style="'+btnBase+'color:var(--blue);" onmouseover="this.style.background=\'var(--blue-l)\'" onmouseout="this.style.background=\'none\'">✏</button>'
+            +'<button onclick="clDeletePunkt(\''+idJs+'\','+i+')" title="Löschen" style="'+btnBase+'color:var(--red);opacity:.5;" onmouseover="this.style.opacity=\'1\';this.style.background=\'var(--red-l)\'" onmouseout="this.style.opacity=\'.5\';this.style.background=\'none\'">✕</button>'
+          +'</div>'
+        +'</div>';
+      }).join('')
+      +'</div>'
+      +'<div style="padding:10px 14px;border-top:1px solid var(--border);">'
+        +'<button class="btn p" style="width:100%;" onclick="clAddPunkt(\''+vidAttr+'\')">+ Prüfpunkt hinzufügen</button>'
+      +'</div>'
+      +clZuordnungPanelSkeletonHtml(vidAttr);
+    clLoadZuordnungPanel(idStr);
+  }
+
+  var capi=typeof window!=='undefined'&&window.__CCINTERN_COCKPIT_MOUNT__&&window.CCIntern&&window.CCIntern.cockpitApi;
+  if(capi&&typeof capi.refreshChecklisteVorlageFromApi==='function'&&_clChecklisteIdIsApiUuid(idStr)){
+    if(ph) ph.innerHTML='<div class="ph-title">Laden…</div>';
+    if(body) body.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">Vorlage wird geladen…</div>';
+    capi.refreshChecklisteVorlageFromApi(idStr, typeof showToast==='function'?showToast:null).then(function(){
+      var v2=window.CL_VORLAGEN.find(function(x){ return x&&String(x.id)===idStr; });
+      renderChecklisten();
+      paintDetail(v2);
+    });
+    return;
+  }
+  var v0=window.CL_VORLAGEN.find(function(x){ return x&&String(x.id)===idStr; });
+  paintDetail(v0);
 }
 
 function clNeuModal(){
@@ -432,12 +675,59 @@ function clSavePunkt(){
   const kat     = document.getElementById('clp-kat')?.value||'pflicht';
   const hinweis = document.getElementById('clp-hinweis')?.value||'';
   const isEdit  = clEditPunktIdx !== null;
-  if(isEdit){
-    v.punkte[clEditPunktIdx] = {text, kat, hinweis};
-  } else {
-    v.punkte.push({text, kat, hinweis});
+  const toastFn = typeof showToast==='function'?showToast:null;
+  var capi=typeof window!=='undefined'&&window.__CCINTERN_COCKPIT_MOUNT__&&window.CCIntern&&window.CCIntern.cockpitApi?window.CCIntern.cockpitApi:null;
+  var cid=String(v.id||'').trim();
+  var uuidOk=_clChecklisteIdIsApiUuid(cid);
+  var canEintraege=capi&&uuidOk
+    &&typeof capi.postChecklisteEintragFromApi==='function'
+    &&typeof capi.putChecklisteEintragFromApi==='function'
+    &&typeof capi.refreshChecklisteVorlageFromApi==='function';
+
+  function clPunktModalCloseAndRepaint(msg){
+    var m=document.getElementById('clPunktModal');
+    if(m) m.classList.remove('open');
+    renderChecklisten();
+    clOpenVorlage(clPunktVorlageId);
+    showToast(msg);
   }
-  document.getElementById('clPunktModal').classList.remove('open');
+
+  if(canEintraege){
+    if(isEdit){
+      var prev=v.punkte[clEditPunktIdx];
+      var eid=prev&&prev.eintragId?String(prev.eintragId).trim():'';
+      if(eid){
+        if(typeof window!=='undefined')window.__CL_SKIP_VORLAGEN_SAVE_ONCE=true;
+        console.log('[CL-PUNKT PATCH]',{checklisteId:cid,eintragId:eid,patch:{text:text}});
+        capi.putChecklisteEintragFromApi(eid,{text:text},toastFn).then(function(err){
+          if(err){console.warn('[CL-PUNKT FEHLER]',err);return;}
+          return capi.refreshChecklisteVorlageFromApi(cid,toastFn).then(function(){
+            clPunktModalCloseAndRepaint('✓ Punkt aktualisiert');
+          });
+        });
+        return;
+      }
+    }else{
+      if(typeof window!=='undefined')window.__CL_SKIP_VORLAGEN_SAVE_ONCE=true;
+      console.log('[CL-PUNKT ADD]',{checklisteId:cid,text:text});
+      capi.postChecklisteEintragFromApi(cid,{text:text,erledigt:false},toastFn).then(function(err){
+        if(err){console.warn('[CL-PUNKT FEHLER]',err);return;}
+        return capi.refreshChecklisteVorlageFromApi(cid,toastFn).then(function(){
+          clPunktModalCloseAndRepaint('✓ Prüfpunkt hinzugefügt');
+        });
+      });
+      return;
+    }
+  }
+
+  if(isEdit){
+    var prev0=v.punkte[clEditPunktIdx]||{};
+    v.punkte[clEditPunktIdx] = {text:text, kat:kat, hinweis:hinweis, eintragId:prev0.eintragId, reihenfolge:prev0.reihenfolge, erledigt:prev0.erledigt};
+  } else {
+    v.punkte.push({text:text, kat:kat, hinweis:hinweis});
+  }
+  var m0=document.getElementById('clPunktModal');
+  if(m0) m0.classList.remove('open');
   renderChecklisten();
   clOpenVorlage(clPunktVorlageId);
   showToast(isEdit ? '✓ Punkt aktualisiert' : '✓ Prüfpunkt hinzugefügt');
@@ -447,10 +737,29 @@ function clDeletePunkt(vorlageId, idx){
   if(typeof ccInternConfirm !== 'function') return;
   ccInternConfirm('Möchten Sie diesen Checklisten-Punkt wirklich löschen?', function(){
   const v=window.CL_VORLAGEN.find(x=>x.id===vorlageId); if(!v) return;
+  var toastFn = typeof showToast==='function'?showToast:null;
+  var capi=typeof window!=='undefined'&&window.__CCINTERN_COCKPIT_MOUNT__&&window.CCIntern&&window.CCIntern.cockpitApi?window.CCIntern.cockpitApi:null;
+  var cid=String(vorlageId||'').trim();
+  var uuidOk=_clChecklisteIdIsApiUuid(cid);
+  var p=v.punkte[idx];
+  var eid=p&&p.eintragId?String(p.eintragId).trim():'';
+  if(capi&&uuidOk&&eid&&typeof capi.deleteChecklisteEintragFromApi==='function'&&typeof capi.refreshChecklisteVorlageFromApi==='function'){
+    console.log('[CL-PUNKT DELETE]',{checklisteId:cid,eintragId:eid});
+    capi.deleteChecklisteEintragFromApi(eid,toastFn).then(function(err){
+      if(err){console.warn('[CL-PUNKT FEHLER]',err);return;}
+      return capi.refreshChecklisteVorlageFromApi(cid,toastFn).then(function(){
+        renderChecklisten();
+        clOpenVorlage(vorlageId);
+        showToast('🗑 Punkt entfernt');
+      });
+    });
+    return;
+  }
   v.punkte.splice(idx,1);
   renderChecklisten();
   clOpenVorlage(vorlageId);
   showToast('🗑 Punkt entfernt');
+  if(window.ClVorlagenService&&typeof window.ClVorlagenService.save==='function')window.ClVorlagenService.save();
   });
 }
 
@@ -458,6 +767,34 @@ function clMovePunkt(vorlageId, idx, dir){
   const v=window.CL_VORLAGEN.find(x=>x.id===vorlageId); if(!v) return;
   const ni=idx+dir;
   if(ni<0||ni>=v.punkte.length) return;
+  var toastFn = typeof showToast==='function'?showToast:null;
+  var capi=typeof window!=='undefined'&&window.__CCINTERN_COCKPIT_MOUNT__&&window.CCIntern&&window.CCIntern.cockpitApi?window.CCIntern.cockpitApi:null;
+  var cid=String(vorlageId||'').trim();
+  var uuidOk=_clChecklisteIdIsApiUuid(cid);
+  var a=v.punkte[idx], b=v.punkte[ni];
+  var eidA=a&&a.eintragId?String(a.eintragId).trim():'';
+  var eidB=b&&b.eintragId?String(b.eintragId).trim():'';
+  function roNum(p,i){
+    var n=p&&typeof p.reihenfolge!=='undefined'?Number(p.reihenfolge):NaN;
+    return Number.isFinite(n)?n:i;
+  }
+  if(capi&&uuidOk&&eidA&&eidB&&typeof capi.putChecklisteEintragFromApi==='function'&&typeof capi.refreshChecklisteVorlageFromApi==='function'){
+    if(typeof window!=='undefined')window.__CL_SKIP_VORLAGEN_SAVE_ONCE=true;
+    var roA=roNum(a,idx), roB=roNum(b,ni);
+    console.log('[CL-PUNKT PATCH]',{checklisteId:cid,eintragId:eidA,patch:{reihenfolge:roB}});
+    console.log('[CL-PUNKT PATCH]',{checklisteId:cid,eintragId:eidB,patch:{reihenfolge:roA}});
+    capi.putChecklisteEintragFromApi(eidA,{reihenfolge:roB},toastFn).then(function(err){
+      if(err){console.warn('[CL-PUNKT FEHLER]',err);return err;}
+      return capi.putChecklisteEintragFromApi(eidB,{reihenfolge:roA},toastFn);
+    }).then(function(err){
+      if(err){console.warn('[CL-PUNKT FEHLER]',err);return;}
+      return capi.refreshChecklisteVorlageFromApi(cid,toastFn).then(function(){
+        renderChecklisten();
+        clOpenVorlage(vorlageId);
+      });
+    });
+    return;
+  }
   var tmp=v.punkte[idx]; v.punkte[idx]=v.punkte[ni]; v.punkte[ni]=tmp;
   clOpenVorlage(vorlageId);
 }
@@ -567,7 +904,7 @@ function clDrucken(id){
       +'<span><strong>__________________________</strong>Fahrzeug / Depot</span>'
       +'<span><strong>'+today+'</strong>Druckdatum</span>'
     +'</div>'
-    +v.punkte.map(function(p,i){
+    +(Array.isArray(v.punkte)?v.punkte:[]).map(function(p,i){
       return '<div class="punkt kat-'+p.kat+'">'
         +'<div class="nr">'+(i+1)+'</div>'
         +'<div class="box"></div>'
@@ -904,23 +1241,42 @@ function ccInternAggregiereAktuelleAufgabenProMa() {
     if (!a.step || a.step === 'abgeschlossen') return;
     var stepObj = a.schritte && a.schritte[a.step];
     if (!stepObj) return;
+    var slRow = STEP_LABELS[a.step];
+    var bucketKeys =
+      typeof ccInternSchrittListeMitarbeiterBucketKeys === 'function'
+        ? ccInternSchrittListeMitarbeiterBucketKeys(stepObj)
+        : [];
+    var ki, k;
+    if (bucketKeys && bucketKeys.length) {
+      for (ki = 0; ki < bucketKeys.length; ki++) {
+        k = bucketKeys[ki];
+        if (!k) continue;
+        if (!byMa[k]) byMa[k] = [];
+        byMa[k].push({
+          auftragId: a.id,
+          kunde: a.kunde || '—',
+          step: a.step,
+          titel: (slRow && slRow.title) ? slRow.title : String(a.step),
+        });
+      }
+      return;
+    }
     var raw = [stepObj.maId, stepObj.verantwortlicher].concat(stepObj.maIds || []).concat(stepObj.zusatzMa || []);
     var seen = Object.create(null);
     for (var ri = 0; ri < raw.length; ri++) {
       var x = raw[ri];
       if (x == null) continue;
-      var k = String(x).trim();
+      k = String(x).trim();
       if (!k || k === 'undefined' || k === '—') continue;
       if (seen[k]) continue;
       seen[k] = true;
       if (!ccInternIsLikelyUserUuid(k)) continue;
       if (!byMa[k]) byMa[k] = [];
-      var sl = STEP_LABELS[a.step];
       byMa[k].push({
         auftragId: a.id,
         kunde: a.kunde || '—',
         step: a.step,
-        titel: (sl && sl.title) ? sl.title : String(a.step),
+        titel: (slRow && slRow.title) ? slRow.title : String(a.step),
       });
     }
   });
@@ -1264,18 +1620,36 @@ function schrittMigrieren(sch, step){
   return sch;
 }
 
+// ── Offene Checklistenpunkte (alle Kategorien) — nur Hinweis, kein Workflow-Block ─────────
+function ccInternZaehleOffeneChecklistenpunkte(a, step) {
+  if (!a || typeof a !== 'object') return 0;
+  var sch = typeof schrittDaten === 'function' ? schrittDaten(a, step) : null;
+  if (!sch && a.schritte && a.schritte[step]) sch = a.schritte[step];
+  if (!sch) return 0;
+  if (typeof schrittMigrieren === 'function') schrittMigrieren(sch, step);
+  var checks = sch.checkliste || [];
+  var n = 0;
+  for (var i = 0; i < checks.length; i++) {
+    var c = checks[i];
+    if (c && !c.erledigt) n++;
+  }
+  return n;
+}
+function ccInternHatOffeneChecklistenpunkte(a, step) {
+  return ccInternZaehleOffeneChecklistenpunkte(a, step) > 0;
+}
+if (typeof window !== 'undefined') {
+  window.ccInternZaehleOffeneChecklistenpunkte = ccInternZaehleOffeneChecklistenpunkte;
+  window.ccInternHatOffeneChecklistenpunkte = ccInternHatOffeneChecklistenpunkte;
+}
+
 // ── Prüft ob ein Schritt abgeschlossen werden darf (Req. 6) ─────────
 function schrittAbschliessbar(a, step){
   var sch = schrittDaten(a, step);
   if(!sch) return {ok:true}; // Kein Schritt-Objekt → kein Block
   schrittMigrieren(sch, step);
-  // Nur PFLICHT-CL-Punkte prüfen (nicht optional)
-  var checks = sch.checkliste||[];
-  if(checks.length > 0){
-    var offenePflicht = checks.filter(function(c){ return !c.erledigt && c.kat==='pflicht'; });
-    if(offenePflicht.length) return {ok:false, grund:'Noch '+offenePflicht.length+' Pflicht-Punkt(e) nicht erledigt'};
-  }
-  // Fotos: nur warnen wenn Schritt fotosErforderlich UND keine Fotos vorhanden
+  // Checklisten blockieren den Workflow nicht (Hinweis erfolgt separat in der UI).
+  // Fotos: Pflicht wenn Schritt fotosErforderlich UND keine Fotos vorhanden
   if(sch.fotosErforderlich){
     var fotos = (sch.fotos||[]).length + (a.fotos||[]).length;
     if(!fotos) return {ok:false, grund:'Pflichtfotos fehlen — bitte mindestens 1 Foto hochladen'};
@@ -1318,7 +1692,8 @@ function schrittFertig(id, maId){
     return;
   }
 
-  // Req. 6: Abschluss-Prüfung — Warnung als Toast, kein Block
+  function applySchrittFertig(){
+  // Req. 6: Pflichtfotos — optionaler Hinweis (Toast), kein Block
   var check = schrittAbschliessbar(a, currentStep);
   if(!check.ok){
     showToast('⚠ ' + check.grund);
@@ -1362,6 +1737,21 @@ function schrittFertig(id, maId){
       _ccInternProduktionSyncAbgeschlossen(auftragSnap);
     }, 700);
   }
+  }
+
+  if (ccInternHatOffeneChecklistenpunkte(a, currentStep)) {
+    if (typeof ccInternConfirm === 'function') {
+      ccInternConfirm(
+        'Es sind noch Checklistenpunkte offen. Auftrag trotzdem fortsetzen?',
+        function () { applySchrittFertig(); },
+      );
+      return;
+    }
+    if (typeof confirm === 'function' && !confirm('Es sind noch Checklistenpunkte offen. Auftrag trotzdem fortsetzen?')) {
+      return;
+    }
+  }
+  applySchrittFertig();
   } catch(e){ showToast('⚠ Fehler: '+e.message); console.error('schrittFertig error:',e); }
 }
 
@@ -1488,13 +1878,17 @@ var MAT_SCHNELLAUSWAHL = {
   sonstiges: ['Transferband','Montagepaste','Reinigungsmittel','Rakel'],
 };
 
-function openAuftragDetail(id){
+async function openAuftragDetail(id){
   const a=AUFTRAEGE.find(x=>x.id===id); if(!a) return;
   if(!a.prod) a.prod={planung:{},produktion:{bestaetigt:false},template:{},dateien:[]};
   if(!a.kommentare) a.kommentare=[];
   if(!a.dateien) a.dateien=[];
   if(!a.fotos)   a.fotos=[];
   if(!a.materialVerbrauch) a.materialVerbrauch=[];
+  var capiHv = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+  if (capiHv && typeof capiHv.ccInternHydrateSchrittChecklisteFromLegacy === 'function') {
+    capiHv.ccInternHydrateSchrittChecklisteFromLegacy(a);
+  }
   // Migration: ältere Aufträge ohne material-Felder → aus prod.planung befüllen
   if(!a.material && a.prod && a.prod.planung){
     var pl0 = a.prod.planung;
@@ -1671,25 +2065,116 @@ function openAuftragDetail(id){
   function planRow(lbl,val,field,bibKey){return comboRow(lbl,val,field,bibKey,'plan');}
   function prodRow(lbl,val,field,bibKey){return comboRow(lbl,val,field,bibKey,'prod');}
 
-  // ── Dateien + Fotos: vereinte Tabelle mit Quelle-Tracking ───────────
+  // ── Dateien + Fotos: vereinte Tabelle mit Quelle-Tracking (wie auftraege-detail-view.js) ───────────
+  /** @type {any[]} */
+  var serverUiRows = [];
+  try {
+    var cockpitApiSd = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+    if (
+      cockpitApiSd &&
+      typeof cockpitApiSd.fetchCcInternAuftragDateienUi === 'function' &&
+      a.ccApiId &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(a.ccApiId).trim())
+    ) {
+      serverUiRows = await cockpitApiSd.fetchCcInternAuftragDateienUi(String(a.ccApiId), a);
+    }
+  } catch (eSd) {
+    if (typeof console !== 'undefined' && console.warn) console.warn('[openAuftragDetail] Server-Dateien', eSd);
+  }
+
   var _alleDateien = [];
-  (a.dateien||[]).forEach(function(f,i){
-    if(!f.dataUrl && !f.data && f.imgKey)
-      f.dataUrl = (typeof ccImgStoreLoad==='function') ? ccImgStoreLoad(f.imgKey) : '';
-    _alleDateien.push(Object.assign({},f,{_src:'a',_idx:i}));
+  var _legacyParts = [];
+  (a.dateien || []).forEach(function (f, i) {
+    var fc = Object.assign({}, f);
+    if (!fc.dataUrl && !fc.data && fc.imgKey) {
+      fc.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(fc.imgKey) : '';
+    }
+    fc._legacySrc = 'a';
+    fc._legacySourceIdx = i;
+    _legacyParts.push(fc);
   });
-  (p.dateien||[]).forEach(function(f,i){
-    if(!f.dataUrl && !f.data && f.imgKey)
-      f.dataUrl = (typeof ccImgStoreLoad==='function') ? ccImgStoreLoad(f.imgKey) : '';
-    _alleDateien.push(Object.assign({},f,{_src:'p',_idx:i}));
+  (p.dateien || []).forEach(function (f, i) {
+    var fc = Object.assign({}, f);
+    if (!fc.dataUrl && !fc.data && fc.imgKey) {
+      fc.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(fc.imgKey) : '';
+    }
+    fc._legacySrc = 'p';
+    fc._legacySourceIdx = i;
+    _legacyParts.push(fc);
   });
-  (a.fotos||[]).forEach(function(f,i){
-    var fo = (typeof f==='object') ? f : {name:'Foto '+(i+1)};
-    _alleDateien.push(Object.assign({},fo,{_src:'foto',_idx:i,
-      mimeType: fo.mimeType||'image/jpeg',
-      typ: fo.typ||(fo.ma ? 'Foto · '+fo.ma : 'Foto')
-    }));
+  (pl.dateien || []).forEach(function (f, i) {
+    var fc = Object.assign({}, f);
+    if (!fc.dataUrl && !fc.data && fc.imgKey) {
+      fc.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(fc.imgKey) : '';
+    }
+    fc._legacySrc = 'plan';
+    fc._legacySourceIdx = i;
+    _legacyParts.push(fc);
   });
+  (a.fotos || []).forEach(function (f, i) {
+    var fo = typeof f === 'object' ? f : { name: 'Foto ' + (i + 1) };
+    var fc = Object.assign({}, fo, {
+      mimeType: fo.mimeType || 'image/jpeg',
+      typ: fo.typ || (fo.ma ? 'Foto · ' + fo.ma : 'Foto'),
+    });
+    if (!fc.dataUrl && !fc.data && fo.imgKey) {
+      fc.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(fo.imgKey) : '';
+    }
+    fc._legacySrc = 'foto';
+    fc._legacySourceIdx = i;
+    _legacyParts.push(fc);
+  });
+
+  var apiMerge =
+    typeof window !== 'undefined' &&
+    window.CCIntern &&
+    window.CCIntern.cockpitApi &&
+    typeof window.CCIntern.cockpitApi.mergeCcInternDateienDisplayRows === 'function'
+      ? window.CCIntern.cockpitApi.mergeCcInternDateienDisplayRows
+      : null;
+  if (apiMerge) {
+    var mergedRows = apiMerge(serverUiRows || [], _legacyParts);
+    mergedRows.forEach(function (f, fi) {
+      var srcTag = f._legacySrc != null ? String(f._legacySrc) : 'server';
+      var idxDel = srcTag === 'server' ? fi : f._legacySourceIdx != null ? f._legacySourceIdx : 0;
+      _alleDateien.push(Object.assign({}, f, { _src: srcTag, _idx: idxDel }));
+    });
+  } else {
+    var _ccServerDateienAnzeige = Array.isArray(serverUiRows) && serverUiRows.length > 0;
+    if (_ccServerDateienAnzeige) {
+      (serverUiRows || []).forEach(function (f, i) {
+        _alleDateien.push(Object.assign({}, f, { _src: 'server', _idx: i }));
+      });
+    } else {
+      (a.dateien || []).forEach(function (f, i) {
+        if (!f.dataUrl && !f.data && f.imgKey) {
+          f.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(f.imgKey) : '';
+        }
+        _alleDateien.push(Object.assign({}, f, { _src: 'a', _idx: i }));
+      });
+      (p.dateien || []).forEach(function (f, i) {
+        if (!f.dataUrl && !f.data && f.imgKey) {
+          f.dataUrl = typeof ccImgStoreLoad === 'function' ? ccImgStoreLoad(f.imgKey) : '';
+        }
+        _alleDateien.push(Object.assign({}, f, { _src: 'p', _idx: i }));
+      });
+      (a.fotos || []).forEach(function (f, i) {
+        var fo = typeof f === 'object' ? f : { name: 'Foto ' + (i + 1) };
+        _alleDateien.push(
+          Object.assign({}, fo, {
+            _src: 'foto',
+            _idx: i,
+            mimeType: fo.mimeType || 'image/jpeg',
+            typ: fo.typ || (fo.ma ? 'Foto · ' + fo.ma : 'Foto'),
+          }),
+        );
+      });
+      (serverUiRows || []).forEach(function (f, i) {
+        _alleDateien.push(Object.assign({}, f, { _src: 'server', _idx: i }));
+      });
+    }
+  }
+  window.__dpAlleDateienCache = _alleDateien;
   if(!window._dpDateien) window._dpDateien = {};
 
   // Tag-Farbe je Typ
@@ -1728,6 +2213,16 @@ function openAuftragDetail(id){
       var sb       = f.size||f.fileSize||0;
       var sizeFmt  = sb>0 ? (sb>1048576?(sb/1048576).toFixed(1)+' MB':(sb/1024).toFixed(0)+' KB') : '—';
       var typ      = f.typ||'';
+      var typDisplay = typ;
+      var posRaw = f.position != null ? String(f.position).trim().toLowerCase() : '';
+      if (posRaw) {
+        var positionLabel = posRaw;
+        if (posRaw === 'front') positionLabel = 'Front';
+        else if (posRaw === 'seite1') positionLabel = 'Seite 1';
+        else if (posRaw === 'seite2') positionLabel = 'Seite 2';
+        else if (posRaw === 'heck') positionLabel = 'Heck';
+        typDisplay = 'Fahrzeug · ' + typ + ' · ' + positionLabel;
+      }
       var dk       = a.id+'_fu'+fi;
       window._dpDateien[dk] = {url:dataUrl, name:fname};
 
@@ -1748,12 +2243,12 @@ function openAuftragDetail(id){
         '<div style="display:grid;grid-template-columns:1fr 56px 66px 60px 120px 36px;align-items:center;padding:10px 12px;border-bottom:'+bBot+';background:#fff;transition:background .12s;" '
         +'onmouseover="this.style.background=\'#F8FBFF\'" onmouseout="this.style.background=\'#fff\'">'
           +'<div><div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;" title="'+fname+'">'+fname+'</div>'
-          +(typ?'<div style="margin-top:3px;">'+_typTag(typ)+'</div>':'')+'</div>'
+          +(typDisplay?'<div style="margin-top:3px;">'+_typTag(typDisplay)+'</div>':'')+'</div>'
           +'<span style="font-size:11px;color:var(--text2);">'+ext+'</span>'
           +'<span style="font-size:11px;color:var(--text2);">'+sizeFmt+'</span>'
           +'<div>'+prevH+'</div>'
           +'<div style="text-align:center;">'+dlH+'</div>'
-          +'<div style="text-align:center;"><button onclick="ccDeleteUpload(\''+a.id+'\',\''+f._src+'\','+f._idx+')" style="background:none;border:none;cursor:pointer;color:#FF3B30;font-size:17px;padding:2px 4px;line-height:1;" title="Löschen">🗑</button></div>'
+          +'<div style="text-align:center;"><button onclick="ccDeleteUpload(\''+a.id+'\',\''+f._src+'\','+(f._src==='server' ? fi : f._idx)+')" style="background:none;border:none;cursor:pointer;color:#FF3B30;font-size:17px;padding:2px 4px;line-height:1;" title="Löschen">🗑</button></div>'
         +'</div>';
     });
     _uploadsHTML += '</div>';
@@ -1834,53 +2329,6 @@ function openAuftragDetail(id){
             +'</div>'
             +'</div>';
         })()
-
-        // ══ DATEIEN AUS AUFTRAGSANLAGE ════════════════════════════════
-        +(function(){
-          var allD = (a.dateien||[]);
-          if(!allD.length) return '';
-          if(!window._dpDateien) window._dpDateien={};
-          var tiles = '';
-          allD.forEach(function(f, fi){
-            var dk = 'det_au_'+a.id+'_'+fi;
-            window._dpDateien[dk]={url:f.dataUrl||'',name:f.name||''};
-            var isImg = (f.mimeType||'').startsWith('image/') || (f.dataUrl||'').startsWith('data:image');
-            var src   = f.dataUrl||'';
-            var lbl   = f.typ||f.name||('Datei '+(fi+1));
-            if(isImg && src){
-              tiles += '<div onclick="(function(k){var d=window._dpDateien[k];if(d)ccLightbox(d.url,d.name);})(\''+dk+'\')" '
-                +'style="cursor:zoom-in;flex:1;min-width:110px;max-width:200px;border-radius:10px;overflow:hidden;'
-                +'border:2px solid var(--border);position:relative;background:#000;transition:border-color .15s;" '
-                +'onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-                +'<img src="'+src+'" style="width:100%;height:130px;object-fit:cover;display:block;opacity:.95;">'
-                +'<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.72));'
-                  +'padding:18px 8px 7px;font-size:11px;color:#fff;font-weight:600;">'+lbl+'</div>'
-              +'</div>';
-            } else {
-              var ico = (f.mimeType||'').includes('pdf')?'📄':(f.mimeType||'').includes('word')?'📝':'📎';
-              tiles += '<div onclick="(function(k){var d=window._dpDateien[k];if(d)ccLightbox(d.url,d.name);})(\''+dk+'\')" '
-                +'style="cursor:pointer;flex:1;min-width:110px;max-width:200px;border-radius:10px;'
-                +'border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;'
-                +'justify-content:center;gap:5px;padding:18px 8px;background:var(--gray-l);transition:border-color .15s;" '
-                +'onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-                +'<span style="font-size:36px;">'+ico+'</span>'
-                +'<span style="font-size:12px;font-weight:700;color:var(--text);text-align:center;">'+lbl+'</span>'
-                +'<span style="font-size:9px;color:var(--text3);text-align:center;overflow:hidden;white-space:nowrap;'
-                  +'width:100%;text-overflow:ellipsis;padding:0 4px;">'+( f.name||'')+'</span>'
-              +'</div>';
-            }
-          });
-          return '<div class="dp-section">'
-            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-              +'<div class="dp-slbl" style="margin-bottom:0;">📎 Auftragsdateien</div>'
-              +'<span style="font-size:10px;color:var(--blue);font-weight:600;background:var(--blue-l);padding:2px 8px;border-radius:20px;">'+allD.length+' Dateien</span>'
-            +'</div>'
-            +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
-            +tiles
-            +'</div>'
-          +'</div>';
-        })()
-
 
     // ══ SCHNELL-AKTIONEN ═══════════════════════════════════════
     +(function(){
@@ -2016,15 +2464,13 @@ function openAuftragDetail(id){
       var activeStep = a.step;
       var schAktiv = a.schritte && a.schritte[activeStep];
       if(schAktiv) schrittMigrieren(schAktiv, activeStep);
-      var checks = (schAktiv && schAktiv.checkliste && schAktiv.checkliste.length)
-        ? schAktiv.checkliste
-        : (a.checklisten||[]);
+      var useSchritt = !!(schAktiv && Array.isArray(schAktiv.checkliste) && schAktiv.checkliste.length);
+      var checks = useSchritt ? schAktiv.checkliste : (a.checklisten||[]);
       var stepLabel = STEP_LABELS[activeStep] ? STEP_LABELS[activeStep].title : activeStep;
       if(!checks.length) return '';
       var erledigt= checks.filter(function(c){ return c.erledigt; }).length;
       var pct     = checks.length ? Math.round(erledigt/checks.length*100) : 0;
       var barCol  = pct===100?'var(--green)':pct>50?'var(--amber)':'var(--blue)';
-      // Abschlussbereit-Badge
       var abschliessbar = checks.every(function(c){return c.erledigt;});
       return '<div class="dp-section">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
@@ -2041,7 +2487,6 @@ function openAuftragDetail(id){
         +'<div id="dp-cl-items-'+a.id+'" style="display:none;margin-top:8px;">'
         +checks.map(function(c,ci){
           var katCol={'pflicht':'var(--red)','optional':'var(--text3)','foto':'var(--blue)'}[c.kat]||'var(--text3)';
-          var useSchritt = schAktiv && schAktiv.checkliste && schAktiv.checkliste.length;
           var toggleFn = useSchritt
             ? 'schrittClToggle(\''+a.id+'\',\''+activeStep+'\','+ci+',this.checked)'
             : 'auCheckToggle(\''+a.id+'\','+ci+',this.checked)';
@@ -2222,27 +2667,74 @@ function ccAktivMA(){
 }
 
 // Nachricht senden und in Auftrag speichern
-function sendKommentar(auftragId, text, istFrage){
-  var a = AUFTRAEGE.find(function(x){ return x.id===auftragId; }); if(!a) return;
+async function sendKommentar(auftragId, text, istFrage){
+  var a = null;
+  if (typeof mobAuftragIdsGleich === 'function') {
+    a = AUFTRAEGE.find(function (x) {
+      return mobAuftragIdsGleich(x.id, auftragId);
+    });
+  }
+  if (!a) {
+    a = AUFTRAEGE.find(function (x) {
+      return x.id === auftragId || String(x.id) === String(auftragId);
+    });
+  }
+  if (!a) return;
   if(!a.kommentare) a.kommentare=[];
   var ma = ccAktivMA();
-  a.kommentare.push({
+  var autorMaId =
+    typeof ccKommentarAutorUuidFuerSpeichern === 'function'
+      ? ccKommentarAutorUuidFuerSpeichern()
+      : (typeof window !== 'undefined' && window.CURRENT_USER_ID != null
+          ? String(window.CURRENT_USER_ID).trim()
+          : '');
+  var seenInit = autorMaId ? [autorMaId] : [];
+  var newK = {
     id:          'k_'+Date.now(),
     text:        text,
     autor:       ma.name,
     autorKuerzel:ma.kuerzel,
     autorFarbe:  ma.farbe,
+    autorMaId:   autorMaId || undefined,
     ts:          new Date().toISOString(),
     istFrage:    !!istFrage,
     beantwortet: false,
+    seenBy:      seenInit.slice(),
     // Rückwärtskompatibilität
     von:  ma.name,
     zeit: (function(d){
       return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear()
         +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     })(new Date()),
+  };
+  var chatApiMerge = typeof window !== 'undefined' && window.CCIntern && window.CCIntern.cockpitApi;
+  if (chatApiMerge && typeof chatApiMerge.ccInternMergeKommentareFromServerIntoAuftrag === 'function') {
+    try {
+      await chatApiMerge.ccInternMergeKommentareFromServerIntoAuftrag(a, [newK]);
+    } catch (mergeErr) {
+      console.warn('[CHAT_MERGE_BEFORE_SAVE_FAIL]', mergeErr);
+      a.kommentare.push(newK);
+    }
+  } else {
+    a.kommentare.push(newK);
+  }
+  var isMobSave =
+    typeof MOB_MA_ID !== 'undefined' && MOB_MA_ID != null && String(MOB_MA_ID).trim() !== '';
+  console.warn(isMobSave ? '[CHAT_SAVE_APP]' : '[CHAT_SAVE_DESKTOP]', {
+    auftragId: a.id,
+    ccApiId: a.ccApiId,
+    kommentareLength: (a.kommentare || []).length,
+    lastText: text,
   });
-  _ccInternPersistAuftraegeFromView();
+  var api = window.CCIntern && window.CCIntern.cockpitApi;
+  if (api && typeof api.persistAuftraegeImmediate === 'function') {
+    api.persistAuftraegeImmediate(
+      typeof showToast === 'function' ? showToast : null,
+      a.id,
+    );
+  } else {
+    _ccInternPersistAuftraegeFromView(a.id);
+  }
   updateGlocke();
   // Desktop-Glocke: Chat-Nachricht lokal + via Server an ALLE Geräte senden
   var _chatNotif = {

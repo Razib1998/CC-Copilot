@@ -225,6 +225,9 @@ function mobInit(){
     }
     if (MOB_MA_ID) {
       if (typeof window !== 'undefined') window.__MOB_AUFTRAG_RESTORE_TRIGGERED__ = true;
+      if (!MOB_AUFTRAG_UI_IV) {
+        MOB_AUFTRAG_UI_IV = setInterval(mobAuftragLaufzeitTick, 1000);
+      }
       mobZeitRestore(function () {
         mobRestoreAuftragArbeitszeit(function () {
           mobRenderHome();
@@ -4391,6 +4394,60 @@ function openImageFullscreen(url){
 if (typeof window !== 'undefined') {
   window.openImageFullscreen = openImageFullscreen;
   window.closeImageFullscreen = closeImageFullscreen;
+}
+
+// ── MA-App: Hintergrund-Sync (Aufträge + Kommentare alle 60s) ──────────
+// Lädt Aufträge automatisch neu → Kommentare kommen aus bemerkung-JSON mit.
+// Guard verhindert doppelte Registrierung bei mehrfachem Modul-Load.
+if (typeof window !== 'undefined' && !window.__mobHintergrundSyncAktiv) {
+  window.__mobHintergrundSyncAktiv = true;
+  var _mobSyncIv = null;
+
+  /** Schneller Fingerabdruck: Anzahl Aufträge + Gesamtzahl Kommentare. */
+  function _mobSyncFingerprint() {
+    var aufl = (typeof AUFTRAEGE !== 'undefined' && Array.isArray(AUFTRAEGE)) ? AUFTRAEGE : [];
+    var km = 0;
+    aufl.forEach(function(a) { km += Array.isArray(a && a.kommentare) ? a.kommentare.length : 0; });
+    return aufl.length + ':' + km;
+  }
+
+  /** Nach Poll: UI aktualisieren wenn sich etwas geändert hat. */
+  function _mobSyncNachReload(fpVorher) {
+    if (_mobSyncFingerprint() === fpVorher) return;
+    // Badge immer aktualisieren
+    if (typeof mobUpdateNachrichtenBadge === 'function') { try { mobUpdateNachrichtenBadge(); } catch(e){} }
+    if (typeof mobSidebarBadge === 'function') { try { mobSidebarBadge(); } catch(e){} }
+    // Home-View nur neu rendern wenn aktiv
+    if (typeof MOB_AKTIV_TAB !== 'undefined' && MOB_AKTIV_TAB === 'home') {
+      if (typeof mobRenderHome === 'function') { try { mobRenderHome(); } catch(e){} }
+    }
+    // Toast: ungelesene Kommentare oder allgemeine Aktualisierung
+    if (typeof showToast === 'function') {
+      var ungelesen = typeof mobCountUngeleseneNachrichten === 'function' ? mobCountUngeleseneNachrichten() : 0;
+      if (ungelesen > 0) {
+        showToast('📬 ' + ungelesen + ' ungelesene Nachricht' + (ungelesen === 1 ? '' : 'en'));
+      } else {
+        showToast('🔄 Aufträge aktualisiert');
+      }
+    }
+  }
+
+  /** Einmaliger Sync-Durchlauf (nur wenn MA eingeloggt). */
+  function _mobHintergrundSync() {
+    if (typeof MOB_MA_ID === 'undefined' || !MOB_MA_ID) return;
+    var fp = _mobSyncFingerprint();
+    mobReloadAuftraegeThen(function() { _mobSyncNachReload(fp); });
+  }
+
+  // Polling alle 60 Sekunden
+  _mobSyncIv = setInterval(_mobHintergrundSync, 60000);
+
+  // Sofort-Reload wenn Tab wieder in den Vordergrund kommt
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') _mobHintergrundSync();
+    });
+  }
 }
 
 function mobMobRowIsImageUrl(row){

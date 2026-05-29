@@ -30,6 +30,7 @@ export const API_V1_PROJECT_CONTEXT_OPTIONAL_PREFIXES = Object.freeze([
   '/api/v1/ccintern/dashboard',
   '/api/v1/ccintern/me',
   '/api/v1/ccintern/mitarbeiter',
+  '/api/v1/ccintern/checklisten-zuordnung',
   '/api/v1/urlaub',
 ]);
 

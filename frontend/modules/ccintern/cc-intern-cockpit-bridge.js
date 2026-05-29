@@ -17,6 +17,7 @@ import {
 } from '../../core/auth/cc-auth-session.js';
 import { loadCcInternScripts } from './cc-intern-loader.js';
 import CCState from '../../core/state/state.js';
+import { getShellUiAccessSnapshot } from '../../core/shell/shell-ui-snapshot.js';
 
 function esc(s) {
   if (s == null || s === '') return '';
@@ -86,6 +87,16 @@ export async function runCcInternLegacyMount(legacyHost, opts) {
   window.__CCINTERN_DAL_INIT_DONE = false;
 
   const viewKey = opts && opts.viewKey != null ? String(opts.viewKey) : '';
+  const snap = getShellUiAccessSnapshot();
+  /**
+   * Nur UI/Start: keine zweite Datenwelt — dieselben API-Aufrufe wie Desktop-CC-Intern.
+   * Gesetzt, um ausschließlich unnötige Desktop-Startmodule (Anfragen, Angebote, Dashboard, …) zu überspringen.
+   */
+  const mitarbeiterAppOnlyBoot =
+    viewKey === 'cc_mitarbeiter_app' || snap?.isMitarbeiterAppOnlyShell === true;
+  if (typeof window !== 'undefined') {
+    window.__CCINTERN_MITARBEITER_APP_BOOT__ = mitarbeiterAppOnlyBoot;
+  }
 
   let usersResponse;
   let firmenResponse;
@@ -141,6 +152,25 @@ export async function runCcInternLegacyMount(legacyHost, opts) {
   if (cockpitFirmaId) {
     window.COCKPIT_FIRMA_ID = cockpitFirmaId;
     window.__COCKPIT_FIRMA_ID = cockpitFirmaId;
+  }
+
+  if (mitarbeiterAppOnlyBoot) {
+    try {
+      const ctxRes = await hydrateCockpitAccessibleProjectsAndEnsureContext();
+      console.warn('[MA_BOOT_PROJECT]', {
+        hydrateOk: ctxRes && ctxRes.ok === true,
+        hydrateReason: ctxRes && ctxRes.ok === false ? ctxRes.reason : null,
+        projectId: getCurrentProjectId() || null,
+        company_id: cockpitFirmaId || null,
+      });
+    } catch (eHydrate) {
+      console.warn('[MA_BOOT_PROJECT]', {
+        hydrateOk: false,
+        error: eHydrate instanceof Error ? eHydrate.message : String(eHydrate),
+        projectId: getCurrentProjectId() || null,
+        company_id: cockpitFirmaId || null,
+      });
+    }
   }
 
   const currentUserId = getCurrentUserIdFromAccessToken();
@@ -212,6 +242,10 @@ export async function runCcInternLegacyMount(legacyHost, opts) {
   }
 
   container.innerHTML = '';
+  container.classList.toggle('cc-intern-mitarbeiter-app-only', mitarbeiterAppOnlyBoot);
+  if (legacyHost instanceof HTMLElement) {
+    legacyHost.classList.toggle('cc-intern-mitarbeiter-app-only', mitarbeiterAppOnlyBoot);
+  }
   if (typeof ci.loadCockpitData === 'function') {
     ci.loadCockpitData(usersResponse, firmenResponse);
   }

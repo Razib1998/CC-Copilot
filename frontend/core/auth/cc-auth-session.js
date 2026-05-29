@@ -5,6 +5,7 @@ import { API_ROUTES, API_V1 } from '../api/api-routes.js';
 import CCState from '../state/state.js';
 
 const TOKEN_KEY = 'cc_cockpit_access_token';
+const REFRESH_TOKEN_KEY = 'cc_cockpit_refresh_token';
 
 /** Tab-Session: gleiches Projekt nach Reload & für `x-project-id`. */
 export const CC_COCKPIT_ACTIVE_PROJECT_SESSION_KEY = 'cc_cockpit_active_project_id';
@@ -56,12 +57,117 @@ export function setAccessToken(token) {
   }
 }
 
+function getRefreshToken() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const t = localStorage.getItem(REFRESH_TOKEN_KEY);
+    return t && t.trim() ? t.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function setRefreshToken(token) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (token == null || String(token).trim() === '') {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    } else {
+      localStorage.setItem(REFRESH_TOKEN_KEY, String(token).trim());
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Access-Token aus Refresh erneuern (direktes fetch, kein apiFetch).
+ * @returns {Promise<boolean>}
+ */
+export async function tryRefreshAccessToken() {
+  const raw = getRefreshToken();
+  if (!raw) {
+    console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken skip — kein Refresh-Token');
+    return false;
+  }
+  let base = getApiBaseUrl();
+  base = base.replace(/\/$/, '');
+  const url = base.endsWith('/api/v1') ? `${base}/auth/refresh` : `${base}/api/v1/auth/refresh`;
+  console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken request', { url });
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ refresh_token: raw }),
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    if (!res.ok) {
+      console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken failed http', { status: res.status });
+      setRefreshToken(null);
+      return false;
+    }
+    const payload =
+      data && typeof data === 'object' && data.success === true && data.data && typeof data.data === 'object'
+        ? data.data
+        : data && typeof data === 'object'
+          ? data
+          : null;
+    if (!payload || !payload.access_token) {
+      console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken failed — kein access_token im Body');
+      setRefreshToken(null);
+      return false;
+    }
+    setAccessToken(payload.access_token);
+    if (payload.refresh_token && String(payload.refresh_token).trim()) {
+      setRefreshToken(payload.refresh_token);
+    } else {
+      setRefreshToken(null);
+    }
+    console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken ok');
+    return true;
+  } catch (e) {
+    console.warn('[REFRESH_FLOW]', 'tryRefreshAccessToken exception', {
+      message: e instanceof Error ? e.message : String(e),
+    });
+    setRefreshToken(null);
+    return false;
+  }
+}
+
 export function clearSession() {
+  let refreshForLogout = null;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      refreshForLogout = localStorage.getItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
   setAccessToken(null);
   try {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(CC_COCKPIT_ACTIVE_PROJECT_SESSION_KEY);
     }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const base = getApiBaseUrl().replace(/\/$/, '');
+    const body =
+      refreshForLogout && String(refreshForLogout).trim()
+        ? JSON.stringify({ refresh_token: String(refreshForLogout).trim() })
+        : '{}';
+    fetch(`${base}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    }).catch(() => {});
   } catch {
     /* ignore */
   }
@@ -171,6 +277,7 @@ const API_V1_PROJECT_CONTEXT_OPTIONAL_PREFIXES = Object.freeze([
   '/api/v1/ccintern/dashboard',
   '/api/v1/ccintern/me',
   '/api/v1/ccintern/mitarbeiter',
+  '/api/v1/ccintern/checklisten-zuordnung',
   '/api/v1/urlaub',
 ]);
 
@@ -411,9 +518,15 @@ export async function apiFetch(path, options = {}) {
       data = null;
     }
   }
-  if (res.status === 401 && token) {
+  if (res.status === 401 && token && !options._isRetry) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return apiFetch(path, { ...options, _isRetry: true });
+    }
     clearSession();
-    if (typeof window !== 'undefined') window.location.reload();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cc:session:expired'));
+    }
   }
   if (!res.ok) {
     /** @param {any} d */
@@ -500,9 +613,15 @@ export async function apiFetchBlob(path, options = {}) {
     headers,
   };
   const res = await fetch(url, init);
-  if (res.status === 401 && token) {
+  if (res.status === 401 && token && !options._isRetry) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return apiFetchBlob(path, { ...options, _isRetry: true });
+    }
     clearSession();
-    if (typeof window !== 'undefined') window.location.reload();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cc:session:expired'));
+    }
   }
   if (!res.ok) {
     let msg = res.statusText || 'Anfrage fehlgeschlagen';
@@ -625,9 +744,15 @@ export async function apiFetchFormData(path, options = {}) {
       data = null;
     }
   }
-  if (res.status === 401 && token) {
+  if (res.status === 401 && token && !options._isRetry) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return apiFetchFormData(path, { ...options, _isRetry: true });
+    }
     clearSession();
-    if (typeof window !== 'undefined') window.location.reload();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cc:session:expired'));
+    }
   }
   if (!res.ok) {
     const msg =
@@ -670,6 +795,11 @@ export async function loginRequest(email, password) {
     throw new Error('Kein Zugriffstoken erhalten.');
   }
   setAccessToken(data.access_token);
+  if (data.refresh_token && String(data.refresh_token).trim()) {
+    setRefreshToken(data.refresh_token);
+  } else {
+    setRefreshToken(null);
+  }
   return data;
 }
 
@@ -765,4 +895,8 @@ export async function activateInviteAccount(token, password, passwordConfirm) {
     return unwrapEnvelope(data);
   }
   return data;
+}
+
+if (typeof window !== 'undefined') {
+  window.ccClearSession = clearSession;
 }

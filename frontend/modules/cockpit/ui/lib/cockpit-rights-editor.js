@@ -71,7 +71,7 @@ export const RIGHT_FLAG_KEYS = [
 ];
 
 const MODULE_KEYS = /** @type {const} */ (['cockpit', 'fusa', 'ccintern']);
-const GLOBAL_ROLES = /** @type {const} */ (['SUPER_ADMIN', 'INTERN', 'EXTERN']);
+const GLOBAL_ROLES = /** @type {const} */ (['SUPER_ADMIN', 'INTERN', 'EXTERN', 'MITARBEITER']);
 
 /** @param {string} mod */
 function bereicheFor(mod) {
@@ -94,9 +94,13 @@ function esc(s) {
  * @param {{ global_role?: string, modules?: string[], rights?: Record<string, Record<string, Record<string, boolean>>> }} bundle
  */
 export function renderAccessEditorHtml(userId, bundle) {
-  const gr = bundle.global_role === 'EXTERN' || bundle.global_role === 'INTERN' || bundle.global_role === 'SUPER_ADMIN'
-    ? bundle.global_role
-    : 'INTERN';
+  const gr =
+    bundle.global_role === 'EXTERN' ||
+    bundle.global_role === 'INTERN' ||
+    bundle.global_role === 'MITARBEITER' ||
+    bundle.global_role === 'SUPER_ADMIN'
+      ? bundle.global_role
+      : 'INTERN';
   const mods = Array.isArray(bundle.modules) ? bundle.modules.filter(m => MODULE_KEYS.includes(m)) : [];
   const rights = bundle.rights && typeof bundle.rights === 'object' ? bundle.rights : {};
 
