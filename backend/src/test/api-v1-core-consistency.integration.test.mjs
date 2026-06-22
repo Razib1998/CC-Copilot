@@ -218,6 +218,11 @@ test('Kernkonsistenz FUSA → Bridge → CC Intern (E2E)', async (t) => {
     assert.equal(String(fromDb.fusa_auftrag_id || ''), fusaAuftragId);
     assert.equal(String(fromDb.firma_id || ''), firmaId);
     assert.equal(String(fromDb.quelle || ''), 'fusa');
+    assert.equal(String(fromDb.schritt || ''), 'grafik', 'FUSA-Bridge setzt CC-Intern-Produktionsschritt');
+
+    const prodCount = await store.countProduktionAuftraegeByFirma(firmaId, { auftragId: ccId });
+    assert.equal(prodCount, 1, 'FUSA-Freigabe erzeugt genau eine Produktionszeile');
+    assert.ok(body?.data?.produktion_auftrag_id, 'produktion_auftrag_id');
   });
 
   await t.test('C: Read-after-write — GET Detail und Liste; Termine konsistent mit FUSA', async () => {
@@ -301,7 +306,50 @@ test('Kernkonsistenz FUSA → Bridge → CC Intern (E2E)', async (t) => {
     assert.equal(String(fusa.fusa_kunde_id || ''), String((await store.getCcInternAuftragById(ccId, firmaId)).firma_id));
   });
 
-  await t.test('G: GET /kunden Stamm — Envelope ohne Legacy-Root (A3.7)', async () => {
+  await t.test('G: POST /fusa/auftraege erzeugt automatisch CC-Intern + Produktion', async () => {
+    const autoTitle = `FUSA Auto Produktion ${randomUUID().slice(0, 8)}`;
+    const { res, body } = await apiV1('post', '/fusa/auftraege', {
+      jsonBody: {
+        title: autoTitle,
+        project_id: projectId,
+        status: 'aktiv',
+        termin: '2026-07-02T08:00:00.000Z',
+        termin_ende: '2026-07-02T16:00:00.000Z',
+        fusa_kunde_id: firmaId,
+        fusa_extra_json: {
+          abrechnungsart: 'monatlich',
+          montage_wunschtermin: '2026-07-02',
+          preispositionen: [{ label: 'Testposition', netto_monat: 100 }],
+        },
+      },
+    });
+    assert.equal(res.status, 201, JSON.stringify(body));
+    assert.equal(body?.success, true);
+    const createdFusaId = String(body?.data?.auftrag?.id || '');
+    assert.ok(createdFusaId, 'FUSA-Auftrag-ID aus POST');
+
+    const linked = await store.getCcInternAuftragByFusaAuftragId(createdFusaId, firmaId);
+    assert.ok(linked, 'POST /fusa/auftraege legt CC-Intern-Auftrag automatisch an');
+    assert.equal(String(linked.quelle || ''), 'fusa');
+    assert.equal(String(linked.schritt || ''), 'grafik');
+    assert.equal(String(linked.kunde || ''), `Kernkonsistenz ${firmaId.slice(0, 8)}`);
+    assert.equal(String(linked.fusa_auftrag_id || ''), createdFusaId);
+
+    const prodRows = await store.listProduktionAuftraegeByFirma(firmaId, {
+      auftragId: String(linked.id),
+      offset: 0,
+      limit: 10,
+    });
+    assert.equal(prodRows.length, 1, 'POST /fusa/auftraege legt genau eine Produktionszeile an');
+    assert.equal(String(prodRows[0].schritt || ''), 'grafik');
+    assert.equal(Number(prodRows[0].fortschritt || 0), 0);
+
+    const viaApi = await apiV1('get', `/produktion?auftrag_id=${encodeURIComponent(String(linked.id))}`);
+    assert.equal(viaApi.res.status, 200, JSON.stringify(viaApi.body));
+    assert.equal(viaApi.body?.data?.pagination?.total, 1);
+  });
+
+  await t.test('H: GET /kunden Stamm — Envelope ohne Legacy-Root (A3.7)', async () => {
     const { res, body } = await apiV1('get', '/kunden');
     assert.equal(res.status, 200, JSON.stringify(body));
     assert.equal(body?.success, true);

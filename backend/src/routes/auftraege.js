@@ -16,6 +16,7 @@ import { redactPricesInPlainObject } from '../auth/price-redaction.js';
 import { applyServerPreisSnapshotToExtra, validateFusaFinalOrderInput } from '../lib/fusa-auftragsregeln.js';
 import { maybeEnqueueWerkstattBeklebungHinweis } from '../lib/werkstatt-beklebung-outbox.js';
 import { syncFusaTerminAndLinkedCcIntern } from '../lib/auftrag-kalender-sync.js';
+import { ensureCcInternProductionForFusaAuftrag } from '../lib/fusa-ccintern-production-bridge.js';
 import { chainMiddleware } from '../middleware/project-access.js';
 import { requireModule, requireRight } from '../middleware/require-rights.js';
 import { sendSuccess, sendError } from '../lib/api-v1-envelope.js';
@@ -515,15 +516,13 @@ export function createAuftraegeRouter(store, options = {}) {
         }
       }
       try {
-        const linked = await store.getCcInternAuftragByFusaAuftragId(row.id, row.fusa_kunde_id || undefined);
-        await syncFusaTerminAndLinkedCcIntern({
+        await ensureCcInternProductionForFusaAuftrag({
           store,
           fusaAuftrag: row,
-          linkedCcInternAuftrag: linked || null,
           actorUserId: userId,
         });
       } catch {
-        /* Sync darf Auftrag speichern nicht blockieren */
+        /* Automatische CC-Intern/Produktion-Brücke darf Auftrag speichern nicht blockieren */
       }
 
       const canView = req.accessProfile?.canViewPricesAnywhere() ?? false;

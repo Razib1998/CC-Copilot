@@ -40,7 +40,8 @@ import {
 } from '../lib/fusa-belegung-verfuegbarkeit.js';
 import { pruefeFahrzeugVerfuegbarkeit } from '../lib/fusa-fahrzeug-verfuegbarkeit.js';
 import { registerMesseflowPruefProxyRoutes } from './messeflow-pruef-proxy.js';
-import { syncCcInternMontageTermin, syncFusaTerminAndLinkedCcIntern } from '../lib/auftrag-kalender-sync.js';
+import { syncCcInternMontageTermin } from '../lib/auftrag-kalender-sync.js';
+import { ensureCcInternProductionForFusaAuftrag } from '../lib/fusa-ccintern-production-bridge.js';
 import { parseModulesCsv } from '../lib/parse-modules-csv.js';
 import {
   createGenehmigteUrlaubKalenderTermine,
@@ -2715,44 +2716,13 @@ export function createApiV1Router(store) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'FUSA-Auftrag hat keinen verknüpfbaren Kunden (fusa_kunde_id).');
       }
 
-      let linked = await store.getCcInternAuftragByFusaAuftragId(fusaAuftragId, firmaId);
-      let created = false;
-      if (!linked) {
-        const year = new Date().getFullYear();
-        const last = await store.getLastCcInternAuftragsnummerForYear(year);
-        const m = String(last?.auftragsnummer || '').match(new RegExp(`^AU-${year}-(\\d{3})$`));
-        const nextNr = (m ? Number.parseInt(m[1], 10) : 0) + 1;
-        const auftragsnummer = `AU-${year}-${String(nextNr).padStart(3, '0')}`;
-        const id = randomUUID();
-        const kunde =
-          requiredTrimmed(fusaAuftrag.kunde_name)
-          || requiredTrimmed(fusaAuftrag.title)
-          || `FUSA ${String(fusaAuftragId).slice(0, 8)}`;
-        await store.insertCcInternAuftrag({
-          id,
-          auftragsnummer,
-          kunde,
-          status: nullableTrimmed(fusaAuftrag.status),
-          schritt: null,
-          prioritaet: null,
-          lieferdatum: nullableTrimmed(fusaAuftrag.termin_ende),
-          montage_datum: nullableTrimmed(fusaAuftrag.termin),
-          bemerkung: `Freigegeben aus FUSA-Auftrag ${fusaAuftragId}`,
-          fusa_auftrag_id: fusaAuftragId,
-          quelle: 'fusa',
-          erstellt_von: req.auth.userId,
-          firma_id: firmaId,
-        });
-        linked = await store.getCcInternAuftragById(id, firmaId);
-        created = true;
-      }
-
-      await syncFusaTerminAndLinkedCcIntern({
+      const bridge = await ensureCcInternProductionForFusaAuftrag({
         store,
         fusaAuftrag,
-        linkedCcInternAuftrag: linked || null,
         actorUserId: req.auth.userId,
       });
+      const linked = bridge.linked || null;
+      const created = bridge.ccinternCreated === true;
 
       await logAudit(store, {
         user: req.auth,
@@ -2761,12 +2731,18 @@ export function createApiV1Router(store) {
         resource_type: 'fusa_auftrag_freigabe',
         resource_id: fusaAuftragId,
         project_id: auftragProjectId,
-        payload: { ccintern_status: created ? 'created' : 'linked', ccintern_auftrag_id: linked?.id ?? null },
+        payload: {
+          ccintern_status: created ? 'created' : 'linked',
+          ccintern_auftrag_id: linked?.id ?? null,
+          produktion_status: bridge.productionCreated ? 'created' : bridge.production ? 'linked' : 'skipped',
+          produktion_auftrag_id: bridge.production?.id ?? null,
+        },
       });
       return sendSuccess(res, 200, {
         status: created ? 'created' : 'linked',
         fusa_auftrag_id: fusaAuftragId,
         ccintern_auftrag_id: linked?.id ?? null,
+        produktion_auftrag_id: bridge.production?.id ?? null,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
