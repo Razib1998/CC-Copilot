@@ -61,17 +61,127 @@
   --ccds-active-text: #1e3a8a;
 }
 
+html[data-theme='dark'] {
+  --ccds-bg: #0b1120;
+  --ccds-text: #e5e7eb;
+  --ccds-muted: #94a3b8;
+  --ccds-border: #263244;
+  --ccds-card: #111827;
+}
+
+html[data-theme='dark'] body {
+  background: var(--ccds-bg);
+  color: var(--ccds-text);
+}
+
 /* ── Top tabs (Module) — dominante Modul-Schalter ── */
 .ccds-top-tabs {
   display: flex;
-  background: var(--ccds-card);
-  border-bottom: 1px solid var(--ccds-border);
-  min-height: 52px;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.025), rgba(var(--ccds-primary-rgb), 0.035)),
+    var(--ccds-card);
+  border-bottom: 1px solid color-mix(in srgb, var(--ccds-border) 85%, #cbd5e1);
+  min-height: 64px;
   flex-shrink: 0;
-  padding: 8px 16px;
-  gap: 10px;
+  padding: 9px 14px;
+  gap: 12px;
   align-items: center;
   justify-content: flex-start;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.ckp-brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 246px;
+  padding: 7px 12px 7px 8px;
+  border: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, .12), rgba(249, 115, 22, .12) 52%, rgba(59, 130, 246, .12)),
+    rgba(255, 255, 255, .62);
+  color: #0f172a;
+  flex: 0 0 auto;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.ckp-brand-mark:hover {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, .18), rgba(249, 115, 22, .16) 52%, rgba(59, 130, 246, .16)),
+    #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+  transform: translateY(-1px);
+}
+
+.ckp-brand-mark:focus-visible {
+  outline: 3px solid rgba(var(--ccds-primary-rgb), .22);
+  outline-offset: 2px;
+}
+
+.ckp-brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, .36), transparent 28%),
+    linear-gradient(135deg, #16a34a 0%, #2563eb 48%, #f97316 100%);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .18), inset 0 0 0 1px rgba(255, 255, 255, .28);
+}
+
+.ckp-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ckp-brand-name {
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.15;
+  color: transparent;
+  background: linear-gradient(90deg, #16a34a 0%, #2563eb 45%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.ckp-brand-line {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.ckp-module-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-left: clamp(10px, 3vw, 54px);
+  padding-right: clamp(10px, 4vw, 76px);
+}
+
+.ckp-module-nav::-webkit-scrollbar,
+.ccds-top-tabs::-webkit-scrollbar {
+  height: 0;
 }
 
 .ckp-topbar-modules.ccds-top-tabs .ccds-top-tab {
@@ -81,10 +191,10 @@
 .ccds-top-tab {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
-  padding: 9px 24px;
-  min-width: 280px;
+  padding: 8px 13px;
+  min-width: 174px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -92,13 +202,15 @@
   color: #64748b;
   transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, filter 0.15s;
   border: 1.5px solid transparent;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.72);
   font-family: inherit;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .ccds-top-tab:hover:not(.active) {
-  background: #f8fafc;
+  background: #fff;
   color: #475569;
+  border-color: #e2e8f0;
 }
 
 .ccds-top-tab:hover:not(.active) .ccds-t-icon-box {
@@ -110,7 +222,7 @@
   background: var(--ccds-active-bg);
   color: var(--ccds-active-text);
   border-color: var(--ccds-active-border);
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(var(--ccds-primary-rgb), 0.08);
 }
 
 .ccds-top-tab.active:hover {
@@ -120,8 +232,8 @@
 }
 
 .ccds-t-icon-box {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   background: #f1f5f9;
   display: flex;
@@ -140,13 +252,406 @@
 }
 
 .ccds-t-icon-box svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 }
 
 .ccds-top-tab.active .ccds-t-icon-box svg {
   color: var(--ccds-primary);
   stroke: var(--ccds-primary);
+}
+
+.ckp-tab-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  text-align: left;
+}
+
+.ckp-tab-title {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.15;
+  color: inherit;
+}
+
+.ckp-tab-sub {
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.1;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.ccds-top-tab.active .ckp-tab-sub {
+  color: color-mix(in srgb, var(--ccds-active-text) 68%, #64748b);
+}
+
+.ckp-logout-btn {
+  min-width: 138px;
+  margin-left: 0;
+}
+
+.ckp-theme-toggle {
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin-left: 8px;
+  justify-content: center;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.ckp-theme-toggle__icon {
+  position: relative;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #64748b;
+}
+
+.ckp-theme-toggle:hover {
+  background: rgba(var(--ccds-primary-rgb), .08) !important;
+}
+
+.ckp-theme-toggle:hover .ckp-theme-toggle__icon {
+  color: var(--ccds-primary);
+}
+
+.ckp-theme-toggle__moon {
+  display: none;
+}
+
+html[data-theme='dark'] .ckp-theme-toggle__sun {
+  display: none;
+}
+
+html[data-theme='dark'] .ckp-theme-toggle__moon {
+  display: block;
+}
+
+.ckp-shell-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 48px;
+  padding: 10px 24px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--ccds-border);
+  background:
+    linear-gradient(90deg, rgba(34, 197, 94, .06), rgba(59, 130, 246, .05) 48%, rgba(249, 115, 22, .06)),
+    #fff;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 -1px 0 rgba(15, 23, 42, .03);
+}
+
+.ckp-shell-footer strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.ckp-shell-footer__status {
+  color: var(--ccds-primary-dark);
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(var(--ccds-primary-rgb), .1);
+  border: 1px solid rgba(var(--ccds-primary-rgb), .18);
+}
+
+html[data-theme='dark'] .ccds-top-tabs {
+  background:
+    linear-gradient(90deg, rgba(96, 165, 250, 0.08), rgba(249, 115, 22, 0.06)),
+    #0f172a;
+  border-bottom-color: #263244;
+}
+
+html[data-theme='dark'] .ckp-brand-mark {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, .12), rgba(59, 130, 246, .14) 46%, rgba(249, 115, 22, .12)),
+    rgba(15, 23, 42, .72);
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .ckp-brand-mark:hover {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, .18), rgba(59, 130, 246, .18) 46%, rgba(249, 115, 22, .16)),
+    #111827;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .28);
+}
+
+html[data-theme='dark'] .ckp-brand-name,
+html[data-theme='dark'] .ckp-tab-title,
+html[data-theme='dark'] .ccds-page-top h2,
+html[data-theme='dark'] #cockpit-main.cockpit-main--styl-c .ckp-view--styl-c-shell .ckp-header h2 {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .ckp-brand-name {
+  color: transparent;
+  background: linear-gradient(90deg, #4ade80 0%, #60a5fa 46%, #fb923c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+html[data-theme='dark'] .ckp-brand-line,
+html[data-theme='dark'] .ckp-tab-sub,
+html[data-theme='dark'] .ccds-page-top p {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .ccds-top-tab,
+html[data-theme='dark'] .ccds-nav-item,
+html[data-theme='dark'] .ccds-btn-primary,
+html[data-theme='dark'] .ccds-btn-neu,
+html[data-theme='dark'] .ccds-sort-btn,
+html[data-theme='dark'] .ccds-filter-chip,
+html[data-theme='dark'] .ccds-dp-btn.secondary,
+html[data-theme='dark'] .ccds-dp-btn--secondary {
+  background: #172033;
+  border-color: #263244;
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .ccds-top-tab:hover:not(.active),
+html[data-theme='dark'] .ccds-nav-item:hover,
+html[data-theme='dark'] .ccds-sort-btn:hover,
+html[data-theme='dark'] .ccds-filter-chip:hover {
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .ccds-t-icon-box,
+html[data-theme='dark'] .ccds-nav-icon-box,
+html[data-theme='dark'] .ccds-stat-icon-box,
+html[data-theme='dark'] .ccds-sort-btn-icon,
+html[data-theme='dark'] .ccds-dp-icon-box {
+  background: #263244;
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .ckp-theme-toggle,
+html[data-theme='dark'] .ckp-theme-toggle .ckp-theme-toggle__icon {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .ckp-theme-toggle .ckp-theme-toggle__icon {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .ckp-theme-toggle:hover {
+  background: rgba(var(--ccds-primary-rgb), .12) !important;
+}
+
+html[data-theme='dark'] #cockpit-sidebar.cockpit-sidebar--styl-c,
+html[data-theme='dark'] #cockpit-main.cockpit-main--styl-c,
+html[data-theme='dark'] .ccds-shell-root,
+html[data-theme='dark'] .ccds-table-card,
+html[data-theme='dark'] .ccds-table-area,
+html[data-theme='dark'] .ccds-detail-panel,
+html[data-theme='dark'] .ccds-stat-card,
+html[data-theme='dark'] .ckp-card,
+html[data-theme='dark'] .ckp-roles-card,
+html[data-theme='dark'] .ckp-dash-panel,
+html[data-theme='dark'] .fusa-dash-scope .panel,
+html[data-theme='dark'] .fusa-dash-scope .sc,
+html[data-theme='dark'] .fusa-umz-auf-scope .panel,
+html[data-theme='dark'] .fusa-umz-auf-scope .sc,
+html[data-theme='dark'] .fusa-fz-view .panel,
+html[data-theme='dark'] .fusa-re-scope .panel,
+html[data-theme='dark'] .fusa-re-scope .sc,
+html[data-theme='dark'] .fq-scope [data-fusa-q-panel],
+html[data-theme='dark'] .ckp-shell-footer {
+  background: var(--ccds-card);
+  border-color: var(--ccds-border);
+  color: var(--ccds-text);
+}
+
+html[data-theme='dark'] .ckp-shell-footer {
+  background:
+    linear-gradient(90deg, rgba(34, 197, 94, .08), rgba(59, 130, 246, .08) 48%, rgba(249, 115, 22, .07)),
+    #0f172a;
+}
+
+html[data-theme='dark'] #cockpit-main.cockpit-main--styl-c {
+  background: var(--ccds-bg);
+}
+
+html[data-theme='dark'] .ccds-table-head,
+html[data-theme='dark'] .ccds-filter-bar,
+html[data-theme='dark'] .ccds-table-footer,
+html[data-theme='dark'] .ckp-dash-panel__head,
+html[data-theme='dark'] .ckp-dash-panel > .ckp-dash-panel__title:first-child,
+html[data-theme='dark'] .fusa-dash-scope .ph,
+html[data-theme='dark'] .fusa-umz-auf-scope .ph,
+html[data-theme='dark'] .fusa-fz-view .ph,
+html[data-theme='dark'] .fusa-re-scope .panel thead th,
+html[data-theme='dark'] .fq-scope .fq-export {
+  background: #172033;
+  border-color: var(--ccds-border);
+}
+
+html[data-theme='dark'] .ccds-table-row,
+html[data-theme='dark'] .ckp-dash-row,
+html[data-theme='dark'] .ckp-list-item,
+html[data-theme='dark'] .fusa-dash-scope .panel td,
+html[data-theme='dark'] .fusa-umz-auf-scope tbody td,
+html[data-theme='dark'] .fusa-re-scope .panel td {
+  border-color: #263244;
+}
+
+html[data-theme='dark'] .ccds-table-row:hover,
+html[data-theme='dark'] .ckp-dash-row:hover,
+html[data-theme='dark'] button.ckp-dash-nav-row.ckp-dash-row:hover,
+html[data-theme='dark'] .fusa-umz-auf-scope tbody tr:hover td {
+  background: #1f2937;
+}
+
+html[data-theme='dark'] .ccds-user-name,
+html[data-theme='dark'] .ccds-dp-name,
+html[data-theme='dark'] .ccds-dp-row strong,
+html[data-theme='dark'] .ckp-dash-title,
+html[data-theme='dark'] .ckp-dash-panel__title,
+html[data-theme='dark'] .ckp-dash-row__title,
+html[data-theme='dark'] .ckp-dash-kpi-value,
+html[data-theme='dark'] .ckp-card strong,
+html[data-theme='dark'] .ckp-roles-card__title,
+html[data-theme='dark'] .ckp-shell-footer strong {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .ccds-cell-muted,
+html[data-theme='dark'] .ccds-user-email,
+html[data-theme='dark'] .ccds-dp-email,
+html[data-theme='dark'] .ccds-dp-row,
+html[data-theme='dark'] .ckp-dash-sub,
+html[data-theme='dark'] .ckp-dash-row__sub,
+html[data-theme='dark'] .ckp-mock-note,
+html[data-theme='dark'] .ckp-card p,
+html[data-theme='dark'] .ckp-roles-card__desc,
+html[data-theme='dark'] .ckp-shell-footer {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  color: #e5e7eb;
+  background-color: #0f172a;
+  border-color: #334155;
+}
+
+@media (max-width: 900px) {
+  .ccds-top-tabs {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .ckp-brand-mark {
+    min-width: 166px;
+    gap: 8px;
+  }
+
+  .ckp-brand-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    font-size: 13px;
+  }
+
+  .ckp-brand-line {
+    display: none;
+  }
+
+  .ckp-module-nav {
+    gap: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .ccds-top-tab {
+    min-width: 138px;
+    padding: 7px 10px;
+  }
+
+  .ckp-logout-btn {
+    min-width: 48px;
+  }
+
+  .ckp-theme-toggle {
+    min-width: 42px !important;
+    width: 42px !important;
+    height: 42px;
+  }
+
+  .ckp-logout-btn .ckp-tab-copy {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ccds-top-tabs {
+    min-height: 56px;
+    padding: 7px 8px;
+  }
+
+  .ckp-brand-mark {
+    min-width: auto;
+    padding-right: 2px;
+  }
+
+  .ckp-brand-copy {
+    display: none;
+  }
+
+  .ckp-brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ccds-top-tab {
+    min-width: 112px;
+    gap: 7px;
+  }
+
+  .ckp-theme-toggle {
+    min-width: 38px !important;
+    width: 38px !important;
+    height: 38px;
+  }
+
+  .ccds-t-icon-box {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ckp-tab-sub {
+    display: none;
+  }
+
+  .ckp-tab-title {
+    font-size: 12px;
+  }
+
+  .ckp-shell-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+  }
+
+  .ckp-shell-footer__status {
+    white-space: normal;
+  }
 }
 
 /* ── App shell: main column ── */
@@ -2151,4 +2656,2914 @@ body.ccw-kunden-dialog-open #cockpit-main.cockpit-main--styl-c #cockpit-content 
 }
 .fusa-auf-detail-rechnung:hover {
   filter: brightness(1.03);
+}
+
+/* Cockpit responsive pass: layout-only rules for tablet and phone widths. */
+#cockpit-root[data-app-module='cockpit'] .ccds-top-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-topbar-modules.ccds-top-tabs .ccds-top-tab {
+  flex: 0 0 auto;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ccds-top-tab {
+  min-width: clamp(126px, 14vw, 176px);
+  white-space: nowrap;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-shell-body {
+  min-width: 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] #cockpit-main.cockpit-main--styl-c,
+#cockpit-root[data-app-module='cockpit'] #cockpit-main.cockpit-main--styl-c #cockpit-content,
+#cockpit-root[data-app-module='cockpit'] .ccds-shell-root,
+#cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell,
+#cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-body {
+  min-width: 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-table-wrap,
+#cockpit-root[data-app-module='cockpit'] .ckp-snapshot-ro-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-table,
+#cockpit-root[data-app-module='cockpit'] .ckp-snapshot-ro-table {
+  min-width: 680px;
+}
+
+@media (max-width: 1024px) {
+  #cockpit-root[data-app-module='cockpit'] .ckp-shell-body {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    max-height: 98px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ccds-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-sidebar-label {
+    display: none;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 124px;
+    max-width: 188px;
+    padding: 8px 10px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-main.cockpit-main--styl-c {
+    padding: 12px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal .ckp-access-editor > div:nth-of-type(2) {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  #cockpit-root[data-app-module='cockpit'] .ccds-top-tabs {
+    min-height: 48px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-top-tab {
+    min-width: 112px;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-t-icon-box {
+    width: 26px;
+    height: 26px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    max-height: 88px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    min-width: 104px;
+    max-width: 150px;
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-nav-icon-box {
+    width: 27px;
+    height: 27px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] #cockpit-main.cockpit-main--styl-c {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-page-top,
+  #cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-header,
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-page-top h2,
+  #cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-header h2 {
+    font-size: 18px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-btn-primary,
+  #cockpit-root[data-app-module='cockpit'] .ccds-btn-neu,
+  #cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-filter-bar,
+  #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-filterbar,
+  #cockpit-root[data-app-module='cockpit'] .ckp-projekte-filterbar,
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-filterbar {
+    align-items: stretch;
+    gap: 8px;
+    padding: 9px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-filter-spacer,
+  #cockpit-root[data-app-module='cockpit'] .ccds-filter-sep {
+    display: none;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-filter-chip,
+  #cockpit-root[data-app-module='cockpit'] .ccds-sort-btn,
+  #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-filter-reset,
+  #cockpit-root[data-app-module='cockpit'] .ckp-projekte-filter-reset,
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-filter-reset {
+    justify-content: center;
+    flex: 1 1 140px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-table-card {
+    min-height: 360px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-table-area {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-table-head,
+  #cockpit-root[data-app-module='cockpit'] .ccds-table-row {
+    min-width: 720px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-table-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ccds-detail-panel {
+    max-height: none;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-row--h {
+    align-items: flex-start;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-chip {
+    margin-top: 2px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-head,
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-body,
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-footer,
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__head,
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__body,
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal {
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 0;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal .ckp-access-editor > div:nth-of-type(2) {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  #cockpit-root[data-app-module='cockpit'] .ckp-card-grid,
+  #cockpit-root[data-app-module='cockpit'] .ckp-roles-grid,
+  #cockpit-root[data-app-module='cockpit'] .ckp-tile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-title {
+    font-size: 1rem;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-date {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-panel__head,
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-panel__links {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-dash-all {
+    text-align: left;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-detail,
+  #cockpit-root[data-app-module='cockpit'] .ckp-projekte-detail,
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-detail,
+  #cockpit-root[data-app-module='cockpit'] .ckp-rollen-detail {
+    padding: 12px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-kunden-detail-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-view--styl-c-shell .ckp-table,
+  #cockpit-root[data-app-module='cockpit'] .ckp-snapshot-ro-table {
+    min-width: 620px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-footer,
+  #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__footer {
+    flex-direction: column-reverse;
+  }
+}
+
+/* FUSA responsive pass: layout-only rules, scoped to the active FUSA module. */
+#cockpit-root[data-app-module='fusa'] .ccds-top-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#cockpit-root[data-app-module='fusa'] .ckp-topbar-modules.ccds-top-tabs .ccds-top-tab {
+  flex: 0 0 auto;
+}
+
+#cockpit-root[data-app-module='fusa'] .ccds-top-tab {
+  min-width: clamp(126px, 14vw, 176px);
+  white-space: nowrap;
+}
+
+#cockpit-root[data-app-module='fusa'] .ckp-shell-body,
+#cockpit-root[data-app-module='fusa'] #cockpit-main.cockpit-main--styl-c,
+#cockpit-root[data-app-module='fusa'] #cockpit-main.cockpit-main--styl-c #cockpit-content,
+#cockpit-root[data-app-module='fusa'] .ccds-shell-root,
+#cockpit-root[data-app-module='fusa'] [data-ccw-ro^='fusa-'],
+#cockpit-root[data-app-module='fusa'] .ckp-view--styl-c-shell,
+#cockpit-root[data-app-module='fusa'] .ckp-view--styl-c-shell .ckp-body {
+  min-width: 0;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-dash-scope,
+#cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope,
+#cockpit-root[data-app-module='fusa'] .fusa-fz-view,
+#cockpit-root[data-app-module='fusa'] .fusa-sch-scope,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-scope,
+#cockpit-root[data-app-module='fusa'] .fusa-re-scope,
+#cockpit-root[data-app-module='fusa'] .fq-scope {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-dash-scope .panel,
+#cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .panel,
+#cockpit-root[data-app-module='fusa'] .fusa-fz-view .panel,
+#cockpit-root[data-app-module='fusa'] .fusa-sch-scope .ckp-snapshot-ro-wrap,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-scope .ckp-snapshot-ro-wrap,
+#cockpit-root[data-app-module='fusa'] .fusa-re-scope .panel,
+#cockpit-root[data-app-module='fusa'] .fq-scope [data-fusa-q-panel],
+#cockpit-root[data-app-module='fusa'] .fq-draw-body,
+#cockpit-root[data-app-module='fusa'] .fusa-re-ang-table {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-dash-scope .panel table,
+#cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .panel table,
+#cockpit-root[data-app-module='fusa'] .fusa-fz-view .panel table,
+#cockpit-root[data-app-module='fusa'] .fusa-sch-scope .ckp-snapshot-ro-table,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-scope .ckp-snapshot-ro-table,
+#cockpit-root[data-app-module='fusa'] .fusa-re-scope .panel table,
+#cockpit-root[data-app-module='fusa'] .fq-scope [data-fusa-q-panel] table,
+#cockpit-root[data-app-module='fusa'] .fq-draw table,
+#cockpit-root[data-app-module='fusa'] .fusa-re-ang-table {
+  min-width: 720px;
+}
+
+@media (max-width: 1024px) {
+  #cockpit-root[data-app-module='fusa'] .ckp-shell-body {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    max-height: 104px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ccds-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-sidebar-label {
+    display: none;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 130px;
+    max-width: 204px;
+    padding: 8px 10px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-main.cockpit-main--styl-c {
+    padding: 12px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-dash-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .ccds-stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .frow3,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-fgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #cockpit-root[data-app-module='fusa'] .ccds-top-tabs {
+    min-height: 48px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .ccds-top-tab {
+    min-width: 112px;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .ccds-t-icon-box {
+    width: 26px;
+    height: 26px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    max-height: 92px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    min-width: 112px;
+    max-width: 156px;
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .ccds-nav-icon-box {
+    width: 27px;
+    height: 27px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .ccds-nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #cockpit-main.cockpit-main--styl-c {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .ccds-page-top,
+  #cockpit-root[data-app-module='fusa'] .ckp-view--styl-c-shell .ckp-header,
+  #cockpit-root[data-app-module='fusa'] .fusa-dash-scope .ph,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .ph,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .ph {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-dash-scope .g2,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .frow2,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .frow3,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-fgrid,
+  #cockpit-root[data-app-module='fusa'] .fq-scope .fq-export,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view div[style*='grid-template-columns:1fr 1fr'],
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-scope div[style*='grid-template-columns:1fr 1fr'],
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-scope div[style*='grid-template-columns:1fr 1fr'] {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view div[style*='display:flex;gap:10px;align-items:center'],
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-filter,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-toolbar,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .ph-right,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .ph-tools,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope div[style*='display:flex;align-items:center'],
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope div[style*='display:flex;gap:8px'] {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .tabs,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .tabs,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .tabs {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .tab,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .tab,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .srch,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .srch,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .srch,
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-filter select,
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-filter input[type='search'],
+  #cockpit-root[data-app-module='fusa'] .fusa-start__proj-select,
+  #cockpit-root[data-app-module='fusa'] .fq-export .fs {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .btn,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .btn,
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-filter .btn,
+  #cockpit-root[data-app-module='fusa'] [data-fusa-sch-melden-btn],
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-toolbar .btn,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .btn,
+  #cockpit-root[data-app-module='fusa'] .fq-scope .btn,
+  #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-submit {
+    justify-content: center;
+    width: 100%;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .dpanel,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-panel,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .fusa-umz-neu-dialog,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .modal,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-dialog,
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal > div {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    box-sizing: border-box;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .dp-hdr,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .mhdr,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .mbody,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .mfoot,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-hdr,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-body],
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-dh,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-db,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-df,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-dh,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-db,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__h,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__b,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-h,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-body,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  #cockpit-root[data-app-module='fusa'] .fusa-dash-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .stats,
+  #cockpit-root[data-app-module='fusa'] .ccds-stats-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-dash-scope .panel table,
+  #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .panel table,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .panel table,
+  #cockpit-root[data-app-module='fusa'] .fusa-sch-scope .ckp-snapshot-ro-table,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-scope .ckp-snapshot-ro-table,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .panel table,
+  #cockpit-root[data-app-module='fusa'] .fq-scope [data-fusa-q-panel] table,
+  #cockpit-root[data-app-module='fusa'] .fq-draw table,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-ang-table {
+    min-width: 640px;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .foto-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-kv,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .dp-row,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .dp-row {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-kv__lab,
+  #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-kv__val,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .dp-val,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-scope .dp-val {
+    max-width: 100% !important;
+    text-align: left !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view .mfoot,
+  #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-df,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+    align-items: stretch !important;
+    flex-direction: column-reverse !important;
+  }
+}
+
+/* CC Intern responsive pass: shared shell rules only. Legacy intern UI lives in modules/ccintern/cc-intern.css. */
+#cockpit-root[data-app-module='ccintern'] .ccds-top-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#cockpit-root[data-app-module='ccintern'] .ckp-topbar-modules.ccds-top-tabs .ccds-top-tab {
+  flex: 0 0 auto;
+}
+
+#cockpit-root[data-app-module='ccintern'] .ccds-top-tab {
+  min-width: clamp(126px, 14vw, 176px);
+  white-space: nowrap;
+}
+
+#cockpit-root[data-app-module='ccintern'] .ckp-shell-body,
+#cockpit-root[data-app-module='ccintern'] #cockpit-main.cockpit-main--styl-c,
+#cockpit-root[data-app-module='ccintern'] #cockpit-main.cockpit-main--styl-c #cockpit-content,
+#cockpit-root[data-app-module='ccintern'] .ccds-shell-root,
+#cockpit-root[data-app-module='ccintern'] .ckp-view--styl-c-shell,
+#cockpit-root[data-app-module='ccintern'] .ckp-view--styl-c-shell .ckp-body,
+#cockpit-root[data-app-module='ccintern'] [data-ccw-ro='ccintern-module'],
+#cockpit-root[data-app-module='ccintern'] [data-ccw-ro='ccintern-legacy-host'],
+#cockpit-root[data-app-module='ccintern'] .ccw-ccintern-container {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  #cockpit-root[data-app-module='ccintern'] .ckp-shell-body {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    max-height: 104px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ccds-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-sidebar-label {
+    display: none;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 132px;
+    max-width: 208px;
+    padding: 8px 10px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-main.cockpit-main--styl-c {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  #cockpit-root[data-app-module='ccintern'] .ccds-top-tabs {
+    min-height: 48px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] .ccds-top-tab {
+    min-width: 112px;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] .ccds-t-icon-box {
+    width: 26px;
+    height: 26px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-sidebar.cockpit-sidebar--styl-c {
+    max-height: 92px;
+    padding: 7px 8px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-sidebar.cockpit-sidebar--styl-c .ccds-nav-item {
+    min-width: 114px;
+    max-width: 162px;
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] .ccds-nav-icon-box {
+    width: 27px;
+    height: 27px;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] .ccds-nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #cockpit-root[data-app-module='ccintern'] #cockpit-main.cockpit-main--styl-c {
+    padding: 8px;
+    gap: 8px;
+  }
+}
+
+/* Dark mode hardening: must stay late in the file to beat embedded legacy view CSS. */
+html[data-theme='dark'] {
+  --text: #e5e7eb;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --muted: #94a3b8;
+  --line: #263244;
+  --border: #263244;
+  --bg: #0b1120;
+  --card: #111827;
+  --panel: #111827;
+  --panel-bg: #111827;
+  --blue-l: #172554;
+  --green-l: #052e16;
+  --amber-l: #431407;
+  --red-l: #450a0a;
+  --purple-l: #2e1065;
+  --teal-l: #042f2e;
+  --gray-l: #172033;
+}
+
+html[data-theme='dark'] #cockpit-root {
+  background: #0b1120;
+}
+
+html[data-theme='dark'] .fusa-dash-scope,
+html[data-theme='dark'] .fusa-umz-auf-scope,
+html[data-theme='dark'] .fusa-fz-view,
+html[data-theme='dark'] .fusa-sch-scope,
+html[data-theme='dark'] .fusa-doc-scope,
+html[data-theme='dark'] .fusa-re-scope,
+html[data-theme='dark'] .fq-scope {
+  --blue: #fb923c;
+  --blue-d: #fdba74;
+  --blue-l: #431407;
+  --green: #4ade80;
+  --green-l: #052e16;
+  --amber: #fb923c;
+  --amber-l: #431407;
+  --red: #f87171;
+  --red-l: #450a0a;
+  --purple: #a78bfa;
+  --purple-l: #2e1065;
+  --teal: #2dd4bf;
+  --teal-l: #042f2e;
+  --gray: #cbd5e1;
+  --gray-l: #172033;
+  --border: #263244;
+  --text: #e5e7eb;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --bg: #0b1120;
+  --card: #111827;
+  --re-red: #f87171;
+  --re-red-l: #450a0a;
+  --re-amber: #fb923c;
+  --re-amber-l: #431407;
+  --re-blue: #60a5fa;
+  --re-blue-l: #172554;
+  --re-green: #4ade80;
+  --re-green-l: #052e16;
+  --re-purple: #a78bfa;
+  --re-purple-l: #2e1065;
+  --re-gray: #cbd5e1;
+  --re-gray-l: #172033;
+  --fq-red: #f87171;
+  --fq-red-l: #450a0a;
+  --fq-amber: #fb923c;
+  --fq-amber-l: #431407;
+  --fq-blue: #60a5fa;
+  --fq-blue-l: #172554;
+  --fq-green: #4ade80;
+  --fq-green-l: #052e16;
+  --fq-purple: #a78bfa;
+  --fq-purple-l: #2e1065;
+  --fq-gray: #cbd5e1;
+  --fq-gray-l: #172033;
+}
+
+html[data-theme='dark'] #cockpit-root .ccds-shell-root,
+html[data-theme='dark'] #cockpit-root .ccds-table-card,
+html[data-theme='dark'] #cockpit-root .ccds-table-area,
+html[data-theme='dark'] #cockpit-root .ccds-detail-panel,
+html[data-theme='dark'] #cockpit-root .ccds-stat-card,
+html[data-theme='dark'] #cockpit-root .ckp-card,
+html[data-theme='dark'] #cockpit-root .ckp-roles-card,
+html[data-theme='dark'] #cockpit-root .ckp-dash-panel,
+html[data-theme='dark'] #cockpit-root .ckp-table-wrap,
+html[data-theme='dark'] #cockpit-root .ckp-snapshot-ro-wrap,
+html[data-theme='dark'] #cockpit-root .panel,
+html[data-theme='dark'] #cockpit-root .sc,
+html[data-theme='dark'] #cockpit-root .modal,
+html[data-theme='dark'] #cockpit-root .dpanel,
+html[data-theme='dark'] #cockpit-root .fusa-doc-dialog,
+html[data-theme='dark'] #cockpit-root .fusa-doc-modal__box,
+html[data-theme='dark'] #cockpit-root .fusa-re-dialog,
+html[data-theme='dark'] #cockpit-root .fq-draw-panel,
+html[data-theme='dark'] #cockpit-root .ckp-shell-footer {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root .ccds-table-head,
+html[data-theme='dark'] #cockpit-root .ccds-filter-bar,
+html[data-theme='dark'] #cockpit-root .ccds-table-footer,
+html[data-theme='dark'] #cockpit-root .ckp-dash-panel__head,
+html[data-theme='dark'] #cockpit-root .ph,
+html[data-theme='dark'] #cockpit-root thead th,
+html[data-theme='dark'] #cockpit-root .mhdr,
+html[data-theme='dark'] #cockpit-root .mfoot,
+html[data-theme='dark'] #cockpit-root .dp-hdr,
+html[data-theme='dark'] #cockpit-root .dp-section,
+html[data-theme='dark'] #cockpit-root .dp-footer,
+html[data-theme='dark'] #cockpit-root .fq-export {
+  background: #172033 !important;
+  border-color: #263244 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root table,
+html[data-theme='dark'] #cockpit-root tbody,
+html[data-theme='dark'] #cockpit-root tr,
+html[data-theme='dark'] #cockpit-root td,
+html[data-theme='dark'] #cockpit-root .ccds-table-row,
+html[data-theme='dark'] #cockpit-root .ckp-dash-row,
+html[data-theme='dark'] #cockpit-root .ckp-list-item {
+  background-color: transparent !important;
+  border-color: #263244 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root tbody tr:hover td,
+html[data-theme='dark'] #cockpit-root .ccds-table-row:hover,
+html[data-theme='dark'] #cockpit-root .ckp-dash-row:hover,
+html[data-theme='dark'] #cockpit-root button.ckp-dash-nav-row.ckp-dash-row:hover {
+  background: #1f2937 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root input,
+html[data-theme='dark'] #cockpit-root select,
+html[data-theme='dark'] #cockpit-root textarea,
+html[data-theme='dark'] #cockpit-root .srch,
+html[data-theme='dark'] #cockpit-root .fusa-start__proj-select {
+  background: #0f172a !important;
+  border-color: #475569 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root input::placeholder,
+html[data-theme='dark'] #cockpit-root textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+html[data-theme='dark'] #cockpit-root .btn:not(.p):not(.g),
+html[data-theme='dark'] #cockpit-root .tab,
+html[data-theme='dark'] #cockpit-root .ccds-filter-chip,
+html[data-theme='dark'] #cockpit-root .ccds-sort-btn,
+html[data-theme='dark'] #cockpit-root .ccds-dp-btn,
+html[data-theme='dark'] #cockpit-root .ccds-act-btn {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root .btn:not(.p):not(.g):hover,
+html[data-theme='dark'] #cockpit-root .tab:hover,
+html[data-theme='dark'] #cockpit-root .ccds-filter-chip:hover,
+html[data-theme='dark'] #cockpit-root .ccds-sort-btn:hover,
+html[data-theme='dark'] #cockpit-root .ccds-dp-btn:hover,
+html[data-theme='dark'] #cockpit-root .ccds-act-btn:hover {
+  background: #263244 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root .tab.active,
+html[data-theme='dark'] #cockpit-root .fusa-re-scope .tab.fusa-re-tab--active,
+html[data-theme='dark'] #cockpit-root .ccds-filter-chip.ccds-filter-chip--active {
+  background: #431407 !important;
+  border-color: #fb923c !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root .bdg,
+html[data-theme='dark'] #cockpit-root .ccds-chip,
+html[data-theme='dark'] #cockpit-root .ccds-role-badge {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+html[data-theme='dark'] #cockpit-root .bb,
+html[data-theme='dark'] #cockpit-root .ccds-chip--invited {
+  background: #431407 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root .bg,
+html[data-theme='dark'] #cockpit-root .ccds-chip--active {
+  background: #052e16 !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root .ba {
+  background: #431407 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root .br,
+html[data-theme='dark'] #cockpit-root .ccds-chip--disabled {
+  background: #450a0a !important;
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] #cockpit-root .bp {
+  background: #2e1065 !important;
+  color: #ddd6fe !important;
+}
+
+html[data-theme='dark'] #cockpit-root .bt {
+  background: #042f2e !important;
+  color: #99f6e4 !important;
+}
+
+html[data-theme='dark'] #cockpit-root .bgr {
+  background: #172033 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#fff'],
+html[data-theme='dark'] #cockpit-root [style*='background: #fff'],
+html[data-theme='dark'] #cockpit-root [style*='background:#FFF'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--card'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--panel'] {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#f8fafc'],
+html[data-theme='dark'] #cockpit-root [style*='background:#F7FAFC'],
+html[data-theme='dark'] #cockpit-root [style*='background:#f1f5f9'],
+html[data-theme='dark'] #cockpit-root [style*='background:#ECEFF1'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--gray-l'] {
+  background: #172033 !important;
+  border-color: #263244 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#FFF3E0'],
+html[data-theme='dark'] #cockpit-root [style*='background:#FFF0E6'],
+html[data-theme='dark'] #cockpit-root [style*='background:#FFFBF5'],
+html[data-theme='dark'] #cockpit-root [style*='background:#fffbeb'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--amber-l'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--blue-l'] {
+  background: #431407 !important;
+  border-color: #9a3412 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#E8F5E9'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--green-l'] {
+  background: #052e16 !important;
+  border-color: #166534 !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#FFEBEE'],
+html[data-theme='dark'] #cockpit-root [style*='background:var(--red-l'] {
+  background: #450a0a !important;
+  border-color: #991b1b !important;
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='background:#E3F2FD'],
+html[data-theme='dark'] #cockpit-root [style*='background:#EEF4FF'] {
+  background: #172554 !important;
+  border-color: #1d4ed8 !important;
+  color: #bfdbfe !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='color:#0f172a'],
+html[data-theme='dark'] #cockpit-root [style*='color:#1e293b'],
+html[data-theme='dark'] #cockpit-root [style*='color:#334155'],
+html[data-theme='dark'] #cockpit-root [style*='color:#111'],
+html[data-theme='dark'] #cockpit-root [style*='color:var(--text'] {
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root [style*='color:#64748b'],
+html[data-theme='dark'] #cockpit-root [style*='color:#94a3b8'],
+html[data-theme='dark'] #cockpit-root [style*='color:var(--text2'],
+html[data-theme='dark'] #cockpit-root [style*='color:var(--muted'] {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root h1,
+html[data-theme='dark'] #cockpit-root h2,
+html[data-theme='dark'] #cockpit-root h3,
+html[data-theme='dark'] #cockpit-root h4,
+html[data-theme='dark'] #cockpit-root .tm,
+html[data-theme='dark'] #cockpit-root .ph-title,
+html[data-theme='dark'] #cockpit-root .mtitle,
+html[data-theme='dark'] #cockpit-root .dp-t,
+html[data-theme='dark'] #cockpit-root .ckp-snapshot-ro-section-title,
+html[data-theme='dark'] #cockpit-root .ccds-user-name,
+html[data-theme='dark'] #cockpit-root .ccds-dp-name,
+html[data-theme='dark'] #cockpit-root .ckp-dash-title,
+html[data-theme='dark'] #cockpit-root .ckp-dash-panel__title,
+html[data-theme='dark'] #cockpit-root .ckp-dash-row__title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root p,
+html[data-theme='dark'] #cockpit-root .ts,
+html[data-theme='dark'] #cockpit-root .ccds-cell-muted,
+html[data-theme='dark'] #cockpit-root .ccds-user-email,
+html[data-theme='dark'] #cockpit-root .ckp-mock-note,
+html[data-theme='dark'] #cockpit-root .ckp-dash-sub,
+html[data-theme='dark'] #cockpit-root .ckp-dash-row__sub {
+  color: #94a3b8;
+}
+
+/* Cockpit dark-mode hardening: admin forms, dialogs, matrices and legacy rows. */
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] {
+  --ccds-bg: #0b1220;
+  --ccds-card: #111827;
+  --ccds-card-soft: #172033;
+  --ccds-border: #263244;
+  --ccds-border-strong: #344258;
+  --ccds-text: #f8fafc;
+  --ccds-muted: #94a3b8;
+  --ccds-muted-strong: #cbd5e1;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-section,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-shell-root,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-main {
+  background: #0b1220 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-login-panel,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-auftrag-form,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-api-form,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-detail,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-detail,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-projekte-detail,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-detail,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rollen-detail,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-empty,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-empty,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-empty,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-card,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-roles-card,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-tile,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-dash-kpi-card,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-dash-panel {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-wrap {
+  background: #111827 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal::backdrop,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-wrap::backdrop {
+  background: rgba(2, 6, 23, 0.78) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__head,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__footer,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-head,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-footer {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-edit-modal__footer,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-footer {
+  background: #0f172a !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor fieldset,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor [data-ccw-mod-block],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor [style*='background:#fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor [style*='background: #fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor [style*='background:#fafafa'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-access-editor [style*='background: #fafafa'] {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rights-matrix {
+  width: max-content;
+  min-width: 100%;
+  background: #111827 !important;
+  border: 1px solid #334155 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rights-matrix th {
+  background: #1e293b !important;
+  color: #dbe4ef !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rights-matrix td {
+  background: #111827 !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid #263244 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rights-matrix tbody tr:nth-child(even) td {
+  background: #0f172a !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rights-matrix tbody tr:hover td {
+  background: #172033 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] input,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] select,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] textarea,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-login-form__row input,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-login-form__row select,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-auftrag-form__row input,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-auftrag-form__row select,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-api-form__row input,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-api-form__row select,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-api-form__row textarea,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-field input,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-field select,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-field textarea {
+  background: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] input::placeholder,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] textarea::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] input:focus,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] select:focus,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] textarea:focus {
+  border-color: #60a5fa !important;
+  outline: 2px solid rgba(96, 165, 250, 0.28) !important;
+  outline-offset: 1px !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] input[type='checkbox'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] input[type='radio'] {
+  accent-color: #22c55e;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] label,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] legend,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] dt,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-field > span,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-neu-section-title,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-dp-section-title {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] dd,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-mock-check,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-roles-card__text,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-roles-card__desc,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-login-panel__hint,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-phase2-notice__body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-phase2-notice__body p {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-phase2-notice {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-phase2-notice__badge {
+  background: #bbf7d0 !important;
+  color: #14532d !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] code,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-mock-note code,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-phase2-notice code {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #bfdbfe !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-projekte-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rollen-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-tile:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-dash-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] button.ckp-dash-nav-row.ckp-dash-row:hover {
+  background: #172033 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-filter-reset,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-filter-reset,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-projekte-filter-reset,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-filter-reset,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firma-nav-link,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rolle-nav-link,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-dp-btn.secondary,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-dp-btn--secondary,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-act-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-invite-dismiss {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-benutzer-filter-reset:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-einladungen-filter-reset:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-projekte-filter-reset:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firmen-filter-reset:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-firma-nav-link:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-rolle-nav-link:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-dp-btn.secondary:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-dp-btn--secondary:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-act-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-api-invite-dismiss:hover {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-roles-right-badge,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-role-badge,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-chip,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-users-mock-tag {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background:#fafafa'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background: #fafafa'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background:#ffffff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background: #ffffff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background:#fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background: #fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background:#f8fafc'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background: #f8fafc'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background:#f1f5f9'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='background: #f1f5f9'] {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color:#475569'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color: #475569'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color:#64748b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color: #64748b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color:#334155'],
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [style*='color: #334155'] {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-row-menu {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-row-menu button,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-row-menu a {
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-row-menu button:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccds-row-menu a:hover {
+  background: #172033 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-section,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-header,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-week-grid-wrap,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-week-grid--head,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-scroll,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-wrap,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-dow-row,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-grid,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-times-col,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-allday-merge,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-legend,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__panel {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-corner,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-dayhead,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-dayhead--weekend,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-dayhead--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-allday-label,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-allday-merge,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-allday-bg,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-allday-bg--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-time-col,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-time-slot,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-day-col,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-day-col--weekend .ccw-cockpit-kal20-day-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-day-col--today .ccw-cockpit-kal20-day-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-cell,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-cell--weekend:not(.ccw-cockpit-kal20-month-cell--pad),
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-cell--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-corner,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-dayhead,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-dayhead--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-allday-label,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-day-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-day-col--today .ccw-cockpit-kal-week-day-body {
+  background: #0f172a !important;
+  border-color: #263244 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-hour-line,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-hour-line,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-allday-bg {
+  border-color: #1e293b !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-grid {
+  background: #1e293b !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-view-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-nav-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-display-mode-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-btn-heute,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-btn-arrow,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-view-switch,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-view-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-chip,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-chip--off,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__cancel {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-view-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-nav-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-display-mode-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-btn-heute:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-btn-arrow:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-view-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-chip:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__cancel:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-list-row:hover {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-view-btn--active,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-display-mode-btn--active,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-view-btn--active,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--an,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-alle[aria-checked='true'] {
+  background: #052e16 !important;
+  border-color: #22c55e !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-btn-general-neu,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__submit {
+  background: #0f766e !important;
+  border-color: #14b8a6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-view-headline,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-h2,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-kw-bold,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-wday-num,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-daynum,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-intro,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-kw-sub,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-wday-name,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-time-label,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-view-badge,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-footer,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-foot-konflikt,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-legend,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-legend-hint,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-dock__hint,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] [data-ccw-ro='cockpit-kalender'] .ccw-cockpit-kal-general-form__row label {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-wday-num--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-month-cell--today .ccw-cockpit-kal20-month-daynum {
+  background: #172033 !important;
+  border-color: #60a5fa !important;
+  color: #bfdbfe !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-now-dot {
+  background: #60a5fa !important;
+  box-shadow: 0 0 0 2px #0f172a !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-now-line {
+  border-top-color: #60a5fa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-block,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-evt,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-cal-block {
+  filter: saturate(0.92) brightness(0.9);
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-block__title,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal-week-block__time,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-evt__title,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ccw-cockpit-kal20-evt__time,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-cal-block__title,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-cal-block__range {
+  color: #111827 !important;
+}
+
+/* FUSA dark-mode hardening: module views, shared forms, modals and calendar. */
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] {
+  --ccds-bg: #0b1220;
+  --ccds-card: #111827;
+  --ccds-card-soft: #172033;
+  --ccds-border: #263244;
+  --ccds-border-strong: #344258;
+  --ccds-text: #f8fafc;
+  --ccds-muted: #94a3b8;
+  --ccds-muted-strong: #cbd5e1;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-section,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-shell-root,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-main,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-ccw-ro^='fusa-'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-view {
+  background: #0b1220 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-dash-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-sch-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-re-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-scope,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-view {
+  --text: #f8fafc;
+  --text2: #cbd5e1;
+  --text3: #94a3b8;
+  --muted: #94a3b8;
+  --bg: #0b1220;
+  --card: #111827;
+  --panel: #111827;
+  --panel-bg: #111827;
+  --border: #263244;
+  --line: #263244;
+  --gray-l: #172033;
+  --blue-l: #431407;
+  --green-l: #052e16;
+  --amber-l: #431407;
+  --red-l: #450a0a;
+  --teal-l: #042f2e;
+  --purple-l: #2e1065;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-scope {
+  --fq-red-l: #450a0a;
+  --fq-amber-l: #431407;
+  --fq-blue-l: #172554;
+  --fq-green-l: #052e16;
+  --fq-purple-l: #2e1065;
+  --fq-gray-l: #172033;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .panel,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .sc,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-wrap,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-section,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-form,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-empty,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-readonly-hint,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-re-ang-table,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-export,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .warnbox,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-re-dialog,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view .modal,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-umz-auf-scope .dpanel,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-umz-neu-dialog,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw-panel,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal > div {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .panel table,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-table,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-table,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw table,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-re-ang-table {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] thead,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] th,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ph,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .panel thead th,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-th,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw th {
+  background: #1e293b !important;
+  border-color: #263244 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] td,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-td,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-fusa-table td,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw td {
+  background: transparent !important;
+  border-color: #263244 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] tbody tr:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] tbody tr:hover td,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-schaden-list-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-row:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-q-main-row:hover {
+  background: #172033 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] h1,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] h2,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] h3,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] h4,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .tm,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ph-title,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .dp-t,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .mtitle,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-qcard__v,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-kv__val,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-snapshot-ro-section-title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] p,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] label,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ts,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .sc-l,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .wt,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-cell-muted,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-mock-note,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-kv__lab,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-auf-detail-qcard__k {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] input,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] select,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] textarea,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .srch,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fs,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-start__proj-select,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-form__row input,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-form__row select,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-form__row textarea {
+  background: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] input::placeholder,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.95 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] input:focus,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] select:focus,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] textarea:focus {
+  border-color: #60a5fa !important;
+  outline: 2px solid rgba(96, 165, 250, 0.28) !important;
+  outline-offset: 1px !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .tab,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-act-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-sch-filter .btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-toolbar .btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-scope .btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-export .btn {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .tab:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-act-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-sch-filter .btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-toolbar .btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-scope .btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-export .btn:hover {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .tab.active,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-submit,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-melden-btn],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .btn.p {
+  background: #0f766e !important;
+  border-color: #14b8a6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .tab.active:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-api-auftrag-submit:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-melden-btn]:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .btn.p:hover {
+  background: #0d9488 !important;
+  border-color: #2dd4bf !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-sch-bdg,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-bdg {
+  border: 1px solid currentColor !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bb,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.bb {
+  background: #431407 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bg,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.bg {
+  background: #052e16 !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .br,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.br {
+  background: #450a0a !important;
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ba,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.ba {
+  background: #431407 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bt,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.bt {
+  background: #042f2e !important;
+  color: #99f6e4 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bp,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.bp {
+  background: #2e1065 !important;
+  color: #ddd6fe !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bgr,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .bdg.bgr {
+  background: #172033 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background: #fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#ffffff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background: #ffffff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#fafafa'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background: #fafafa'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#f8fafc'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background: #f8fafc'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#f1f5f9'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background: #f1f5f9'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:var(--gray-l'] {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#FFF0E6'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#FFF3E0'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#fffbeb'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:var(--blue-l'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:var(--amber-l'] {
+  background: #431407 !important;
+  border-color: #9a3412 !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#E8F5E9'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:var(--green-l'] {
+  background: #052e16 !important;
+  border-color: #166534 !important;
+  color: #bbf7d0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#FFEBEE'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:var(--red-l'] {
+  background: #450a0a !important;
+  border-color: #991b1b !important;
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#E3F2FD'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='background:#EEF4FF'] {
+  background: #172554 !important;
+  border-color: #1d4ed8 !important;
+  color: #bfdbfe !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#0f172a'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #0f172a'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#1e293b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #1e293b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#334155'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #334155'] {
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#475569'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #475569'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#64748b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #64748b'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color:#94a3b8'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [style*='color: #94a3b8'] {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-overlay,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal {
+  background: rgba(2, 6, 23, 0.78) !important;
+  padding: 20px !important;
+  z-index: 12000 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal > div {
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(760px, calc(100vw - 40px)) !important;
+  min-width: 0 !important;
+  max-width: min(760px, calc(100vw - 40px)) !important;
+  max-height: min(88vh, 860px) !important;
+  overflow: hidden !important;
+  border: 1px solid #263244 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.46) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal > div,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog {
+  width: min(560px, calc(100vw - 40px)) !important;
+  max-width: min(560px, calc(100vw - 40px)) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__h,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dh,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw-h,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__b,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-db,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw-body {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal h3,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal h3,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal h3 {
+  margin: 0 !important;
+  padding: 22px 28px 16px !important;
+  border-bottom: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  padding: 20px 28px 0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal div[style*='justify-content:flex-end'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df {
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin: 18px -28px 0 !important;
+  padding: 16px 28px !important;
+  background: #0f172a !important;
+  border-top: 1px solid #334155 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df {
+  margin: 0 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'] > button,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'] > button,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal div[style*='justify-content:flex-end'] > button,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f > button,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df > button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 132px !important;
+  min-height: 44px !important;
+  padding: 10px 18px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal [data-fusa-sch-modal-close],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal [data-fusa-sch-termin-close],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal [data-fusa-sch-best-close],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__h button,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dh button {
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog {
+  display: flex !important;
+  flex-direction: column !important;
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+  overflow: hidden !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog > div {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog [data-ccw-kunden-edit-body] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog .ccds-dp-footer,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-kunden-edit-dialog [style*='justify-content:flex-end'] {
+  background: #0f172a !important;
+  border-top: 1px solid #334155 !important;
+  min-height: 72px !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-section,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-header,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-week-grid-wrap,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-week-grid--head,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-scroll,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-wrap,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-dow-row {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-corner,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-dayhead,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-dayhead--weekend,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-dayhead--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-allday-label,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-allday-merge,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-time-col,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-time-slot,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-day-col,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-day-col--weekend .ccw-cockpit-kal20-day-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-day-col--today .ccw-cockpit-kal20-day-body,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-cell,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-cell--weekend:not(.ccw-cockpit-kal20-month-cell--pad),
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-cell--today {
+  background: #0f172a !important;
+  border-color: #263244 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-hour-line {
+  border-color: #1e293b !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-grid {
+  background: #1e293b !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-btn-heute,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-btn-arrow,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-view-switch,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-view-btn,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-chip {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-btn-heute:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-btn-arrow:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-view-btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-chip:hover {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-view-btn--active,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--an,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-chip.ccw-cockpit-kal20-chip--kat-alle[aria-checked='true'] {
+  background: #431407 !important;
+  border-color: #ea580c !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-h2,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-kw-bold,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-wday-num,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-daynum {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-intro,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-kw-sub,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-wday-name,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-time-label,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-view-badge,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-footer {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-wday-num--today,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-month-cell--today .ccw-cockpit-kal20-month-daynum {
+  background: #172033 !important;
+  border-color: #ea580c !important;
+  color: #fed7aa !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-now-line {
+  border-top-color: #ea580c !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-now-dot {
+  background: #ea580c !important;
+  box-shadow: 0 0 0 2px #0f172a !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-evt,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-cal-block {
+  filter: saturate(0.92) brightness(0.9);
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-evt__title,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccw-cockpit-kal20-evt__time,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-cal-block__title,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ckp-cal-block__range {
+  color: #111827 !important;
+}
+
+@media (max-width: 760px) {
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal > div {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'],
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'],
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal div[style*='justify-content:flex-end'],
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df {
+    align-items: stretch !important;
+    flex-direction: column-reverse !important;
+  }
+
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'] > button,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'] > button,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal div[style*='justify-content:flex-end'] > button,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f > button,
+  html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df > button {
+    width: 100% !important;
+  }
+}
+
+/* FUSA modal action bars: professional fixed footer layout. */
+#cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+#cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+#cockpit-root[data-app-module='fusa'] .fusa-re-dialog,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-dialog {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+#cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+#cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div {
+  width: min(780px, calc(100vw - 48px)) !important;
+  max-width: min(780px, calc(100vw - 48px)) !important;
+  max-height: min(88vh, 880px) !important;
+  padding: 0 !important;
+}
+
+#cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal h3,
+#cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal h3 {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 24px 32px 18px !important;
+}
+
+#cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal [data-fusa-sch-modal-close],
+#cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal [data-fusa-sch-termin-close],
+#cockpit-root[data-app-module='fusa'] #fusa-sch-best-modal [data-fusa-sch-best-close] {
+  top: 18px !important;
+  right: 22px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  line-height: 1 !important;
+}
+
+#cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form],
+#cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding: 22px 32px 0 !important;
+  box-sizing: border-box !important;
+}
+
+#cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'],
+#cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'] {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 3 !important;
+  width: calc(100% + 64px) !important;
+  margin: 22px -32px 0 !important;
+  padding: 18px 32px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-re-dialog {
+  width: min(820px, calc(100vw - 48px)) !important;
+  max-width: min(820px, calc(100vw - 48px)) !important;
+  max-height: min(90vh, 900px) !important;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-re-dh,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-modal__h,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-dh {
+  flex: 0 0 auto !important;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-re-db,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-modal__b,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-db {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-re-df,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+#cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px 28px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+#cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'] > button,
+#cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'] > button,
+#cockpit-root[data-app-module='fusa'] .fusa-re-df > button,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f > button,
+#cockpit-root[data-app-module='fusa'] .fusa-doc-df > button,
+#cockpit-root[data-app-module='fusa'] .fq-draw-foot > button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 140px !important;
+  min-height: 44px !important;
+  padding: 10px 20px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+#cockpit-root[data-app-module='fusa'] .fusa-re-df > button[data-fusa-re-neu-erstellen-versenden] {
+  min-width: 230px !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-re-df,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+  background: #0f172a !important;
+  border-top: 1px solid #334155 !important;
+}
+
+@media (max-width: 760px) {
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal,
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal {
+    padding: 0 !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-melden-modal > div,
+  #cockpit-root[data-app-module='fusa'] #fusa-sch-termin-modal > div,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-dialog,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__box,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-dialog {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'],
+  #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'],
+  #cockpit-root[data-app-module='fusa'] .fusa-re-df,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-df,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-foot {
+    align-items: stretch !important;
+    flex-direction: column-reverse !important;
+  }
+
+  #cockpit-root[data-app-module='fusa'] [data-fusa-schaden-form] > div[style*='justify-content:flex-end'] > button,
+  #cockpit-root[data-app-module='fusa'] [data-fusa-sch-termin-form] > div[style*='justify-content:flex-end'] > button,
+  #cockpit-root[data-app-module='fusa'] .fusa-re-df > button,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-modal__f > button,
+  #cockpit-root[data-app-module='fusa'] .fusa-doc-df > button,
+  #cockpit-root[data-app-module='fusa'] .fq-draw-foot > button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* FUSA vehicle detail modal: shared dark-mode polish for the reusable Fahrzeugakte drawer. */
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] {
+  background: rgba(2, 6, 23, .76) !important;
+  backdrop-filter: blur(3px);
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-panel {
+  background: #0f172a !important;
+  border-left: 1px solid #263244 !important;
+  color: #e5e7eb !important;
+  box-shadow: -18px 0 60px rgba(0, 0, 0, .42) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-hdr,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-tabs],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-body] {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-name],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .tm,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .dp-val,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .ph-title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-sub],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .dp-lbl,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .empty-text,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .warnbox .wt {
+  color: #a8b3c7 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fz-tab {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fz-tab:hover {
+  background: #172033 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fz-tab.active {
+  background: #0f172a !important;
+  border-bottom-color: #f97316 !important;
+  color: #fb923c !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .dp-close {
+  background: #172033 !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .dp-close:hover {
+  background: #263244 !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .panel,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .warnbox,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .foto-slot,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='background:#fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='background: #fff'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='background:#ffffff'] {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .ph,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .panel thead th,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='background:#f8fafc'],
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='background:var(--gray-l)'] {
+  background: #1e293b !important;
+  border-color: #263244 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .dp-row,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .panel td,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .panel th {
+  border-color: #263244 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] a,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] [style*='color:var(--amber)'] {
+  color: #fb923c !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot .btn {
+  min-height: 42px !important;
+  border-radius: 10px !important;
+  border-color: #475569 !important;
+  background: #172033 !important;
+  color: #e5e7eb !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot .btn.p,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .btn.p {
+  background: #0f9488 !important;
+  border-color: #14b8a6 !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot .btn:hover,
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .fusa-fz-view [data-fusa-fz-detail-body] .btn:hover {
+  filter: none !important;
+  transform: translateY(-1px);
+}
+
+/* Professional login screen: CC Werbung production cockpit. */
+#cockpit-root[data-app-module='cockpit'] #cockpit-content:has(.ckp-login-panel) {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 4vw, 46px);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(34, 197, 94, .16), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(59, 130, 246, .16), transparent 32%),
+    radial-gradient(circle at 72% 88%, rgba(249, 115, 22, .15), transparent 30%),
+    linear-gradient(135deg, #f8fafc 0%, #eef4f8 100%);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel {
+  width: min(1040px, 100%);
+  max-width: 1040px;
+  min-height: 560px;
+  margin: 0 auto;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(380px, .95fr);
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 32px 90px rgba(15, 23, 42, .16);
+  backdrop-filter: blur(18px);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-visual {
+  position: relative;
+  isolation: isolate;
+  min-height: 560px;
+  padding: clamp(28px, 4vw, 48px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, .94), rgba(30, 58, 138, .88) 52%, rgba(154, 52, 18, .9)),
+    #0f172a;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-visual::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(34, 197, 94, .35), transparent 23%),
+    radial-gradient(circle at 80% 18%, rgba(96, 165, 250, .35), transparent 28%),
+    radial-gradient(circle at 68% 74%, rgba(251, 146, 60, .34), transparent 26%);
+  animation: ckpLoginGlow 11s ease-in-out infinite alternate;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .08) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(135deg, rgba(0, 0, 0, .75), transparent 78%);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-brand__mark {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 18px;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, .4), transparent 30%),
+    linear-gradient(135deg, #22c55e, #2563eb 48%, #f97316);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, .3);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-brand__name {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-brand__line {
+  display: block;
+  margin-top: 2px;
+  color: rgba(226, 232, 240, .82);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene {
+  position: relative;
+  min-height: 300px;
+  margin: 24px 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__grid {
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: 18px;
+  height: 112px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)),
+    repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, .14) 28px 30px);
+  border: 1px solid rgba(255, 255, 255, .18);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__van {
+  position: absolute;
+  left: 9%;
+  bottom: 58px;
+  width: min(300px, 62%);
+  height: 124px;
+  border-radius: 24px 36px 20px 20px;
+  background:
+    linear-gradient(90deg, #f8fafc 0 58%, #dbeafe 58% 100%);
+  box-shadow: 0 24px 42px rgba(0, 0, 0, .34);
+  animation: ckpLoginVan 5.8s ease-in-out infinite;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__van::before {
+  content: "";
+  position: absolute;
+  right: 26px;
+  top: 22px;
+  width: 58px;
+  height: 34px;
+  border-radius: 10px 18px 8px 8px;
+  background: linear-gradient(135deg, #93c5fd, #1d4ed8);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__van::after {
+  content: "CC Werbung";
+  position: absolute;
+  left: 24px;
+  top: 28px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__stripe {
+  position: absolute;
+  left: 20px;
+  right: 28px;
+  bottom: 34px;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0 30%, #2563eb 30% 66%, #f97316 66% 100%);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__wheel {
+  position: absolute;
+  bottom: -17px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e5e7eb 0 28%, #0f172a 30% 62%, #334155 64%);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, .25);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__wheel--a {
+  left: 36px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__wheel--b {
+  right: 36px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__panel {
+  position: absolute;
+  right: 2%;
+  width: 154px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, .58);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .2);
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  backdrop-filter: blur(10px);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__panel--one {
+  top: 34px;
+  animation: ckpLoginFloat 4.6s ease-in-out infinite;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__panel--two {
+  top: 94px;
+  right: 12%;
+  animation: ckpLoginFloat 4.6s ease-in-out infinite .8s;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-scene__roll {
+  position: absolute;
+  right: 9%;
+  bottom: 54px;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #0f172a 0 18%, transparent 19%),
+    conic-gradient(from 20deg, #22c55e, #2563eb, #f97316, #22c55e);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, .28);
+  animation: ckpLoginRoll 8s linear infinite;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-proof span {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  color: rgba(248, 250, 252, .88);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-form-card {
+  padding: clamp(30px, 5vw, 58px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(248, 250, 252, .96));
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-eyebrow {
+  margin: 0 0 10px;
+  color: #f97316;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-panel__title {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-panel__hint {
+  max-width: 420px;
+  margin: 0 0 26px;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form {
+  display: grid;
+  gap: 16px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row {
+  margin: 0;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row label {
+  margin: 0 0 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row input {
+  min-height: 52px;
+  padding: 13px 15px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 650;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .14);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row input::placeholder {
+  color: #94a3b8;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-submit {
+  width: 100%;
+  min-height: 54px;
+  margin: 6px 0 0;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0f9488, #2563eb);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 18px 34px rgba(37, 99, 235, .22);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-submit:hover {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+  box-shadow: 0 22px 40px rgba(37, 99, 235, .26);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-submit:active {
+  transform: translateY(0);
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-api-note {
+  margin: 18px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-api-note code {
+  padding: 2px 6px;
+  border-radius: 7px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 11px;
+}
+
+#cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+@keyframes ckpLoginGlow {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to { transform: translate3d(2%, 1%, 0) scale(1.04); }
+}
+
+@keyframes ckpLoginVan {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes ckpLoginFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes ckpLoginRoll {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-panel {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-visual {
+    min-height: 310px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene {
+    min-height: 180px;
+    margin: 10px 0 0;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__grid {
+    height: 80px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__van {
+    width: min(270px, 58%);
+    height: 96px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__panel--two,
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__roll {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  #cockpit-root[data-app-module='cockpit'] #cockpit-content:has(.ckp-login-panel) {
+    padding: 12px;
+    place-items: stretch;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-panel {
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-visual {
+    min-height: 220px;
+    padding: 22px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene {
+    display: none;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-brand__mark {
+    width: 46px;
+    height: 46px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-brand__name {
+    font-size: 19px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-form-card {
+    padding: 24px 20px 26px;
+  }
+
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-panel__title {
+    font-size: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-visual::before,
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__van,
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__panel,
+  #cockpit-root[data-app-module='cockpit'] .ckp-login-scene__roll {
+    animation: none !important;
+  }
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] #cockpit-content:has(.ckp-login-panel) {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(34, 197, 94, .16), transparent 30%),
+    radial-gradient(circle at 86% 14%, rgba(96, 165, 250, .16), transparent 32%),
+    radial-gradient(circle at 74% 90%, rgba(251, 146, 60, .13), transparent 30%),
+    #070d18 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel {
+  background: rgba(15, 23, 42, .9) !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .48) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-form-card {
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, .96), rgba(15, 23, 42, .98)) !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-panel__title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-panel__hint,
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-api-note {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row label {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row input {
+  background: #0b1426 !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-panel .ckp-api-login-form__row input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, .2) !important;
+  outline: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='cockpit'] .ckp-login-api-note code {
+  background: #0b1426 !important;
+  border: 1px solid #334155 !important;
+  color: #bfdbfe !important;
 }

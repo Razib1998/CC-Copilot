@@ -586,3 +586,764 @@ body.ckp-module,
   background: #fff;
 }
 .cc-intern-root.cc-intern-cockpit .cc-mob-testrow { background: #e8f4ff; border-color: #b8d4f0; color: #1a365d; }
+
+html[data-theme='dark'] .cc-intern-root.ckp-module {
+  --blue-l: #172554;
+  --green-l: #052e16;
+  --amber-l: #431407;
+  --red-l: #450a0a;
+  --purple-l: #2e1065;
+  --teal-l: #042f2e;
+  --gray-l: #172033;
+  --border: #263244;
+  --text: #e5e7eb;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --bg: #0b1120;
+  --card: #111827;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module,
+html[data-theme='dark'] .cc-intern-root.ckp-module .main,
+html[data-theme='dark'] .cc-intern-root.ckp-module .content {
+  background: #0b1120;
+  color: #e5e7eb;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .topbar,
+html[data-theme='dark'] .cc-intern-root.ckp-module .panel,
+html[data-theme='dark'] .cc-intern-root.ckp-module .sc,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ma-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .modal,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dpanel,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ac-block,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-aufg-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-stat-card {
+  background: #111827;
+  border-color: #263244;
+  color: #e5e7eb;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .ph,
+html[data-theme='dark'] .cc-intern-root.ckp-module thead th,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mhdr,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mfoot,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-hdr,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-section,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-footer,
+html[data-theme='dark'] .cc-intern-root.ckp-module .chat-input-wrap,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-col {
+  background: #172033;
+  border-color: #263244;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module tbody td,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-row,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ma-stats,
+html[data-theme='dark'] .cc-intern-root.ckp-module .pos-row {
+  border-color: #263244;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module tbody tr:hover td,
+html[data-theme='dark'] .cc-intern-root.ckp-module .btn:hover,
+html[data-theme='dark'] .cc-intern-root.ckp-module .tab.active {
+  background: #1f2937;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .btn,
+html[data-theme='dark'] .cc-intern-root.ckp-module .srch,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fi,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fs,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fta,
+html[data-theme='dark'] .cc-intern-root.ckp-module .tabs,
+html[data-theme='dark'] .cc-intern-root.ckp-module .chat-input-field {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e5e7eb;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .tb-title,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ph-title,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mtitle,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-t,
+html[data-theme='dark'] .cc-intern-root.ckp-module .tm,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ma-name,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-cn {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .tb-sub,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ts,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-lbl,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ma-role,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-cs {
+  color: #94a3b8;
+}
+
+/* ── CC Intern Cockpit Responsive Pass ───────────────────────────────
+   Layout-only overrides for the embedded legacy app. */
+.cc-intern-root.ckp-module,
+.cc-intern-root.ckp-module .main,
+.cc-intern-root.ckp-module .content,
+.cc-intern-root.ckp-module .pg,
+.cc-intern-root.ckp-module .panel,
+.cc-intern-root.ckp-module .modal,
+.cc-intern-root.ckp-module .dpanel,
+.cc-intern-root.ckp-module .overlay,
+.cc-intern-root.ckp-module .modal-ov {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.cc-intern-root.ckp-module .content {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cc-intern-root.ckp-module .panel {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cc-intern-root.ckp-module .panel > table,
+.cc-intern-root.ckp-module .content > table,
+.cc-intern-root.ckp-module .dp-body table,
+.cc-intern-root.ckp-module .modal table {
+  min-width: 720px;
+}
+
+.cc-intern-root.ckp-module .ph,
+.cc-intern-root.ckp-module .ph-right,
+.cc-intern-root.ckp-module .tb-right,
+.cc-intern-root.ckp-module .dp-footer,
+.cc-intern-root.ckp-module .mfoot {
+  min-width: 0;
+}
+
+.cc-intern-root.ckp-module .srch,
+.cc-intern-root.ckp-module .fi,
+.cc-intern-root.ckp-module .fs,
+.cc-intern-root.ckp-module .fta {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.cc-intern-root.ckp-module #cc-notif-dropdown {
+  max-width: calc(100vw - 24px);
+}
+
+@media (max-width: 1200px) {
+  .cc-intern-root.ckp-module .kanban {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .cc-intern-root.ckp-module #kanbanBoard .kanban {
+    grid-template-columns: repeat(6, minmax(170px, 1fr)) !important;
+  }
+
+  .cc-intern-root.ckp-module .ma-grid,
+  .cc-intern-root.ckp-module .g3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .cc-intern-root.ckp-module .pg.active {
+    padding: 12px 14px 18px;
+  }
+
+  .cc-intern-root.ckp-module .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .cc-intern-root.ckp-module .g2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cc-intern-root.ckp-module .frow3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cc-intern-root.ckp-module .modal {
+    width: min(94vw, 760px);
+  }
+
+  .cc-intern-root.ckp-module .dpanel {
+    width: min(620px, 100vw);
+  }
+}
+
+@media (max-width: 760px) {
+  .cc-intern-root.ckp-module .topbar {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 6px;
+  }
+
+  .cc-intern-root.ckp-module .pg.active {
+    padding: 8px 8px 14px;
+  }
+
+  .cc-intern-root.ckp-module .stats,
+  .cc-intern-root.ckp-module .ma-grid,
+  .cc-intern-root.ckp-module .g2,
+  .cc-intern-root.ckp-module .g3,
+  .cc-intern-root.ckp-module .frow2,
+  .cc-intern-root.ckp-module .frow3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cc-intern-root.ckp-module .ph,
+  .cc-intern-root.ckp-module .ph-right,
+  .cc-intern-root.ckp-module .dp-footer,
+  .cc-intern-root.ckp-module .mfoot,
+  .cc-intern-root.ckp-module .pos-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cc-intern-root.ckp-module .ph {
+    gap: 8px;
+  }
+
+  .cc-intern-root.ckp-module .ph-right {
+    display: flex;
+    gap: 8px;
+  }
+
+  .cc-intern-root.ckp-module .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cc-intern-root.ckp-module .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .cc-intern-root.ckp-module .srch,
+  .cc-intern-root.ckp-module .btn,
+  .cc-intern-root.ckp-module .fi,
+  .cc-intern-root.ckp-module .fs,
+  .cc-intern-root.ckp-module .fta {
+    width: 100% !important;
+  }
+
+  .cc-intern-root.ckp-module .modal-ov {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .cc-intern-root.ckp-module .modal {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .cc-intern-root.ckp-module .mhdr,
+  .cc-intern-root.ckp-module .mbody,
+  .cc-intern-root.ckp-module .mfoot,
+  .cc-intern-root.ckp-module .dp-hdr,
+  .cc-intern-root.ckp-module .dp-section,
+  .cc-intern-root.ckp-module .dp-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cc-intern-root.ckp-module .overlay.open {
+    align-items: stretch;
+  }
+
+  .cc-intern-root.ckp-module .dpanel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .cc-intern-root.ckp-module .dp-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .cc-intern-root.ckp-module .dp-val {
+    max-width: 100%;
+    text-align: left;
+    word-break: break-word;
+  }
+
+  .cc-intern-root.ckp-module .kanban,
+  .cc-intern-root.ckp-module #kanbanBoard .kanban {
+    grid-template-columns: repeat(6, minmax(180px, 76vw)) !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cc-intern-root.ckp-module .kb-col {
+    min-width: 180px;
+  }
+
+  .cc-intern-root.ckp-module .pos-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .cc-intern-root.ckp-module #cc-notif-dropdown {
+    position: fixed !important;
+    top: 104px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-height: calc(100vh - 128px);
+  }
+}
+
+@media (max-width: 560px) {
+  .cc-intern-root.ckp-module .panel > table,
+  .cc-intern-root.ckp-module .content > table,
+  .cc-intern-root.ckp-module .dp-body table,
+  .cc-intern-root.ckp-module .modal table {
+    min-width: 640px;
+  }
+
+  .cc-intern-root.ckp-module .sc {
+    padding: 12px;
+  }
+
+  .cc-intern-root.ckp-module .sc-n {
+    font-size: 20px;
+  }
+
+  .cc-intern-root.ckp-module .ma-stats {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .cc-intern-root.ckp-module .chat-input-wrap {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .cc-intern-root.ckp-module .chat-frage-toggle {
+    width: 100%;
+  }
+
+  .cc-intern-root.ckp-module .chat-bubble {
+    max-width: 86%;
+  }
+}
+
+/* Late dark-mode guard for CC Intern legacy screens loaded after the shell CSS. */
+html[data-theme='dark'] .cc-intern-root.ckp-module {
+  --border: #263244;
+  --text: #e5e7eb;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --bg: #0b1120;
+  --card: #111827;
+  --gray-l: #172033;
+  --blue-l: #172554;
+  --green-l: #052e16;
+  --amber-l: #431407;
+  --red-l: #450a0a;
+  --purple-l: #2e1065;
+  --teal-l: #042f2e;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .topbar,
+html[data-theme='dark'] .cc-intern-root.ckp-module .panel,
+html[data-theme='dark'] .cc-intern-root.ckp-module .sc,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ma-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .modal,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dpanel,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-aufg-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-stat-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#fff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background: #fff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#FFF'] {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .ph,
+html[data-theme='dark'] .cc-intern-root.ckp-module thead th,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mhdr,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mfoot,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-hdr,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-section,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-footer,
+html[data-theme='dark'] .cc-intern-root.ckp-module .kb-col,
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#f8fafc'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#F7FAFC'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#ECEFF1'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:var(--gray-l'] {
+  background: #172033 !important;
+  border-color: #263244 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module tbody td,
+html[data-theme='dark'] .cc-intern-root.ckp-module .dp-row,
+html[data-theme='dark'] .cc-intern-root.ckp-module .pos-row {
+  border-color: #263244 !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module tbody tr:hover td,
+html[data-theme='dark'] .cc-intern-root.ckp-module .btn:hover,
+html[data-theme='dark'] .cc-intern-root.ckp-module .tab:hover {
+  background: #263244 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .btn:not(.p):not(.g),
+html[data-theme='dark'] .cc-intern-root.ckp-module .tab,
+html[data-theme='dark'] .cc-intern-root.ckp-module .srch,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fi,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fs,
+html[data-theme='dark'] .cc-intern-root.ckp-module .fta,
+html[data-theme='dark'] .cc-intern-root.ckp-module .chat-input-field {
+  background: #0f172a !important;
+  border-color: #475569 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .tab.active {
+  background: #172554 !important;
+  border-color: #60a5fa !important;
+  color: #bfdbfe !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#0f172a'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#1e293b'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#334155'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#111'] {
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#64748b'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#94a3b8'] {
+  color: #94a3b8 !important;
+}
+
+/* CC Intern dark polish: legacy inline dialogs and mobile app surfaces. */
+html[data-theme='dark'] .cc-intern-root.ckp-module,
+html[data-theme='dark'] #lager-artikel-ov,
+html[data-theme='dark'] #lager-lief-ov,
+html[data-theme='dark'] #lager-bestellung-ov,
+html[data-theme='dark'] #ma-settings-ov,
+html[data-theme='dark'] #lager-bestell-ov,
+html[data-theme='dark'] #cc-prod-ma-modal {
+  --cc-dark-bg: #070d18;
+  --cc-dark-panel: #0f172a;
+  --cc-dark-panel-2: #172033;
+  --cc-dark-border: #334155;
+  --cc-dark-border-soft: #263244;
+  --cc-dark-text: #f3f6fb;
+  --cc-dark-muted: #a8b3c7;
+  --cc-dark-faint: #718096;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .content,
+html[data-theme='dark'] .cc-intern-root.ckp-module .pg,
+html[data-theme='dark'] .cc-intern-root.ckp-module .main,
+html[data-theme='dark'] .cc-intern-root.ckp-module .ccw-ccintern-container,
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#0B1120'] {
+  background: var(--cc-dark-bg, #070d18) !important;
+  color: var(--cc-dark-text, #f3f6fb) !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#fff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background: #fff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#FFF'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#ffffff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background: #ffffff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#FAFAFA'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#F9FAFB'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#F9F9F9'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#F2F2F7'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#ECECF1'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#E5E5EA'],
+html[data-theme='dark'] #lager-artikel-ov [style*='background:#fff'],
+html[data-theme='dark'] #lager-lief-ov [style*='background:#fff'],
+html[data-theme='dark'] #lager-bestellung-ov [style*='background:#fff'],
+html[data-theme='dark'] #ma-settings-ov [style*='background:#fff'],
+html[data-theme='dark'] #lager-bestell-ov [style*='background:#fff'],
+html[data-theme='dark'] #cc-prod-ma-modal [style*='background:var(--surface,#fff)'] {
+  background: var(--cc-dark-panel, #0f172a) !important;
+  border-color: var(--cc-dark-border-soft, #263244) !important;
+  color: var(--cc-dark-text, #f3f6fb) !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#f8fafc'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#f1f5f9'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='background:#e2e8f0'],
+html[data-theme='dark'] #lager-artikel-ov [style*='background:var(--gray-l)'],
+html[data-theme='dark'] #lager-lief-ov [style*='background:var(--gray-l)'],
+html[data-theme='dark'] #lager-bestellung-ov [style*='background:var(--gray-l)'],
+html[data-theme='dark'] #ma-settings-ov [style*='background:var(--gray-l)'] {
+  background: var(--cc-dark-panel-2, #172033) !important;
+  border-color: var(--cc-dark-border-soft, #263244) !important;
+  color: #dbe4ef !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#111'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#111827'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#1C1C1E'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#3C3C43'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#0F1923'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#334155'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#475569'],
+html[data-theme='dark'] #lager-artikel-ov,
+html[data-theme='dark'] #lager-lief-ov,
+html[data-theme='dark'] #lager-bestellung-ov,
+html[data-theme='dark'] #ma-settings-ov,
+html[data-theme='dark'] #lager-bestell-ov {
+  color: var(--cc-dark-text, #f3f6fb) !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#6b7280'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#8E8E93'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#90A4AE'],
+html[data-theme='dark'] .cc-intern-root.ckp-module [style*='color:#94A3B8'],
+html[data-theme='dark'] #lager-artikel-ov label,
+html[data-theme='dark'] #lager-lief-ov label,
+html[data-theme='dark'] #lager-bestellung-ov label,
+html[data-theme='dark'] #ma-settings-ov label {
+  color: var(--cc-dark-muted, #a8b3c7) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov,
+html[data-theme='dark'] #lager-lief-ov,
+html[data-theme='dark'] #lager-bestellung-ov,
+html[data-theme='dark'] #ma-settings-ov,
+html[data-theme='dark'] #lager-bestell-ov,
+html[data-theme='dark'] #cc-prod-ma-modal {
+  background: rgba(2, 6, 23, .78) !important;
+  padding: 24px !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov input,
+html[data-theme='dark'] #lager-artikel-ov select,
+html[data-theme='dark'] #lager-artikel-ov textarea,
+html[data-theme='dark'] #lager-lief-ov input,
+html[data-theme='dark'] #lager-lief-ov select,
+html[data-theme='dark'] #lager-lief-ov textarea,
+html[data-theme='dark'] #lager-bestellung-ov input,
+html[data-theme='dark'] #lager-bestellung-ov select,
+html[data-theme='dark'] #lager-bestellung-ov textarea,
+html[data-theme='dark'] #ma-settings-ov input,
+html[data-theme='dark'] #ma-settings-ov select,
+html[data-theme='dark'] #ma-settings-ov textarea,
+html[data-theme='dark'] #lager-bestell-ov input,
+html[data-theme='dark'] #lager-bestell-ov select,
+html[data-theme='dark'] #lager-bestell-ov textarea,
+html[data-theme='dark'] #cc-prod-ma-modal input,
+html[data-theme='dark'] #cc-prod-ma-modal select,
+html[data-theme='dark'] #cc-prod-ma-modal textarea {
+  background: #0b1426 !important;
+  border-color: var(--cc-dark-border, #334155) !important;
+  color: var(--cc-dark-text, #f3f6fb) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov input::placeholder,
+html[data-theme='dark'] #lager-lief-ov input::placeholder,
+html[data-theme='dark'] #lager-bestellung-ov input::placeholder,
+html[data-theme='dark'] #ma-settings-ov input::placeholder,
+html[data-theme='dark'] #lager-bestell-ov input::placeholder,
+html[data-theme='dark'] #cc-prod-ma-modal input::placeholder {
+  color: #8da0bb !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov table,
+html[data-theme='dark'] #lager-lief-ov table,
+html[data-theme='dark'] #lager-bestellung-ov table,
+html[data-theme='dark'] #ma-settings-ov table {
+  color: var(--cc-dark-text, #f3f6fb) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov tr,
+html[data-theme='dark'] #lager-lief-ov tr,
+html[data-theme='dark'] #lager-bestellung-ov tr,
+html[data-theme='dark'] #ma-settings-ov tr,
+html[data-theme='dark'] #lager-artikel-ov td,
+html[data-theme='dark'] #lager-lief-ov td,
+html[data-theme='dark'] #lager-bestellung-ov td,
+html[data-theme='dark'] #ma-settings-ov td {
+  border-color: var(--cc-dark-border-soft, #263244) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov > div,
+html[data-theme='dark'] #lager-lief-ov > div,
+html[data-theme='dark'] #lager-bestellung-ov > div,
+html[data-theme='dark'] #ma-settings-ov > div,
+html[data-theme='dark'] #lager-bestell-ov > div {
+  background: var(--cc-dark-panel, #0f172a) !important;
+  border: 1px solid var(--cc-dark-border-soft, #263244) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .45) !important;
+  max-width: min(calc(100vw - 32px), var(--cc-modal-max, 760px)) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov > div { --cc-modal-max: 520px; }
+html[data-theme='dark'] #lager-lief-ov > div { --cc-modal-max: 920px; }
+html[data-theme='dark'] #lager-bestellung-ov > div { --cc-modal-max: 820px; }
+html[data-theme='dark'] #ma-settings-ov > div { --cc-modal-max: 900px; }
+
+html[data-theme='dark'] #lager-artikel-ov > div > div:first-child,
+html[data-theme='dark'] #lager-lief-ov > div > div:first-child,
+html[data-theme='dark'] #lager-bestellung-ov > div > div:first-child,
+html[data-theme='dark'] #ma-settings-ov > div > div:first-child,
+html[data-theme='dark'] #lager-bestell-ov > div > div:first-child {
+  background: #111c2f !important;
+  border-color: var(--cc-dark-border-soft, #263244) !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov > div > div:last-child,
+html[data-theme='dark'] #lager-lief-ov > div > div:last-child,
+html[data-theme='dark'] #lager-bestellung-ov > div > div:last-child,
+html[data-theme='dark'] #ma-settings-ov > div > div:last-child,
+html[data-theme='dark'] #lager-bestell-ov > div > div:last-child {
+  background: #101827 !important;
+  border-color: var(--cc-dark-border-soft, #263244) !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 16px 22px !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov > div > div:last-child > div,
+html[data-theme='dark'] #lager-lief-ov > div > div:last-child > div,
+html[data-theme='dark'] #lager-bestellung-ov > div > div:last-child > div,
+html[data-theme='dark'] #ma-settings-ov > div > div:last-child > div {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov .btn,
+html[data-theme='dark'] #lager-lief-ov .btn,
+html[data-theme='dark'] #lager-bestellung-ov .btn,
+html[data-theme='dark'] #ma-settings-ov .btn,
+html[data-theme='dark'] #lager-bestell-ov .btn {
+  min-height: 42px !important;
+  min-width: 128px !important;
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov .btn:not(.p):not(.g),
+html[data-theme='dark'] #lager-lief-ov .btn:not(.p):not(.g),
+html[data-theme='dark'] #lager-bestellung-ov .btn:not(.p):not(.g),
+html[data-theme='dark'] #ma-settings-ov .btn:not(.p):not(.g),
+html[data-theme='dark'] #lager-bestell-ov .btn:not(.p):not(.g) {
+  background: #172033 !important;
+  border-color: #475569 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov .btn.p,
+html[data-theme='dark'] #lager-lief-ov .btn.p,
+html[data-theme='dark'] #lager-bestellung-ov .btn.p,
+html[data-theme='dark'] #ma-settings-ov .btn.p,
+html[data-theme='dark'] #lager-bestell-ov .btn.p {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] #lager-artikel-ov button[style*='background:none'],
+html[data-theme='dark'] #lager-lief-ov button[style*='background:none'],
+html[data-theme='dark'] #lager-bestellung-ov button[style*='background:none'],
+html[data-theme='dark'] #ma-settings-ov button[style*='background:#fff'],
+html[data-theme='dark'] #ma-settings-ov button[style*='background:none'] {
+  background: #172033 !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil,
+html[data-theme='dark'] .cc-intern-root.ckp-module #mob-shell,
+html[data-theme='dark'] .cc-intern-root.ckp-module #mob-scroll,
+html[data-theme='dark'] .cc-intern-root.ckp-module [id^='mob-'] {
+  color: var(--cc-dark-text, #f3f6fb);
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='background:#F2F2F7'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='background:#fff'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='background:#1C1C1E'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='background:#2C2C2E'] {
+  background: #0f172a !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#1C1C1E'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#3C3C43'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#111'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#000'] {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#8E8E93'],
+html[data-theme='dark'] .cc-intern-root.ckp-module #pg-mobil [style*='color:#6b7280'] {
+  color: #a8b3c7 !important;
+}
+
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-stat-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-aufg-card,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-modal,
+html[data-theme='dark'] .cc-intern-root.ckp-module .mob-list-item {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+@media (max-width: 680px) {
+  html[data-theme='dark'] #lager-artikel-ov,
+  html[data-theme='dark'] #lager-lief-ov,
+  html[data-theme='dark'] #lager-bestellung-ov,
+  html[data-theme='dark'] #ma-settings-ov,
+  html[data-theme='dark'] #lager-bestell-ov {
+    padding: 10px !important;
+    align-items: flex-end !important;
+  }
+
+  html[data-theme='dark'] #lager-artikel-ov > div,
+  html[data-theme='dark'] #lager-lief-ov > div,
+  html[data-theme='dark'] #lager-bestellung-ov > div,
+  html[data-theme='dark'] #ma-settings-ov > div,
+  html[data-theme='dark'] #lager-bestell-ov > div {
+    width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+
+  html[data-theme='dark'] #lager-artikel-ov > div > div:last-child,
+  html[data-theme='dark'] #lager-lief-ov > div > div:last-child,
+  html[data-theme='dark'] #lager-bestellung-ov > div > div:last-child,
+  html[data-theme='dark'] #ma-settings-ov > div > div:last-child,
+  html[data-theme='dark'] #lager-bestell-ov > div > div:last-child {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+  }
+
+  html[data-theme='dark'] #lager-artikel-ov .btn,
+  html[data-theme='dark'] #lager-lief-ov .btn,
+  html[data-theme='dark'] #lager-bestellung-ov .btn,
+  html[data-theme='dark'] #ma-settings-ov .btn,
+  html[data-theme='dark'] #lager-bestell-ov .btn {
+    width: 100% !important;
+  }
+}

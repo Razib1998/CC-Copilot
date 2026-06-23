@@ -588,3 +588,207 @@ body.ckp-module #main::-webkit-scrollbar-thumb {
     z-index: auto !important;
   }
 }
+
+/* Dark mode: MesseFlow embedded in CC Intern. */
+html[data-theme='dark'] .mf-cockpit-embed,
+html[data-theme='dark'] body.mf-module-mode {
+  --bg: #070d18;
+  --card: #0f172a;
+  --line: #263244;
+  --text: #f3f6fb;
+  --muted: #a8b3c7;
+  --sb: #172554;
+  --sg: #052e16;
+  --sy: #431407;
+  --sr: #450a0a;
+  --sp: #2e1065;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .34);
+}
+
+html[data-theme='dark'] .mf-cockpit-embed,
+html[data-theme='dark'] .mf-cockpit-embed.ckp-module #shell,
+html[data-theme='dark'] .mf-cockpit-embed.ckp-module #main,
+html[data-theme='dark'] .mf-cockpit-embed.ckp-module #sidebar,
+html[data-theme='dark'] body.mf-module-mode #shell,
+html[data-theme='dark'] body.mf-module-mode #main,
+html[data-theme='dark'] body.mf-module-mode #sidebar {
+  background: #070d18 !important;
+  color: #f3f6fb !important;
+  border-color: #263244 !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .status-banner,
+html[data-theme='dark'] .mf-cockpit-embed .flaeche-card,
+html[data-theme='dark'] .mf-cockpit-embed .prod-card,
+html[data-theme='dark'] .mf-cockpit-embed .admin-section,
+html[data-theme='dark'] .mf-cockpit-embed .deadline-box,
+html[data-theme='dark'] .mf-cockpit-embed #notif-panel,
+html[data-theme='dark'] .mf-cockpit-embed .toast,
+html[data-theme='dark'] .mf-cockpit-embed .proj-item,
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:#fff'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='background: #fff'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:#ffffff'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:#FAFAFA'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:#F9FAFB'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:#F2F2F7'] {
+  background: #0f172a !important;
+  border-color: #263244 !important;
+  color: #f3f6fb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-box,
+html[data-theme='dark'] .mf-cockpit-embed #modal-box.wide {
+  background: #0f172a !important;
+  border: 1px solid #263244 !important;
+  color: #f3f6fb !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .48) !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-bg {
+  background: rgba(2, 6, 23, .78) !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-box h2,
+html[data-theme='dark'] .mf-cockpit-embed .sb-title,
+html[data-theme='dark'] .mf-cockpit-embed .fc-name,
+html[data-theme='dark'] .mf-cockpit-embed .fc-col-val,
+html[data-theme='dark'] .mf-cockpit-embed .bv-proj-name,
+html[data-theme='dark'] .mf-cockpit-embed .admin-section-head,
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#111'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#111827'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#1C1C1E'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#334155'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#475569'] {
+  color: #f3f6fb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .fg label,
+html[data-theme='dark'] .mf-cockpit-embed .fc-col-label,
+html[data-theme='dark'] .mf-cockpit-embed .pi-meta,
+html[data-theme='dark'] .mf-cockpit-embed .prog-label,
+html[data-theme='dark'] .mf-cockpit-embed .ni .ni-b,
+html[data-theme='dark'] .mf-cockpit-embed .ni .ni-d,
+html[data-theme='dark'] .mf-cockpit-embed .n-empty,
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#6b7280'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#94a3b8'],
+html[data-theme='dark'] .mf-cockpit-embed [style*='color:#9ca3af'] {
+  color: #a8b3c7 !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .fg input,
+html[data-theme='dark'] .mf-cockpit-embed .fg select,
+html[data-theme='dark'] .mf-cockpit-embed .fg textarea,
+html[data-theme='dark'] .mf-cockpit-embed .masse-input,
+html[data-theme='dark'] .mf-cockpit-embed .sel,
+html[data-theme='dark'] .mf-cockpit-embed #mf-dev-user,
+html[data-theme='dark'] .mf-cockpit-embed input,
+html[data-theme='dark'] .mf-cockpit-embed select,
+html[data-theme='dark'] .mf-cockpit-embed textarea {
+  background: #0b1426 !important;
+  border-color: #475569 !important;
+  color: #f3f6fb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed input::placeholder,
+html[data-theme='dark'] .mf-cockpit-embed textarea::placeholder {
+  color: #8da0bb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .btn.ghost,
+html[data-theme='dark'] .mf-cockpit-embed .btn:not(.primary):not(.green-btn):not(.yellow-btn),
+html[data-theme='dark'] .mf-cockpit-embed .mf-mod-btn,
+html[data-theme='dark'] .mf-cockpit-embed #add-proj,
+html[data-theme='dark'] .mf-cockpit-embed .mf-dev-btn {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .btn:hover,
+html[data-theme='dark'] .mf-cockpit-embed .proj-item:hover,
+html[data-theme='dark'] .mf-cockpit-embed .ni:hover {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  filter: none !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .btn.primary {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .btn.green-btn {
+  background: #15803d !important;
+  border-color: #15803d !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .btn.yellow-btn {
+  background: #b45309 !important;
+  border-color: #b45309 !important;
+  color: #fff !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed table,
+html[data-theme='dark'] .mf-cockpit-embed th,
+html[data-theme='dark'] .mf-cockpit-embed td {
+  border-color: #263244 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed th,
+html[data-theme='dark'] .mf-cockpit-embed thead tr,
+html[data-theme='dark'] .mf-cockpit-embed .nh,
+html[data-theme='dark'] .mf-cockpit-embed [style*='background:var(--gray-l)'] {
+  background: #172033 !important;
+  color: #cbd5e1 !important;
+  border-color: #263244 !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-box .ma,
+html[data-theme='dark'] .mf-cockpit-embed #modal-box [style*='border-top'] {
+  border-color: #263244 !important;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-box .ma {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed #modal-box .ma .btn {
+  min-height: 42px;
+  min-width: 126px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+html[data-theme='dark'] .mf-cockpit-embed .st-1,
+html[data-theme='dark'] .mf-cockpit-embed .st-8,
+html[data-theme='dark'] .mf-cockpit-embed .file-chip {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+@media (max-width: 680px) {
+  html[data-theme='dark'] .mf-cockpit-embed #modal-bg {
+    padding: 10px !important;
+    align-items: flex-end !important;
+  }
+
+  html[data-theme='dark'] .mf-cockpit-embed #modal-box {
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 94vh !important;
+  }
+
+  html[data-theme='dark'] .mf-cockpit-embed #modal-box .ma {
+    flex-direction: column-reverse;
+  }
+
+  html[data-theme='dark'] .mf-cockpit-embed #modal-box .ma .btn {
+    width: 100%;
+  }
+}

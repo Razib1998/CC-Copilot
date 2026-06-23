@@ -1483,6 +1483,24 @@ function onMainClick(ev) {
 /** Topbar: Active + Sidebar neu — kein echtes Laden von FUSA/CC Intern. */
 function onModuleBarClick(ev) {
   const t = ev.target;
+  const homeBtn =
+    t && typeof t.closest === "function" ? t.closest("[data-ccw-home]") : null;
+  if (homeBtn) {
+    if (isAppOnlyShellLocked()) {
+      console.warn("[APP_ONLY_BLOCK_DESKTOP]", "onModuleBarClick-home");
+      enforceMitarbeiterAppOnlyShellState("onModuleBarClick-home-block");
+      return;
+    }
+    if (isSharedKalenderViewActive()) {
+      ccwInvalidateKalenderEventCache();
+    }
+    activeModule = "cockpit";
+    activeView = getDefaultNavKeyForModule("cockpit");
+    syncTopbarActiveModule("cockpit");
+    renderSidebarForModule(activeModule, activeView);
+    void renderActiveViewIntoContent();
+    return;
+  }
   const btn =
     t && typeof t.closest === "function"
       ? t.closest(".ckp-mod-btn[data-module]")
@@ -1575,21 +1593,50 @@ function wrapInviteShellFullscreenHtml(innerHtml) {
 }
 
 function renderLoginPanelHtml() {
-  return `<div class="ckp-api-login-panel" data-ccw-ro="api-login">
-  <h2 class="ckp-api-login-panel__title">Anmelden</h2>
-  <p class="ckp-api-login-panel__hint">API-Basis: <code>${esc(getApiBaseUrl())}</code> · <code>POST /auth/login</code></p>
-  <form class="ckp-api-login-form" data-ccw-login-form>
-    <div class="ckp-api-login-form__row">
-      <label for="ccw-login-email">E-Mail</label>
-      <input id="ccw-login-email" name="email" type="email" autocomplete="username" required />
+  return `<div class="ckp-api-login-panel ckp-login-panel" data-ccw-ro="api-login">
+  <section class="ckp-login-visual" aria-label="CC Werbung Produktionssteuerung">
+    <div class="ckp-login-brand">
+      <span class="ckp-login-brand__mark" aria-hidden="true">CC</span>
+      <span>
+        <span class="ckp-login-brand__name">CC Werbung</span>
+        <span class="ckp-login-brand__line">Werbetechnik & Produktion</span>
+      </span>
     </div>
-    <div class="ckp-api-login-form__row">
-      <label for="ccw-login-pass">Passwort</label>
-      <input id="ccw-login-pass" name="password" type="password" autocomplete="current-password" required />
+    <div class="ckp-login-scene" aria-hidden="true">
+      <span class="ckp-login-scene__grid"></span>
+      <span class="ckp-login-scene__van">
+        <span class="ckp-login-scene__stripe"></span>
+        <span class="ckp-login-scene__wheel ckp-login-scene__wheel--a"></span>
+        <span class="ckp-login-scene__wheel ckp-login-scene__wheel--b"></span>
+      </span>
+      <span class="ckp-login-scene__panel ckp-login-scene__panel--one">FUSA</span>
+      <span class="ckp-login-scene__panel ckp-login-scene__panel--two">CC Intern</span>
+      <span class="ckp-login-scene__roll"></span>
     </div>
-    <button type="submit" class="ckp-api-login-submit">Anmelden</button>
-    <p class="ckp-api-error" data-ccw-login-msg hidden role="alert"></p>
-  </form>
+    <div class="ckp-login-proof">
+      <span>Fahrzeugwerbung</span>
+      <span>Auftragssteuerung</span>
+      <span>Produktion</span>
+    </div>
+  </section>
+  <section class="ckp-login-form-card">
+    <p class="ckp-login-eyebrow">Interner Zugang</p>
+    <h2 class="ckp-api-login-panel__title">Anmelden</h2>
+    <p class="ckp-api-login-panel__hint">Produktionsdaten, FUSA-Aufträge und Cockpit-Steuerung zentral verwalten.</p>
+    <form class="ckp-api-login-form" data-ccw-login-form>
+      <div class="ckp-api-login-form__row">
+        <label for="ccw-login-email">E-Mail</label>
+        <input id="ccw-login-email" name="email" type="email" autocomplete="username" placeholder="name@cc-werbung.de" required />
+      </div>
+      <div class="ckp-api-login-form__row">
+        <label for="ccw-login-pass">Passwort</label>
+        <input id="ccw-login-pass" name="password" type="password" autocomplete="current-password" placeholder="Passwort eingeben" required />
+      </div>
+      <button type="submit" class="ckp-api-login-submit">Anmelden</button>
+      <p class="ckp-api-error" data-ccw-login-msg hidden role="alert"></p>
+    </form>
+    <p class="ckp-login-api-note">API <code>${esc(getApiBaseUrl())}</code> · <code>POST /auth/login</code></p>
+  </section>
 </div>`;
 }
 

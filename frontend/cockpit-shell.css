@@ -4210,7 +4210,9 @@ select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) 
 #cockpit-root.ckp-shell-layout--invite-only .ckp-topbar-modules,
 #cockpit-root.ckp-shell-layout--invite-only [data-ccw-ro='topbar'],
 #cockpit-root.ckp-shell-layout--invite-only #cockpit-sidebar,
-#cockpit-root.ckp-shell-layout--invite-only #ccw-logout-btn {
+#cockpit-root.ckp-shell-layout--invite-only #ccw-theme-toggle,
+#cockpit-root.ckp-shell-layout--invite-only #ccw-logout-btn,
+#cockpit-root.ckp-shell-layout--invite-only .ckp-shell-footer {
   display: none !important;
 }
 
@@ -4287,7 +4289,9 @@ select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) 
 /* Mitarbeiter-App-only — keine Cockpit-Topbar, kein Shell-Header, volle Höhe */
 #cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-topbar-modules,
 #cockpit-root.ckp-shell-layout--mitarbeiter-app-only #cockpit-sidebar,
-#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #ccw-logout-btn {
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #ccw-theme-toggle,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only #ccw-logout-btn,
+#cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-shell-footer {
   display: none !important;
 }
 
