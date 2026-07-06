@@ -26,8 +26,10 @@ const SCHADEN_KLAERUNG_SET = new Set(['offen', 'in_klaerung', 'geklaert']);
 const SCHADEN_REPARATUR_PHASE_SET = new Set([
   'geplant',
   'termin_gesendet',
+  'termin_vorschlag',
   'termin_bestaetigt',
   'in_reparatur',
+  'reparatur_abgeschlossen',
 ]);
 
 /**
@@ -228,6 +230,13 @@ export function extractExtraFromBody(body) {
     extra.schaden_dokumente = normalizeSchadenDokumente(body.schaden_dokumente);
     hasExtra = true;
   }
+  if (body.werkstatt_response !== undefined) {
+    extra.werkstatt_response =
+      body.werkstatt_response && typeof body.werkstatt_response === 'object' && !Array.isArray(body.werkstatt_response)
+        ? body.werkstatt_response
+        : null;
+    hasExtra = true;
+  }
   return hasExtra ? extra : null;
 }
 
@@ -263,6 +272,7 @@ export function mapSchadenPublic(row) {
     wiedervorlage: extra.wiedervorlage != null ? String(extra.wiedervorlage) : null,
     melder_name: extra.melder_name != null ? String(extra.melder_name) : null,
     terminanfrage: extra.terminanfrage ?? null,
+    werkstatt_response: extra.werkstatt_response ?? null,
     klaerung:
       typeof extra.klaerung === 'string' && SCHADEN_KLAERUNG_SET.has(extra.klaerung) ? extra.klaerung : 'offen',
     verursacher: extra.verursacher != null ? String(extra.verursacher) : null,
@@ -275,7 +285,16 @@ export function mapSchadenPublic(row) {
         : 'geplant',
     linked_auftrag_id: extra.linked_auftrag_id != null ? String(extra.linked_auftrag_id) : null,
     meldedatum: extra.meldedatum != null ? String(extra.meldedatum) : null,
+    schaden_teil: extra.schaden_teil != null ? String(extra.schaden_teil) : null,
+    upload_art: extra.upload_art != null ? String(extra.upload_art) : null,
+    public_uploads: Array.isArray(extra.public_uploads) ? extra.public_uploads : [],
     schaden_dokumente: Array.isArray(extra.schaden_dokumente) ? extra.schaden_dokumente : [],
+    repair_started_at: extra.repair_started_at != null ? String(extra.repair_started_at) : null,
+    repair_started_by: extra.repair_started_by != null ? String(extra.repair_started_by) : null,
+    repair_completed_at: extra.repair_completed_at != null ? String(extra.repair_completed_at) : null,
+    repair_completed_by: extra.repair_completed_by != null ? String(extra.repair_completed_by) : null,
+    repair_completed_note: extra.repair_completed_note != null ? String(extra.repair_completed_note) : null,
+    repair_photo_ids: Array.isArray(extra.repair_photo_ids) ? extra.repair_photo_ids : [],
   };
 }
 

@@ -118,6 +118,56 @@ CREATE INDEX IF NOT EXISTS idx_schaeden_project ON schaeden (project_id);
 CREATE INDEX IF NOT EXISTS idx_schaeden_fahrzeug ON schaeden (fahrzeug_id);
 CREATE INDEX IF NOT EXISTS idx_schaeden_created ON schaeden (created_at);
 
+-- Phase 63: Schaden-Terminanfrage E-Mail/Antwort-Historie
+
+CREATE TABLE IF NOT EXISTS email_outbox (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  related_type TEXT,
+  related_id TEXT,
+  to_email TEXT NOT NULL,
+  from_email TEXT,
+  subject TEXT NOT NULL,
+  body_text TEXT NOT NULL,
+  body_html TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  sent_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_outbox_status ON email_outbox (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_email_outbox_related ON email_outbox (related_type, related_id);
+
+CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+  id TEXT PRIMARY KEY,
+  schaden_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  email_outbox_id TEXT,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_response_at TEXT,
+  FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+  FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_repair_tokens_schaden ON repair_appointment_tokens (schaden_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_repair_tokens_hash ON repair_appointment_tokens (token_hash);
+
+CREATE TABLE IF NOT EXISTS schaden_history (
+  id TEXT PRIMARY KEY,
+  schaden_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  event_json TEXT,
+  created_by_type TEXT NOT NULL DEFAULT 'system',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_schaden_history_schaden ON schaden_history (schaden_id, created_at);
+
 -- Phase 14: Schaden-Fotos (Dateipfad, kein Blob in DB)
 
 CREATE TABLE IF NOT EXISTS schaden_fotos (

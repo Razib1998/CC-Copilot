@@ -111,6 +111,8 @@ export function mapSchadenApiRowToViewModel(row) {
   const reparaturPhase = normalizeReparaturPhase(o.reparatur_phase);
   const linkedAuftragId = o.linked_auftrag_id != null ? String(o.linked_auftrag_id) : '';
   const meldedatum = o.meldedatum != null ? String(o.meldedatum) : '';
+  const uploadArt = o.upload_art != null ? String(o.upload_art) : '';
+  const publicUploads = Array.isArray(o.public_uploads) ? o.public_uploads : [];
   const fotoCount = o.foto_count != null ? Number(o.foto_count) : 0;
   const fc = Number.isFinite(fotoCount) && fotoCount >= 0 ? fotoCount : 0;
 
@@ -175,9 +177,18 @@ export function mapSchadenApiRowToViewModel(row) {
     abrechnungFilterKey: schadenAbrechnungFilterKey(rowForUi),
     linkedAuftragId,
     meldedatum,
+    uploadArt,
+    publicUploads,
     fotoCount: fc,
     terminanfrage: o.terminanfrage ?? null,
+    werkstattResponse: o.werkstatt_response ?? null,
     schadenDokumente: Array.isArray(o.schaden_dokumente) ? o.schaden_dokumente : [],
+    repairPhotoIds: Array.isArray(o.repair_photo_ids) ? o.repair_photo_ids.map(x => String(x)).filter(Boolean) : [],
+    repairStartedAt: o.repair_started_at != null ? String(o.repair_started_at) : '',
+    repairStartedBy: o.repair_started_by != null ? String(o.repair_started_by) : '',
+    repairCompletedAt: o.repair_completed_at != null ? String(o.repair_completed_at) : '',
+    repairCompletedBy: o.repair_completed_by != null ? String(o.repair_completed_by) : '',
+    repairCompletedNote: o.repair_completed_note != null ? String(o.repair_completed_note) : '',
     // Zeitfelder
     created_at: str(o.created_at),
     createdAtDisplay: formatDatumShort(o.created_at),

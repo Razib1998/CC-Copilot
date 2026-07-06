@@ -62,6 +62,7 @@ export function buildCorsAllowedOriginsSet() {
 }
 
 const LOCAL_ANY_PORT = /^http:\/\/(127\.0\.0\.1|localhost):\d+$/i;
+const PRIVATE_LAN_ANY_PORT = /^http:\/\/((10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(192\.168\.\d{1,3}\.\d{1,3})|(172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})):\d+$/i;
 
 /**
  * @param {Set<string>} allowedOrigins
@@ -80,6 +81,10 @@ export function createCorsOriginCallback(allowedOrigins, isProduction) {
     }
     // Dev/Test: zufällige API-Ports (z. B. Integrationstests) — nur localhost/127.0.0.1, nie in Produktion.
     if (!isProduction && LOCAL_ANY_PORT.test(o)) {
+      return cb(null, o);
+    }
+    // Dev/Test auf echtem Smartphone im gleichen WLAN: Vite läuft häufig über private LAN-IP.
+    if (!isProduction && PRIVATE_LAN_ANY_PORT.test(o)) {
       return cb(null, o);
     }
     if (!isProduction) {

@@ -18,16 +18,34 @@ export function getApiBaseUrl() {
     if (c) base = c.replace(/\/$/, '');
   }
   /**
-   * Häufiger Fehler: `cc-api-base` = Frontend-Origin (z. B. `npx serve` auf 5370).
-   * Dann geht `POST /api/v1/...` an den Static-Server → 404, obwohl das Backend auf 5371 läuft.
-   * Nur für localhost:5370 automatisch auf das Cockpit-Backend-Default umstellen.
+   * Lokale Entwicklung auf dem Handy/LAN: HTML enthält oft `localhost:5371`.
+   * Auf einem anderen Gerät zeigt `localhost` aber auf dieses Gerät, nicht auf den Dev-Rechner.
    */
   if (typeof window !== 'undefined' && window.location?.origin) {
     const origin = window.location.origin.replace(/\/$/, '');
+    const { protocol, hostname, port } = window.location;
+    try {
+      const u = new URL(base);
+      if (
+        (u.hostname === 'localhost' || u.hostname === '127.0.0.1') &&
+        hostname &&
+        hostname !== 'localhost' &&
+        hostname !== '127.0.0.1'
+      ) {
+        u.hostname = hostname;
+        u.port = u.port || '5371';
+        u.protocol = protocol === 'https:' ? 'https:' : 'http:';
+        return u.origin;
+      }
+    } catch {
+      /* keep base */
+    }
     if (base === origin) {
-      const { hostname, port } = window.location;
       if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '5370') {
         return 'http://localhost:5371';
+      }
+      if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        return `${protocol === 'https:' ? 'https:' : 'http:'}//${hostname}:5371`;
       }
     }
   }

@@ -1169,6 +1169,57 @@ async function ensureMysqlAuditLogTable(pool) {
   }
 }
 
+async function ensureMysqlSchadenTerminanfrageEmailTables(pool) {
+  await pool.execute(`CREATE TABLE IF NOT EXISTS email_outbox (
+    id CHAR(36) NOT NULL,
+    type VARCHAR(120) NOT NULL,
+    related_type VARCHAR(80) NULL,
+    related_id CHAR(36) NULL,
+    to_email VARCHAR(320) NOT NULL,
+    from_email VARCHAR(320) NULL,
+    subject VARCHAR(500) NOT NULL,
+    body_text MEDIUMTEXT NOT NULL,
+    body_html MEDIUMTEXT NULL,
+    status VARCHAR(40) NOT NULL DEFAULT 'pending',
+    attempts INT NOT NULL DEFAULT 0,
+    last_error TEXT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    sent_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    KEY idx_email_outbox_status (status, created_at),
+    KEY idx_email_outbox_related (related_type, related_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.execute(`CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+    id CHAR(36) NOT NULL,
+    schaden_id CHAR(36) NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    email_outbox_id CHAR(36) NULL,
+    expires_at DATETIME(3) NOT NULL,
+    used_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    last_response_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_repair_tokens_hash (token_hash),
+    KEY idx_repair_tokens_schaden (schaden_id, created_at),
+    CONSTRAINT fk_repair_tokens_schaden
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+    CONSTRAINT fk_repair_tokens_outbox
+      FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.execute(`CREATE TABLE IF NOT EXISTS schaden_history (
+    id CHAR(36) NOT NULL,
+    schaden_id CHAR(36) NOT NULL,
+    event_type VARCHAR(120) NOT NULL,
+    event_json JSON NULL,
+    created_by_type VARCHAR(40) NOT NULL DEFAULT 'system',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_schaden_history_schaden (schaden_id, created_at),
+    CONSTRAINT fk_schaden_history_schaden
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+}
+
 /**
  * Anfragen-Tabelle.
  * @param {import('mysql2/promise').Pool} pool
@@ -1735,6 +1786,7 @@ export async function createMysqlStore() {
   await ensureMysqlMesseflowProjekteTable(pool);
   await ensureMysqlMfDomainTables(pool);
   await ensureMysqlAuditLogTable(pool);
+  await ensureMysqlSchadenTerminanfrageEmailTables(pool);
   await ensureMysqlGeraeteTable(pool);
   await ensureMysqlCrmTables(pool);
   await ensureMysqlRefreshTokensAndMitarbeiterZeiten(pool);
@@ -2838,6 +2890,101 @@ export async function createMysqlStore() {
          FROM schaeden s
          LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
          WHERE s.id = ? LIMIT 1`,
+        [schadenId],
+      );
+    },
+    async insertEmailOutbox(row) {
+      const id = row.id || randomUUID();
+      await qRun(
+        pool,
+        `INSERT INTO email_outbox (
+          id, type, related_type, related_id, to_email, from_email, subject, body_text, body_html, status, attempts, last_error
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.type,
+          row.relatedType ?? row.related_type ?? null,
+          row.relatedId ?? row.related_id ?? null,
+          row.toEmail ?? row.to_email,
+          row.fromEmail ?? row.from_email ?? null,
+          row.subject,
+          row.bodyText ?? row.body_text,
+          row.bodyHtml ?? row.body_html ?? null,
+          row.status ?? 'pending',
+          row.attempts ?? 0,
+          row.lastError ?? row.last_error ?? null,
+        ],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async markEmailOutboxSent(id) {
+      await qRun(
+        pool,
+        "UPDATE email_outbox SET status = 'sent', attempts = attempts + 1, last_error = NULL, sent_at = NOW(3) WHERE id = ?",
+        [id],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async markEmailOutboxFailed(id, error) {
+      await qRun(
+        pool,
+        "UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?",
+        [String(error || '').slice(0, 2000), id],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async insertRepairAppointmentToken(row) {
+      const id = row.id || randomUUID();
+      await qRun(
+        pool,
+        `INSERT INTO repair_appointment_tokens (id, schaden_id, token_hash, email_outbox_id, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.tokenHash ?? row.token_hash, row.emailOutboxId ?? row.email_outbox_id ?? null, row.expiresAt ?? row.expires_at],
+      );
+      return qGet(pool, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    async getRepairAppointmentTokenByHash(tokenHash) {
+      return qGet(
+        pool,
+        `SELECT t.*, s.project_id, s.fahrzeug_id, s.titel, s.beschreibung, s.status, s.extra_json, s.created_at AS schaden_created_at,
+                f.kennung AS fahrzeug_kennung
+         FROM repair_appointment_tokens t
+         JOIN schaeden s ON s.id = t.schaden_id
+         LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
+         WHERE t.token_hash = ? LIMIT 1`,
+        [tokenHash],
+      );
+    },
+    async markRepairAppointmentTokenResponded(id) {
+      await qRun(
+        pool,
+        'UPDATE repair_appointment_tokens SET used_at = COALESCE(used_at, NOW(3)), last_response_at = NOW(3) WHERE id = ?',
+        [id],
+      );
+      return qGet(pool, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    async insertSchadenHistory(row) {
+      const id = row.id || randomUUID();
+      const eventJson =
+        row.eventJson != null
+          ? String(row.eventJson)
+          : row.event_json != null
+            ? String(row.event_json)
+            : row.event != null
+              ? JSON.stringify(row.event)
+              : null;
+      await qRun(
+        pool,
+        `INSERT INTO schaden_history (id, schaden_id, event_type, event_json, created_by_type)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.eventType ?? row.event_type, eventJson, row.createdByType ?? row.created_by_type ?? 'system'],
+      );
+      return qGet(pool, 'SELECT * FROM schaden_history WHERE id = ? LIMIT 1', [id]);
+    },
+    async listSchadenHistory(schadenId) {
+      return qAll(
+        pool,
+        'SELECT id, schaden_id, event_type, event_json, created_by_type, created_at FROM schaden_history WHERE schaden_id = ? ORDER BY created_at ASC, id ASC',
         [schadenId],
       );
     },

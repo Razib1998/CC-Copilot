@@ -93,6 +93,19 @@ function schadenAktionenHtml(vm, canEdit) {
   if (vm.reparaturPhase === 'termin_bestaetigt') {
     return `<button type="button" class="btn" style="font-size:10px;padding:3px 8px;background:#E8F5E9;border-color:#2E7D32;color:#2E7D32;" data-fusa-sch-best-open="${esc(sid)}">→ Auftrag erstellen</button>`;
   }
+  if (vm.reparaturPhase === 'termin_vorschlag') {
+    const wr = vm.werkstattResponse && typeof vm.werkstattResponse === 'object' ? /** @type {Record<string, unknown>} */ (vm.werkstattResponse) : {};
+    const d = wr.proposed_date != null ? String(wr.proposed_date) : '—';
+    const z = wr.proposed_time != null ? String(wr.proposed_time) : '';
+    return `<div style="display:flex;flex-direction:column;gap:4px;min-width:130px;">
+      <span style="font-size:10px;color:#E65100;font-weight:600;">Neuer Vorschlag</span>
+      <span style="font-size:9px;color:#64748b;">${esc(d)}${z ? ` · ${esc(z)}` : ''}</span>
+      <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap;">
+        <button type="button" class="btn" style="font-size:9px;padding:2px 6px;background:#E8F5E9;border-color:#2E7D32;color:#2E7D32;" data-fusa-sch-manual-bestaetigt="${esc(sid)}">✓ Akzeptieren</button>
+        <button type="button" class="btn" style="font-size:9px;padding:2px 6px;" data-fusa-sch-termin-abbruch="${esc(sid)}">✗ Abbruch</button>
+      </div>
+    </div>`;
+  }
   if (vm.reparaturPhase === 'termin_gesendet') {
     const ta = vm.terminanfrage && typeof vm.terminanfrage === 'object' ? /** @type {Record<string, unknown>} */ (vm.terminanfrage) : {};
     const sent = ta.angefragt_am != null ? String(ta.angefragt_am) : '—';
@@ -285,8 +298,8 @@ export async function renderFusaSchaedenViewHtml() {
             ? `<span class="fusa-sch-bdg bdg b${esc(vm.typBadgeClass)}">${esc(vm.typLabel)}</span>`
             : `<span class="fusa-sch-bdg bdg bgr">—</span>`;
           const verurs =
-            vm.typ === 'Fremdschaden' && vm.verursacher
-              ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">${esc(vm.verursacher)}</div>`
+            vm.verursacher
+              ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">Verursacher: ${esc(vm.verursacher)}</div>`
               : '';
           const notizLine =
             vm.interneNotiz
@@ -302,15 +315,15 @@ export async function renderFusaSchaedenViewHtml() {
             : '—';
           const ta = vm.terminanfrage && typeof vm.terminanfrage === 'object' ? /** @type {Record<string, unknown>} */ (vm.terminanfrage) : null;
           const anfrageRow =
-            vm.reparaturPhase === 'termin_gesendet' && ta
+            (vm.reparaturPhase === 'termin_gesendet' || vm.reparaturPhase === 'termin_vorschlag') && ta
               ? `<tr data-fusa-sch-anfrage-for="${esc(sid)}" style="background:#EEF4FF;border-left:3px solid #1565C0;">
             <td colspan="8" style="padding:8px 14px;font-size:11px;color:#1565C0;">
               <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <span>✉ <b>Terminanfrage gesendet</b> ${ta.angefragt_am != null ? `am ${esc(String(ta.angefragt_am))}` : ''}${ta.angefragt_zeit != null ? ` · ${esc(String(ta.angefragt_zeit))}` : ''}</span>
+                <span>✉ <b>${vm.reparaturPhase === 'termin_vorschlag' ? 'Werkstatt-Vorschlag erhalten' : 'Terminanfrage gesendet'}</b> ${ta.angefragt_am != null ? `am ${esc(String(ta.angefragt_am))}` : ''}${ta.angefragt_zeit != null ? ` · ${esc(String(ta.angefragt_zeit))}` : ''}</span>
                 ${ta.empfaenger != null ? `<span>→ ${esc(String(ta.empfaenger))}</span>` : ''}
                 <span>📅 Wunschtermin: <b>${ta.wunschdatum_fmt != null ? esc(String(ta.wunschdatum_fmt)) : esc(String(ta.wunschdatum || '—'))}</b>${ta.wunschzeit != null ? ` · ${esc(String(ta.wunschzeit))}` : ''}</span>
                 ${ta.werkstatt != null ? `<span>🏭 ${esc(String(ta.werkstatt))}</span>` : ''}
-                <span style="margin-left:auto;font-weight:600;">Warte auf Antwort der Werkstatt …</span>
+                ${vm.reparaturPhase === 'termin_vorschlag' && vm.werkstattResponse && typeof vm.werkstattResponse === 'object' ? `<span style="margin-left:auto;font-weight:600;color:#E65100;">Vorschlag: ${esc(String(/** @type {Record<string, unknown>} */ (vm.werkstattResponse).proposed_date || '—'))}${/** @type {Record<string, unknown>} */ (vm.werkstattResponse).proposed_time ? ` · ${esc(String(/** @type {Record<string, unknown>} */ (vm.werkstattResponse).proposed_time))}` : ''}</span>` : '<span style="margin-left:auto;font-weight:600;">Warte auf Antwort der Werkstatt …</span>'}
               </div>
             </td>
           </tr>`
@@ -479,17 +492,29 @@ export async function renderFusaSchaedenViewHtml() {
         <select id="fusa-sch-termin-werkstatt" name="werkstatt" required>${depotTerminSelectOpts}</select>
       </div>
       <div class="ckp-api-auftrag-form__row">
+        <label for="fusa-sch-termin-email">Empfänger-E-Mail *</label>
+        <input id="fusa-sch-termin-email" name="empfaenger" type="email" required autocomplete="email" placeholder="werkstatt@example.de" />
+      </div>
+      <div class="ckp-api-auftrag-form__row">
         <label for="fusa-sch-termin-notiz">Interne Notiz</label>
         <input id="fusa-sch-termin-notiz" name="notiz" type="text" autocomplete="off" placeholder="z.B. Zugang, Besonderheiten…" />
       </div>
       <div style="margin-top:4px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#2E7D32;text-transform:uppercase;margin-bottom:6px;">✉ E-Mail an Werkstatt (Vorschau)</div>
         <div data-fusa-sch-termin-mailpre style="font-size:11px;line-height:1.7;white-space:pre-wrap;max-height:160px;overflow-y:auto;"></div>
-        <div style="margin-top:8px;font-size:10px;color:#64748b;">Versand: Cockpit speichert die Anfrage. E-Mail-Client: <a data-fusa-sch-termin-mailto href="#" style="color:#1565C0;">mailto</a> vorbereiten.</div>
+        <div style="margin-top:8px;font-size:10px;color:#64748b;">Versand: Cockpit sendet die E-Mail automatisch und speichert die Anfrage. Fallback: <a data-fusa-sch-termin-mailto href="#" style="color:#1565C0;">mailto</a>.</div>
+      </div>
+      <div data-fusa-sch-termin-demo hidden style="margin-top:4px;background:#EFF6FF;border:1px solid #93C5FD;border-radius:8px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#1D4ED8;text-transform:uppercase;margin-bottom:6px;">Demo-Link für Werkstatt-Antwort</div>
+        <input data-fusa-sch-termin-demo-link readonly style="width:100%;box-sizing:border-box;border:1px solid #BFDBFE;border-radius:7px;padding:8px;font-size:11px;color:#1e293b;background:#fff;" />
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px;">
+          <button type="button" class="btn" data-fusa-sch-termin-demo-copy>Link kopieren</button>
+          <button type="button" class="ckp-api-auftrag-submit" data-fusa-sch-termin-demo-open>Antwortseite öffnen</button>
+        </div>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
         <button type="button" class="btn" data-fusa-sch-termin-close>Abbrechen</button>
-        <button type="submit" class="ckp-api-auftrag-submit" data-fusa-sch-termin-submit>✉ Terminanfrage speichern</button>
+        <button type="submit" class="ckp-api-auftrag-submit" data-fusa-sch-termin-submit>✉ Terminanfrage senden</button>
       </div>
       <p class="ckp-api-error" data-fusa-sch-termin-msg hidden role="alert"></p>
     </form>
@@ -544,6 +569,7 @@ ${wvBannerHtml}
   ${schKpiCard({ key: 'dringend', value: kpis.dringend, label: 'Dringend', icon: '🔴', iconClass: 'ccds-stat-icon-box--red', urgent: true })}
   ${schKpiCard({ key: 'unklar', value: kpis.unklar, label: 'Unklar / Prüfung', icon: '❓', iconClass: 'ccds-stat-icon-box--purple' })}
   ${schKpiCard({ key: 'fremdschaden', value: kpis.fremdschaden, label: 'Fremdschäden', icon: '⚡', iconClass: 'ccds-stat-icon-box--teal' })}
+  ${schKpiCard({ key: 'eigenschaden', value: kpis.eigenschaden, label: 'Eigenschäden', icon: '🛠️', iconClass: 'ccds-stat-icon-box--blue' })}
   ${schKpiCard({ key: 'zur_abrechnung', value: kpis.zurAbrechnung, label: 'Zur Abrechnung', icon: '💶', iconClass: 'ccds-stat-icon-box--orange' })}
   ${schKpiCard({ key: 'erledigt', value: kpis.erledigt, label: 'Behoben', icon: '✅', iconClass: 'ccds-stat-icon-box--green' })}
 </div>
@@ -558,7 +584,7 @@ ${canCreateSchaden && pid ? `<div style="margin-bottom:16px;"><button type="butt
     <select data-fusa-sch-filter-rep aria-label="Reparaturstatus filtern" style="min-width:170px;">${repFilterOpts}</select>
     <select data-fusa-sch-filter-typ aria-label="Typ filtern" style="min-width:150px;">${typFilterOpts}</select>
     <select data-fusa-sch-filter-abr aria-label="Abrechnung filtern" style="min-width:180px;">${abrFilterOpts}</select>
-    <input type="search" data-fusa-sch-search placeholder="Suche Titel, Fahrzeug, Melder…" style="flex:1;min-width:200px;max-width:320px;" />
+    <input type="search" data-fusa-sch-search placeholder="Suche Titel, Fahrzeug, Melder, Verursacher…" style="flex:1;min-width:200px;max-width:360px;" />
     <button type="button" class="btn" data-fusa-sch-filter-reset>Alle zeigen</button>
   </div>
 
@@ -743,6 +769,7 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
 
   /** @type {Record<string, unknown>|null} */
   let terminContextRow = null;
+  let terminReloadOnClose = false;
   /** @type {string|null} */
   let bestContextSchadenId = null;
 
@@ -751,6 +778,7 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
     const datumEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-datum'));
     const zeitEl = /** @type {HTMLSelectElement|null} */ (scope.querySelector('#fusa-sch-termin-zeit'));
     const wstEl = /** @type {HTMLSelectElement|null} */ (scope.querySelector('#fusa-sch-termin-werkstatt'));
+    const mailEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-email'));
     const notizEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-notiz'));
     const pre = scope.querySelector('[data-fusa-sch-termin-mailpre]');
     const mailA = scope.querySelector('[data-fusa-sch-termin-mailto]');
@@ -759,7 +787,7 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
     const zeit = zeitEl?.value || '';
     const wst = wstEl?.value || '';
     const notiz = notizEl?.value || '';
-    const mail = wst ? WERKSTATT_MAILS[wst] || '' : '';
+    const mail = mailEl?.value?.trim() || (wst ? WERKSTATT_MAILS[wst] || '' : '');
     if (mailA instanceof HTMLAnchorElement) {
       const subj = encodeURIComponent(`Reparaturtermin / Schaden ${r?.id != null ? String(r.id) : ''}`);
       const fz = String(r?.fahrzeug_kennung || r?.fahrzeug_id || '—');
@@ -826,6 +854,14 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
     morgen.setDate(morgen.getDate() + 1);
     const de = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-datum'));
     if (de) de.value = morgen.toISOString().slice(0, 10);
+    const wstEl = /** @type {HTMLSelectElement|null} */ (scope.querySelector('#fusa-sch-termin-werkstatt'));
+    const mailEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-email'));
+    if (mailEl && wstEl) mailEl.value = WERKSTATT_MAILS[wstEl.value] || '';
+    terminReloadOnClose = false;
+    const demo = scope.querySelector('[data-fusa-sch-termin-demo]');
+    const demoLink = scope.querySelector('[data-fusa-sch-termin-demo-link]');
+    if (demo instanceof HTMLElement) demo.hidden = true;
+    if (demoLink instanceof HTMLInputElement) demoLink.value = '';
     updateTerminMailPreview();
     if (modal instanceof HTMLElement) modal.style.display = 'flex';
   }
@@ -835,8 +871,16 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
     if (modal) {
       modal.style.display = 'none';
       modal.querySelector('form')?.reset();
+      const demo = modal.querySelector('[data-fusa-sch-termin-demo]');
+      const demoLink = modal.querySelector('[data-fusa-sch-termin-demo-link]');
+      if (demo instanceof HTMLElement) demo.hidden = true;
+      if (demoLink instanceof HTMLInputElement) demoLink.value = '';
     }
     terminContextRow = null;
+    if (terminReloadOnClose) {
+      terminReloadOnClose = false;
+      void reload();
+    }
   }
 
   function closeBestModal() {
@@ -857,9 +901,30 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
   scope.querySelectorAll('[data-fusa-sch-termin-close]').forEach(btn => {
     btn.addEventListener('click', () => closeTerminModal());
   });
-  ['#fusa-sch-termin-datum', '#fusa-sch-termin-zeit', '#fusa-sch-termin-werkstatt', '#fusa-sch-termin-notiz'].forEach(sel => {
+  ['#fusa-sch-termin-datum', '#fusa-sch-termin-zeit', '#fusa-sch-termin-werkstatt', '#fusa-sch-termin-email', '#fusa-sch-termin-notiz'].forEach(sel => {
     scope.querySelector(sel)?.addEventListener('input', updateTerminMailPreview);
     scope.querySelector(sel)?.addEventListener('change', updateTerminMailPreview);
+  });
+  scope.querySelector('#fusa-sch-termin-werkstatt')?.addEventListener('change', () => {
+    const wstEl = /** @type {HTMLSelectElement|null} */ (scope.querySelector('#fusa-sch-termin-werkstatt'));
+    const mailEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('#fusa-sch-termin-email'));
+    if (mailEl && wstEl) mailEl.value = WERKSTATT_MAILS[wstEl.value] || mailEl.value || '';
+    updateTerminMailPreview();
+  });
+  scope.querySelector('[data-fusa-sch-termin-demo-copy]')?.addEventListener('click', async () => {
+    const linkEl = /** @type {HTMLInputElement|null} */ (scope.querySelector('[data-fusa-sch-termin-demo-link]'));
+    const link = String(linkEl?.value || '').trim();
+    if (!link) return;
+    try {
+      await navigator.clipboard?.writeText(link);
+    } catch {
+      linkEl?.select();
+      document.execCommand?.('copy');
+    }
+  });
+  scope.querySelector('[data-fusa-sch-termin-demo-open]')?.addEventListener('click', () => {
+    const link = String(/** @type {HTMLInputElement|null} */ (scope.querySelector('[data-fusa-sch-termin-demo-link]'))?.value || '').trim();
+    if (link) window.open(link, '_blank', 'noopener,noreferrer');
   });
 
   const terminForm = scope.querySelector('[data-fusa-sch-termin-form]');
@@ -877,6 +942,8 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
         if (!wdat) throw new Error('Bitte Wunschdatum wählen.');
         if (!wst) throw new Error('Bitte Werkstatt wählen.');
         const zeit = String(fd.get('wunschzeit') || '').trim();
+        const empfaenger = String(fd.get('empfaenger') || '').trim();
+        if (!empfaenger || !empfaenger.includes('@')) throw new Error('Bitte gültige Empfänger-E-Mail eintragen.');
         const notiz = String(fd.get('notiz') || '').trim();
         const jetzt = new Date();
         const terminanfrage = {
@@ -887,21 +954,41 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
           notiz: notiz || null,
           angefragt_am: jetzt.toISOString().slice(0, 10),
           angefragt_zeit: `${String(jetzt.getHours()).padStart(2, '0')}:${String(jetzt.getMinutes()).padStart(2, '0')} Uhr`,
-          empfaenger: WERKSTATT_MAILS[wst] || wst,
+          empfaenger,
         };
         if (!sid) throw new Error('Schaden-ID fehlt');
-        await apiFetch(`${API_ROUTES.fusa.schaeden}/${encodeURIComponent(sid)}`, {
+        const result = await apiFetch(`${API_ROUTES.fusa.schaeden}/${encodeURIComponent(sid)}`, {
           method: 'PATCH',
           body: { terminanfrage, reparatur_phase: 'termin_gesendet', status: 'in_bearbeitung' },
         });
-        closeTerminModal();
-        await reload();
+        const repairEmail =
+          result && typeof result === 'object' && /** @type {{ repairEmail?: unknown }} */ (result).repairEmail && typeof /** @type {{ repairEmail?: unknown }} */ (result).repairEmail === 'object'
+            ? /** @type {{ responseUrl?: unknown }} */ (/** @type {{ repairEmail: unknown }} */ (result).repairEmail)
+            : null;
+        const responseUrl = repairEmail?.responseUrl != null ? String(repairEmail.responseUrl).trim() : '';
+        const demo = scope.querySelector('[data-fusa-sch-termin-demo]');
+        const demoLink = /** @type {HTMLInputElement|null} */ (scope.querySelector('[data-fusa-sch-termin-demo-link]'));
+        if (responseUrl && demo instanceof HTMLElement && demoLink) {
+          demoLink.value = responseUrl;
+          demo.hidden = false;
+          terminReloadOnClose = true;
+          if (msg instanceof HTMLElement) {
+            msg.textContent = 'Terminanfrage wurde gespeichert. Der Demo-Link ist unten verfügbar.';
+            msg.hidden = false;
+            msg.className = '';
+            msg.style.cssText = 'margin:0;color:#166534;font-size:12px;font-weight:600;';
+          }
+        } else {
+          closeTerminModal();
+          await reload();
+        }
       } catch (err) {
         const errTxt = err instanceof Error ? err.message : formatApiErrorForUi(err);
         if (msg instanceof HTMLElement) {
           msg.textContent = errTxt;
           msg.hidden = false;
           msg.className = 'ckp-api-error';
+          msg.removeAttribute('style');
         }
       } finally {
         if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;

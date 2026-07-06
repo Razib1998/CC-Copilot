@@ -19,6 +19,7 @@ import {
   sendMobileSchadenMeldenPage,
   rateLimitPublicFahrzeugGet,
 } from './routes/public-melden.js';
+import { createWorkshopRepairRequestRouter } from './routes/workshop-repair-request.js';
 import { createApiV1Router } from './routes/api-v1.js';
 import { ensureDevTestLoginUser } from './lib/ensure-dev-test-login-user.js';
 import { sendError } from './lib/api-v1-envelope.js';
@@ -38,6 +39,7 @@ try {
 }
 
 const PORT = Number.parseInt(process.env.PORT || '5371', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 
 /**
  * Mindestens ein Projekt in der DB; sonst Standard-Projekt + project_access (API `x-project-id`).
@@ -213,7 +215,13 @@ app.use('/auth', createAuthRouter(store));
 app.use('/invites', createInvitePublicRouter(store));
 
 app.use('/public', createPublicMeldenRouter(store));
+app.use('/public', createWorkshopRepairRequestRouter(store));
 app.get('/m/fahrzeug/:fahrzeugId', rateLimitPublicFahrzeugGet, sendMobileSchadenMeldenPage);
+app.get('/scan', rateLimitPublicFahrzeugGet, (req, res) => {
+  const fz = typeof req.query.fz === 'string' ? req.query.fz.trim() : '';
+  if (!fz) return res.status(400).type('text/plain').send('Parameter fz fehlt.');
+  return res.redirect(302, `/m/fahrzeug/${encodeURIComponent(fz)}`);
+});
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ ok: true });
@@ -230,8 +238,8 @@ app.use((err, req, res, next) => {
   sendError(res, 500, 'INTERNAL_ERROR', message);
 });
 
-app.listen(PORT, () => {
-  console.log(`CC Cockpit Backend listening on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`CC Cockpit Backend listening on http://${HOST}:${PORT}`);
   console.log(
     'Auth: POST /auth/login, GET /auth/me | API v1: /api/v1/* | invites: GET /invites/{token}, POST /invites/{token}/activate | public: GET /public/fahrzeug/:id, POST /public/schaeden | mobil: GET /m/fahrzeug/:id',
   );

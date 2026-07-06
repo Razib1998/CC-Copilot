@@ -1533,6 +1533,89 @@ function migratePhase54CcInternMitarbeiterOperativ(db, persist) {
   persist();
 }
 
+/** CC Intern: laufende Tages-Arbeitszeit-Session (ein Datensatz pro user_id + project_id). */
+function migratePhase60CcInternArbeitszeitSession(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_arbeitszeit_session (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      project_id TEXT,
+      status TEXT NOT NULL CHECK (status IN ('running', 'paused')),
+      started_at TEXT NOT NULL,
+      pause_seconds INTEGER NOT NULL DEFAULT 0,
+      pause_started_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_az_sess_user_proj
+       ON ccintern_mitarbeiter_arbeitszeit_session(user_id, COALESCE(project_id, ''))`,
+    );
+  } catch (e) {
+    console.error('[migratePhase60] arbeitszeit session', e);
+  }
+  persist();
+}
+
+/** CC Intern: laufende Auftrags-Arbeit pro Mitarbeiter (max. eine aktiv: running|paused). */
+function migratePhase61CcInternAuftragArbeitsSession(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS ccintern_auftrag_arbeits_session (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      auftrag_id TEXT NOT NULL,
+      schritt_key TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('running', 'paused', 'stopped')),
+      started_at TEXT NOT NULL,
+      pause_started_at TEXT,
+      pause_seconds INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+      FOREIGN KEY (auftrag_id) REFERENCES ccintern_auftraege (id) ON DELETE CASCADE
+    )`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_user_active
+       ON ccintern_auftrag_arbeits_session(user_id)
+       WHERE status IN ('running', 'paused')`,
+    );
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_cc_auftrag_arbeit_auftrag ON ccintern_auftrag_arbeits_session(auftrag_id)',
+    );
+  } catch (e) {
+    console.error('[migratePhase61] auftrag arbeits session', e);
+  }
+  persist();
+}
+
+/**
+ * Phase 62: Duplikate in ccintern_checklisten_zuordnung entfernen und
+ * UNIQUE-Constraint auf (firma_id, produkt_id, schritt, checkliste_id) setzen.
+ * Hintergrund: POST-Route hat bisher keinen Duplikat-Schutz gehabt.
+ */
+function migratePhase62ChecklistenZuordnungUnique(db, persist) {
+  try {
+    // Duplikate entfernen — ältesten Eintrag pro Kombination behalten (niedrigster rowid)
+    db.exec(`
+      DELETE FROM ccintern_checklisten_zuordnung
+      WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM ccintern_checklisten_zuordnung
+        GROUP BY firma_id, produkt_id, schritt, checkliste_id
+      )
+    `);
+    // UNIQUE-Index anlegen (verhindert künftige Duplikate)
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uk_ccintern_clz_combo
+       ON ccintern_checklisten_zuordnung (firma_id, produkt_id, schritt, checkliste_id)`,
+    );
+    persist();
+  } catch (e) {
+    console.error('[migratePhase62] checklisten_zuordnung unique cleanup', e);
+  }
+}
+
 /**
  * Nutzer mit Cockpit-Modul, aber ohne FUSA-Modul: Modul `fusa` + volle FUSA-Berechtigungen.
  * Nur `cockpit` — reine `ccintern`-only-User (Mitarbeiter-App) werden nicht ergänzt.
@@ -1735,6 +1818,57 @@ function migratePhase40UsersSollUrlaub(db, persist) {
   persist();
 }
 
+/** Phase 63: E-Mail-Outbox + Werkstatt-Antwortlink + Schaden-Historie. */
+function migratePhase63SchadenTerminanfrageEmail(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS email_outbox (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      related_type TEXT,
+      related_id TEXT,
+      to_email TEXT NOT NULL,
+      from_email TEXT,
+      subject TEXT NOT NULL,
+      body_text TEXT NOT NULL,
+      body_html TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      sent_at TEXT
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_email_outbox_status ON email_outbox (status, created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_email_outbox_related ON email_outbox (related_type, related_id)');
+    db.exec(`CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+      id TEXT PRIMARY KEY,
+      schaden_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      email_outbox_id TEXT,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      last_response_at TEXT,
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+      FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_repair_tokens_schaden ON repair_appointment_tokens (schaden_id, created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_repair_tokens_hash ON repair_appointment_tokens (token_hash)');
+    db.exec(`CREATE TABLE IF NOT EXISTS schaden_history (
+      id TEXT PRIMARY KEY,
+      schaden_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      event_json TEXT,
+      created_by_type TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_schaden_history_schaden ON schaden_history (schaden_id, created_at)');
+  } catch (e) {
+    console.error('[migratePhase63] schaden terminanfrage email', e);
+  }
+  persist();
+}
+
 async function buildSqliteStore() {
   fs.mkdirSync(sqliteDataDir, { recursive: true });
   const SQL = await initSqlJs();
@@ -1805,6 +1939,10 @@ async function buildSqliteStore() {
   migratePhase57UrlaubKalenderTerminIds(db, persist);
   migratePhase58CcInternAuftragDateiUpdatedAt(db, persist);
   migratePhase59CcInternChecklistenZuordnung(db, persist);
+  migratePhase60CcInternArbeitszeitSession(db, persist);
+  migratePhase61CcInternAuftragArbeitsSession(db, persist);
+  migratePhase62ChecklistenZuordnungUnique(db, persist);
+  migratePhase63SchadenTerminanfrageEmail(db, persist);
 
   return {
     db,
@@ -2605,6 +2743,18 @@ async function buildSqliteStore() {
           } else {
             stmtRun(db, 'UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, uid]);
           }
+        }
+        const redeemedRow = stmtGet(db, 'SELECT id, email, name FROM users WHERE id = ? LIMIT 1', [uid]);
+        const redeemedEmail = redeemedRow?.email != null ? String(redeemedRow.email).trim().toLowerCase() : '';
+        if (redeemedEmail && redeemedEmail !== email) {
+          console.error('[INVITE_REDEEM_DEBUG]', {
+            phase: 'redeem_email_mismatch',
+            inviteId: inv.id,
+            inviteEmail: email,
+            redeemedUserId: uid,
+            redeemedUserEmail: redeemedEmail,
+          });
+          return { ok: false, code: 'DATABASE_ERROR' };
         }
         const modsRaw = parseInviteModulesFromRow(inviteRowField(inv, 'modules_json'));
         const rightsRaw = parseInviteRightsFromRow(inviteRowField(inv, 'rights_json'));
@@ -3452,6 +3602,115 @@ async function buildSqliteStore() {
         [schadenId],
       );
     },
+    insertEmailOutbox(row) {
+      const id = row.id || randomUUID();
+      stmtRun(
+        db,
+        `INSERT INTO email_outbox (
+          id, type, related_type, related_id, to_email, from_email, subject, body_text, body_html, status, attempts, last_error
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.type,
+          row.relatedType ?? row.related_type ?? null,
+          row.relatedId ?? row.related_id ?? null,
+          row.toEmail ?? row.to_email,
+          row.fromEmail ?? row.from_email ?? null,
+          row.subject,
+          row.bodyText ?? row.body_text,
+          row.bodyHtml ?? row.body_html ?? null,
+          row.status ?? 'pending',
+          row.attempts ?? 0,
+          row.lastError ?? row.last_error ?? null,
+        ],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    markEmailOutboxSent(id) {
+      const now = new Date().toISOString();
+      stmtRun(
+        db,
+        "UPDATE email_outbox SET status = 'sent', attempts = attempts + 1, last_error = NULL, sent_at = ? WHERE id = ?",
+        [now, id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    markEmailOutboxFailed(id, error) {
+      stmtRun(
+        db,
+        "UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?",
+        [String(error || '').slice(0, 2000), id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    insertRepairAppointmentToken(row) {
+      const id = row.id || randomUUID();
+      stmtRun(
+        db,
+        `INSERT INTO repair_appointment_tokens (id, schaden_id, token_hash, email_outbox_id, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.tokenHash ?? row.token_hash, row.emailOutboxId ?? row.email_outbox_id ?? null, row.expiresAt ?? row.expires_at],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    getRepairAppointmentTokenByHash(tokenHash) {
+      return stmtGet(
+        db,
+        `SELECT t.*, s.project_id, s.fahrzeug_id, s.titel, s.beschreibung, s.status, s.extra_json, s.created_at AS schaden_created_at,
+                f.kennung AS fahrzeug_kennung
+         FROM repair_appointment_tokens t
+         JOIN schaeden s ON s.id = t.schaden_id
+         LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
+         WHERE t.token_hash = ? LIMIT 1`,
+        [tokenHash],
+      );
+    },
+    markRepairAppointmentTokenResponded(id) {
+      const now = new Date().toISOString();
+      stmtRun(
+        db,
+        'UPDATE repair_appointment_tokens SET used_at = COALESCE(used_at, ?), last_response_at = ? WHERE id = ?',
+        [now, now, id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    insertSchadenHistory(row) {
+      const id = row.id || randomUUID();
+      const eventJson =
+        row.eventJson != null
+          ? String(row.eventJson)
+          : row.event_json != null
+            ? String(row.event_json)
+            : row.event != null
+              ? JSON.stringify(row.event)
+              : null;
+      stmtRun(
+        db,
+        `INSERT INTO schaden_history (id, schaden_id, event_type, event_json, created_by_type)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.schadenId ?? row.schaden_id,
+          row.eventType ?? row.event_type,
+          eventJson,
+          row.createdByType ?? row.created_by_type ?? 'system',
+        ],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM schaden_history WHERE id = ? LIMIT 1', [id]);
+    },
+    listSchadenHistory(schadenId) {
+      return stmtAll(
+        db,
+        'SELECT id, schaden_id, event_type, event_json, created_by_type, created_at FROM schaden_history WHERE schaden_id = ? ORDER BY datetime(created_at) ASC, id ASC',
+        [schadenId],
+      );
+    },
     deleteSchadenByProject(schadenId, projectId) {
       const sid = typeof schadenId === 'string' ? schadenId.trim() : '';
       const pid = typeof projectId === 'string' ? projectId.trim() : '';
@@ -4212,6 +4471,10 @@ async function buildSqliteStore() {
         params,
       );
     },
+    countKalenderTermineTableAll() {
+      const row = stmtGet(db, 'SELECT COUNT(*) AS c FROM kalender_termine LIMIT 1', []);
+      return Number(row?.c || 0);
+    },
     countKalenderTermineByFirma(firmaId, { typ = null, von = null, bis = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
@@ -4627,6 +4890,212 @@ async function buildSqliteStore() {
          LIMIT ?`,
         params,
       );
+    },
+    getCcInternArbeitszeitSessionByUserProject(userId, projectId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      const pid = projectId != null && String(projectId).trim() !== '' ? String(projectId).trim() : null;
+      if (pid) {
+        return stmtGet(
+          db,
+          `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+           FROM ccintern_mitarbeiter_arbeitszeit_session
+           WHERE user_id = ? AND project_id = ?
+           LIMIT 1`,
+          [uid, pid],
+        );
+      }
+      return stmtGet(
+        db,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session
+         WHERE user_id = ? AND project_id IS NULL
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    insertCcInternArbeitszeitSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      stmtRun(
+        db,
+        `INSERT INTO ccintern_mitarbeiter_arbeitszeit_session
+          (id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+        [
+          row.id,
+          row.user_id,
+          row.project_id ?? null,
+          row.status === 'paused' ? 'paused' : 'running',
+          startedAt,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+          row.pause_started_at ?? null,
+        ],
+      );
+      persist();
+      return this.getCcInternArbeitszeitSessionById(row.id);
+    },
+    getCcInternArbeitszeitSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    updateCcInternArbeitszeitSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = ["updated_at = datetime('now')"];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        sets.push('status = ?');
+        params.push(patch.status === 'paused' ? 'paused' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternArbeitszeitSessionById(iid);
+      params.push(iid);
+      stmtRun(
+        db,
+        `UPDATE ccintern_mitarbeiter_arbeitszeit_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      persist();
+      return this.getCcInternArbeitszeitSessionById(iid);
+    },
+    deleteCcInternArbeitszeitSession(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return false;
+      stmtRun(db, `DELETE FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ?`, [iid]);
+      persist();
+      return true;
+    },
+    listCcInternAuftragArbeitsSessionsAllActive(firmaId) {
+      const fid = String(firmaId || '').trim();
+      if (!fid) return [];
+      return stmtAll(
+        db,
+        `SELECT s.id, s.user_id, s.auftrag_id, s.schritt_key, s.status, s.started_at, s.pause_started_at, s.pause_seconds, s.created_at, s.updated_at
+         FROM ccintern_auftrag_arbeits_session s
+         JOIN ccintern_auftraege a ON s.auftrag_id = a.id
+         WHERE a.firma_id = ? AND s.status IN ('running', 'paused')`,
+        [fid],
+      );
+    },
+    getCcInternAuftragArbeitsSessionActiveByUser(userId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')
+         ORDER BY datetime(updated_at) DESC
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    getCcInternAuftragArbeitsSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return stmtGet(
+        db,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    stopCcInternAuftragArbeitsSessionsForUser(userId, { exceptId = null } = {}) {
+      const uid = String(userId || '').trim();
+      if (!uid) return;
+      const rows = stmtAll(
+        db,
+        `SELECT id, status, pause_seconds, pause_started_at FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')`,
+        [uid],
+      );
+      for (const row of rows) {
+        if (exceptId && String(row.id) === String(exceptId)) continue;
+        let pauseSec = Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0));
+        if (row.status === 'paused' && row.pause_started_at) {
+          const ps = new Date(row.pause_started_at);
+          if (!Number.isNaN(ps.getTime())) {
+            pauseSec += Math.max(0, Math.floor((Date.now() - ps.getTime()) / 1000));
+          }
+        }
+        stmtRun(
+          db,
+          `UPDATE ccintern_auftrag_arbeits_session
+           SET status = 'stopped', pause_seconds = ?, pause_started_at = NULL, updated_at = datetime('now')
+           WHERE id = ?`,
+          [pauseSec, row.id],
+        );
+      }
+      persist();
+    },
+    insertCcInternAuftragArbeitsSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      const st = row.status === 'paused' ? 'paused' : row.status === 'stopped' ? 'stopped' : 'running';
+      stmtRun(
+        db,
+        `INSERT INTO ccintern_auftrag_arbeits_session
+          (id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+        [
+          row.id,
+          row.user_id,
+          row.auftrag_id,
+          row.schritt_key,
+          st,
+          startedAt,
+          row.pause_started_at ?? null,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+        ],
+      );
+      persist();
+      return this.getCcInternAuftragArbeitsSessionById(row.id);
+    },
+    updateCcInternAuftragArbeitsSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = ["updated_at = datetime('now')"];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        const st = String(patch.status).trim();
+        sets.push('status = ?');
+        params.push(st === 'paused' ? 'paused' : st === 'stopped' ? 'stopped' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternAuftragArbeitsSessionById(iid);
+      params.push(iid);
+      stmtRun(
+        db,
+        `UPDATE ccintern_auftrag_arbeits_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      persist();
+      return this.getCcInternAuftragArbeitsSessionById(iid);
     },
     listLagerMaterialByFirma(firmaId, { offset = 0, limit = 50, kategorie = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
@@ -5570,6 +6039,21 @@ async function buildSqliteStore() {
            AND z.schritt IN ('grafik','druck','laminat','montage','doku')
          LIMIT 1`,
         [zid, fid],
+      );
+    },
+    findCcInternChecklistenZuordnungByKey(firmaId, produktId, schritt, checklisteId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      const st = typeof schritt === 'string' ? schritt.trim() : '';
+      const cid = typeof checklisteId === 'string' ? checklisteId.trim() : '';
+      if (!fid || !pid || !st || !cid) return null;
+      return stmtGet(
+        db,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         WHERE z.firma_id = ? AND z.produkt_id = ? AND z.schritt = ? AND z.checkliste_id = ?
+         LIMIT 1`,
+        [fid, pid, st, cid],
       );
     },
     createCcInternChecklistenZuordnung(firmaId, row) {
@@ -7220,7 +7704,7 @@ export function backupSqliteDatabaseBeforeOpen() {
 }
 
 /**
- * Einmaliges Start-Logging: welche DB-Konfiguration der Prozess sieht (keine Datenänderung).
+ * Einmaliges Start-Logging: welche DB-Konfiguration der Prozess sieht (keine Änderung).
  * DEV/Diagnose — bei Bedarf später entfernen oder hinter Flag legen.
  */
 export function logDatabaseStartupDiagnostics() {

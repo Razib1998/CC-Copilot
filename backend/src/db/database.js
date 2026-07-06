@@ -1818,6 +1818,57 @@ function migratePhase40UsersSollUrlaub(db, persist) {
   persist();
 }
 
+/** Phase 63: E-Mail-Outbox + Werkstatt-Antwortlink + Schaden-Historie. */
+function migratePhase63SchadenTerminanfrageEmail(db, persist) {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS email_outbox (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      related_type TEXT,
+      related_id TEXT,
+      to_email TEXT NOT NULL,
+      from_email TEXT,
+      subject TEXT NOT NULL,
+      body_text TEXT NOT NULL,
+      body_html TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      sent_at TEXT
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_email_outbox_status ON email_outbox (status, created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_email_outbox_related ON email_outbox (related_type, related_id)');
+    db.exec(`CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+      id TEXT PRIMARY KEY,
+      schaden_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      email_outbox_id TEXT,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      last_response_at TEXT,
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+      FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_repair_tokens_schaden ON repair_appointment_tokens (schaden_id, created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_repair_tokens_hash ON repair_appointment_tokens (token_hash)');
+    db.exec(`CREATE TABLE IF NOT EXISTS schaden_history (
+      id TEXT PRIMARY KEY,
+      schaden_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      event_json TEXT,
+      created_by_type TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_schaden_history_schaden ON schaden_history (schaden_id, created_at)');
+  } catch (e) {
+    console.error('[migratePhase63] schaden terminanfrage email', e);
+  }
+  persist();
+}
+
 async function buildSqliteStore() {
   fs.mkdirSync(sqliteDataDir, { recursive: true });
   const SQL = await initSqlJs();
@@ -1891,6 +1942,7 @@ async function buildSqliteStore() {
   migratePhase60CcInternArbeitszeitSession(db, persist);
   migratePhase61CcInternAuftragArbeitsSession(db, persist);
   migratePhase62ChecklistenZuordnungUnique(db, persist);
+  migratePhase63SchadenTerminanfrageEmail(db, persist);
 
   return {
     db,
@@ -3547,6 +3599,115 @@ async function buildSqliteStore() {
          FROM schaeden s
          LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
          WHERE s.id = ? LIMIT 1`,
+        [schadenId],
+      );
+    },
+    insertEmailOutbox(row) {
+      const id = row.id || randomUUID();
+      stmtRun(
+        db,
+        `INSERT INTO email_outbox (
+          id, type, related_type, related_id, to_email, from_email, subject, body_text, body_html, status, attempts, last_error
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.type,
+          row.relatedType ?? row.related_type ?? null,
+          row.relatedId ?? row.related_id ?? null,
+          row.toEmail ?? row.to_email,
+          row.fromEmail ?? row.from_email ?? null,
+          row.subject,
+          row.bodyText ?? row.body_text,
+          row.bodyHtml ?? row.body_html ?? null,
+          row.status ?? 'pending',
+          row.attempts ?? 0,
+          row.lastError ?? row.last_error ?? null,
+        ],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    markEmailOutboxSent(id) {
+      const now = new Date().toISOString();
+      stmtRun(
+        db,
+        "UPDATE email_outbox SET status = 'sent', attempts = attempts + 1, last_error = NULL, sent_at = ? WHERE id = ?",
+        [now, id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    markEmailOutboxFailed(id, error) {
+      stmtRun(
+        db,
+        "UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?",
+        [String(error || '').slice(0, 2000), id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    insertRepairAppointmentToken(row) {
+      const id = row.id || randomUUID();
+      stmtRun(
+        db,
+        `INSERT INTO repair_appointment_tokens (id, schaden_id, token_hash, email_outbox_id, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.tokenHash ?? row.token_hash, row.emailOutboxId ?? row.email_outbox_id ?? null, row.expiresAt ?? row.expires_at],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    getRepairAppointmentTokenByHash(tokenHash) {
+      return stmtGet(
+        db,
+        `SELECT t.*, s.project_id, s.fahrzeug_id, s.titel, s.beschreibung, s.status, s.extra_json, s.created_at AS schaden_created_at,
+                f.kennung AS fahrzeug_kennung
+         FROM repair_appointment_tokens t
+         JOIN schaeden s ON s.id = t.schaden_id
+         LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
+         WHERE t.token_hash = ? LIMIT 1`,
+        [tokenHash],
+      );
+    },
+    markRepairAppointmentTokenResponded(id) {
+      const now = new Date().toISOString();
+      stmtRun(
+        db,
+        'UPDATE repair_appointment_tokens SET used_at = COALESCE(used_at, ?), last_response_at = ? WHERE id = ?',
+        [now, now, id],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    insertSchadenHistory(row) {
+      const id = row.id || randomUUID();
+      const eventJson =
+        row.eventJson != null
+          ? String(row.eventJson)
+          : row.event_json != null
+            ? String(row.event_json)
+            : row.event != null
+              ? JSON.stringify(row.event)
+              : null;
+      stmtRun(
+        db,
+        `INSERT INTO schaden_history (id, schaden_id, event_type, event_json, created_by_type)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.schadenId ?? row.schaden_id,
+          row.eventType ?? row.event_type,
+          eventJson,
+          row.createdByType ?? row.created_by_type ?? 'system',
+        ],
+      );
+      persist();
+      return stmtGet(db, 'SELECT * FROM schaden_history WHERE id = ? LIMIT 1', [id]);
+    },
+    listSchadenHistory(schadenId) {
+      return stmtAll(
+        db,
+        'SELECT id, schaden_id, event_type, event_json, created_by_type, created_at FROM schaden_history WHERE schaden_id = ? ORDER BY datetime(created_at) ASC, id ASC',
         [schadenId],
       );
     },

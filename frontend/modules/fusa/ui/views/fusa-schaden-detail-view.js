@@ -9,6 +9,7 @@ import {
   formatApiErrorForUi,
   getAccessToken,
   getApiBaseUrl,
+  getCurrentProjectId,
 } from '../../../../core/auth/cc-auth-session.js';
 import { API_ROUTES } from '../../../../core/api/api-routes.js';
 import { loadMyRights, myRight } from '../../../../core/access/cc-my-rights.js';
@@ -22,8 +23,12 @@ async function fetchAuthedImageObjectUrl(relUrl) {
   const token = getAccessToken();
   const p = relUrl.startsWith('/') ? relUrl : `/${relUrl}`;
   const url = `${getApiBaseUrl()}${p}`;
+  const projectId = getCurrentProjectId();
+  /** @type {Record<string, string>} */
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  if (projectId && p.startsWith('/api/v1/')) headers['x-project-id'] = projectId;
   const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers,
   });
   if (!res.ok) throw new Error(`Bild ${res.status}`);
   const blob = await res.blob();
@@ -104,6 +109,15 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
 
   const fotoVms = fotosRaw.map(f => mapSchadenFotoApiToViewModel(f && typeof f === 'object' ? /** @type {Record<string, unknown>} */ (f) : {})).filter(Boolean);
 
+  /** @type {Array<Record<string, unknown>>} */
+  let historyRows = [];
+  try {
+    const hr = await apiFetch(`${API_ROUTES.fusa.schaeden}/${encodeURIComponent(sid)}/history`);
+    historyRows = Array.isArray(hr.history) ? hr.history : [];
+  } catch {
+    historyRows = [];
+  }
+
   const fallbackBanner = usedListFallback
     ? `<p class="ckp-mock-note" role="status" data-fusa-sch-detail-fallback>Detailabruf war nicht möglich — Anzeige aus der Schadenliste (eingeschränkt).</p>`
     : '';
@@ -152,31 +166,168 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
 </details>`;
   })();
 
-  const fotoBlock =
-    fotoVms.length === 0
-      ? `<p class="ckp-mock-note" role="status">Keine Fotos vorhanden.</p>`
-      : `<div class="fusa-sch-gallery" data-fusa-sch-gallery>${fotoVms
+  const historyBlock = (() => {
+    if (!historyRows.length) return '<p class="ckp-mock-note" role="status">Noch keine Termin-Historie vorhanden.</p>';
+    function label(type) {
+      if (type === 'repair_request_email_created') return 'E-Mail vorbereitet';
+      if (type === 'repair_request_email_sent') return 'E-Mail gesendet';
+      if (type === 'repair_request_email_failed') return 'E-Mail fehlgeschlagen';
+      if (type === 'workshop_accepted') return 'Werkstatt hat akzeptiert';
+      if (type === 'workshop_counter_proposed') return 'Werkstatt schlägt neuen Termin vor';
+      if (type === 'workshop_declined') return 'Werkstatt hat abgelehnt';
+      if (type === 'admin_appointment_confirmed') return 'Admin hat Termin bestätigt';
+      if (type === 'admin_appointment_cancelled') return 'Admin hat Terminanfrage zurückgenommen';
+      if (type === 'admin_repair_started') return 'Reparatur / Auftrag gestartet';
+      if (type === 'admin_repair_completed') return 'Admin hat Reparatur abgeschlossen';
+      if (type === 'admin_workshop_status_changed') return 'Werkstattstatus geändert';
+      if (type === 'staff_repair_started') return 'Monteur hat Reparatur gestartet';
+      if (type === 'staff_repair_completed') return 'Monteur hat Reparatur abgeschlossen';
+      return String(type || 'Ereignis');
+    }
+    return `<div style="display:flex;flex-direction:column;gap:10px;">${historyRows
+      .map((r) => {
+        const ev = r.event && typeof r.event === 'object' ? /** @type {Record<string, unknown>} */ (r.event) : {};
+        const type = String(r.event_type || '');
+        const detail =
+          type === 'workshop_counter_proposed'
+            ? `${ev.proposed_date ? `Vorschlag: ${esc(String(ev.proposed_date))}` : ''}${ev.proposed_time ? ` · ${esc(String(ev.proposed_time))}` : ''}${ev.note ? `<br>Notiz: ${esc(String(ev.note))}` : ''}`
+            : type === 'workshop_accepted' || type === 'workshop_declined'
+              ? `${ev.note ? `Notiz: ${esc(String(ev.note))}` : ''}`
+              : ev.toEmail
+                ? `Empfänger: ${esc(String(ev.toEmail))}`
+                : ev.error
+                  ? `Fehler: ${esc(String(ev.error))}`
+                  : '';
+        return `<div style="border-left:3px solid #D4500A;padding:2px 0 2px 10px;">
+          <div style="font-weight:700;color:#1e293b;">${esc(label(type))}</div>
+          <div style="font-size:12px;color:#64748b;">${esc(String(r.created_at || ''))}${r.created_by_type ? ` · ${esc(String(r.created_by_type))}` : ''}</div>
+          ${detail ? `<div style="font-size:12px;color:#334155;margin-top:3px;">${detail}</div>` : ''}
+        </div>`;
+      })
+      .join('')}</div>`;
+  })();
+
+  const repairPhotoIds = new Set(Array.isArray(vm.repairPhotoIds) ? vm.repairPhotoIds.map(x => String(x)) : []);
+  const repairFotoVms = fotoVms.filter(fv => repairPhotoIds.has(String(fv.id)));
+  const schadenFotoVms = fotoVms.filter(fv => !repairPhotoIds.has(String(fv.id)));
+  const staffEvents = historyRows.filter((r) => {
+    const t = String(r.event_type || '');
+    return t === 'staff_repair_started' || t === 'staff_repair_completed';
+  });
+
+  function galleryHtml(list, emptyText, caption) {
+    return list.length === 0
+      ? `<div class="fusa-sch-empty-photo" role="status">
+  <div class="fusa-sch-empty-photo__icon">📷</div>
+  <div>
+    <strong>Keine Fotos vorhanden</strong>
+    <span>${esc(emptyText)}</span>
+  </div>
+</div>`
+      : `<div class="fusa-sch-gallery" data-fusa-sch-gallery>${list
           .map(fv => {
             const u = fv.url;
-            return `<figure class="fusa-sch-gal-item"><img alt="Schadenfoto" data-fusa-sch-foto-url="${esc(u)}" /></figure>`;
+            return `<figure class="fusa-sch-gal-item">
+  <img alt="${esc(caption)}" data-fusa-sch-foto-url="${esc(u)}" />
+  <figcaption>${esc(caption)}</figcaption>
+</figure>`;
           })
           .join('')}</div>`;
+  }
 
-  const actionsWs = canWs
-    ? `<div class="fusa-sch-detail-ws">
-  <button type="button" class="ckp-api-auftrag-submit fusa-sch-ws-btn" data-fusa-sch-ws="in_arbeit">In Arbeit</button>
-  <button type="button" class="ckp-api-auftrag-submit fusa-sch-ws-btn" data-fusa-sch-ws="fertig">Fertig</button>
-</div>`
-    : `<p class="ckp-mock-note" role="status">Kein Recht zur Werkstatt-Aktion — <code>fusa.schaeden.bearbeiten</code>.</p>`;
+  function displayDateTime(v) {
+    const s = String(v || '').trim();
+    if (!s) return '—';
+    if (s.length >= 16) return s.slice(0, 16).replace('T', ' ');
+    return s;
+  }
+
+  const staffDetailsBlock = (() => {
+    const rows = [
+      ['Gestartet von', vm.repairStartedBy || '—'],
+      ['Gestartet am', displayDateTime(vm.repairStartedAt)],
+      ['Abgeschlossen von', vm.repairCompletedBy || '—'],
+      ['Abgeschlossen am', displayDateTime(vm.repairCompletedAt)],
+      ['Notiz', vm.repairCompletedNote || '—'],
+      ['Nachher-Fotos', String(repairFotoVms.length)],
+    ];
+    const eventRows = staffEvents
+      .map((r) => {
+        const ev = r.event && typeof r.event === 'object' ? /** @type {Record<string, unknown>} */ (r.event) : {};
+        return `<div class="fusa-sch-staff-event">
+          <strong>${esc(String(r.event_type || '') === 'staff_repair_completed' ? 'Reparatur abgeschlossen' : 'Reparatur gestartet')}</strong>
+          <span>${esc(displayDateTime(r.created_at))}${ev.staff_name ? ` · ${esc(String(ev.staff_name))}` : ''}</span>
+          ${ev.note ? `<p>${esc(String(ev.note))}</p>` : ''}
+        </div>`;
+      })
+      .join('');
+    return `<div class="fusa-sch-staff-grid">
+      ${rows.map(([k, v]) => `<div class="fusa-sch-info"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}
+    </div>
+    ${eventRows ? `<div class="fusa-sch-staff-events">${eventRows}</div>` : '<p class="ckp-mock-note" role="status">Noch keine Monteur-Aktion gespeichert.</p>'}`;
+  })();
 
   const fotoActions = canUploadPhotos
     ? `<div class="fusa-sch-foto-actions">
   <input type="file" accept="image/*" capture="environment" hidden data-fusa-sch-foto-capture />
   <input type="file" accept="image/*" hidden data-fusa-sch-foto-files multiple />
-  <button type="button" class="ckp-api-auftrag-submit fusa-sch-foto-btn" data-fusa-sch-foto-trigger="capture">📸 Foto aufnehmen</button>
-  <button type="button" class="ckp-api-auftrag-submit fusa-sch-foto-btn" data-fusa-sch-foto-trigger="files">📁 Datei wählen</button>
+  <button type="button" class="fusa-sch-photo-btn" data-fusa-sch-foto-trigger="capture">📸 Foto aufnehmen</button>
+  <button type="button" class="fusa-sch-photo-btn fusa-sch-photo-btn--secondary" data-fusa-sch-foto-trigger="files">📁 Datei wählen</button>
 </div>`
     : `<p class="ckp-mock-note" role="status">Kein Recht zum Hochladen — <code>fusa.schaeden.upload</code>.</p>`;
+
+  const evidenceBlock = `<section class="fusa-sch-card fusa-sch-evidence">
+    <div class="fusa-sch-card-head">
+      <div>
+        <h3>Reparatur-Nachweis</h3>
+        <p>Vorher-/Nachher-Vergleich, Monteurangaben und Verlauf.</p>
+      </div>
+      <div class="fusa-sch-proof-kpis">
+        <span>${schadenFotoVms.length} vorher</span>
+        <span>${repairFotoVms.length} nachher</span>
+      </div>
+    </div>
+    ${fotoActions}
+    <p class="ckp-api-error" data-fusa-sch-detail-msg hidden role="alert"></p>
+    <div class="fusa-sch-tabs" role="tablist" aria-label="Reparatur-Nachweis">
+      <button type="button" class="fusa-sch-tab is-active" data-fusa-sch-evidence-tab="overview">Übersicht</button>
+      <button type="button" class="fusa-sch-tab" data-fusa-sch-evidence-tab="before">Vorher</button>
+      <button type="button" class="fusa-sch-tab" data-fusa-sch-evidence-tab="staff">Monteur</button>
+      <button type="button" class="fusa-sch-tab" data-fusa-sch-evidence-tab="after">Nachher</button>
+      <button type="button" class="fusa-sch-tab" data-fusa-sch-evidence-tab="history">Verlauf</button>
+    </div>
+    <div class="fusa-sch-tab-panel is-active" data-fusa-sch-evidence-panel="overview">
+      <div class="fusa-sch-compare-grid">
+        <div>
+          <h4>Schadensfotos vorher</h4>
+          ${galleryHtml(schadenFotoVms.slice(0, 4), 'Wenn der Fahrer ein Schadensfoto hochgeladen hat, erscheint es hier.', 'Schadensfoto vorher')}
+        </div>
+        <div>
+          <h4>Nachher-Fotos Reparatur</h4>
+          ${galleryHtml(repairFotoVms.slice(0, 4), 'Wenn der Monteur nach der Reparatur Fotos hochlädt, erscheinen sie hier.', 'Nachher-Foto Reparatur')}
+        </div>
+      </div>
+    </div>
+    <div class="fusa-sch-tab-panel" data-fusa-sch-evidence-panel="before">
+      ${galleryHtml(schadenFotoVms, 'Wenn der Fahrer ein Schadensfoto hochgeladen hat, erscheint es hier.', 'Schadensfoto vorher')}
+    </div>
+    <div class="fusa-sch-tab-panel" data-fusa-sch-evidence-panel="staff">
+      ${staffDetailsBlock}
+    </div>
+    <div class="fusa-sch-tab-panel" data-fusa-sch-evidence-panel="after">
+      ${galleryHtml(repairFotoVms, 'Wenn der Monteur nach der Reparatur Fotos hochlädt, erscheinen sie hier.', 'Nachher-Foto Reparatur')}
+    </div>
+    <div class="fusa-sch-tab-panel" data-fusa-sch-evidence-panel="history">
+      ${historyBlock}
+    </div>
+  </section>`;
+
+  const actionsWs = canWs
+    ? `<div class="fusa-sch-detail-ws" aria-label="Werkstattstatus ändern">
+  <button type="button" class="fusa-sch-action-btn fusa-sch-action-btn--work" data-fusa-sch-ws="in_arbeit">In Arbeit setzen</button>
+  <button type="button" class="fusa-sch-action-btn fusa-sch-action-btn--done" data-fusa-sch-ws="fertig">Als fertig markieren</button>
+</div>`
+    : `<p class="ckp-mock-note" role="status">Kein Recht zur Werkstatt-Aktion — <code>fusa.schaeden.bearbeiten</code>.</p>`;
 
   const dokList = Array.isArray(vm.schadenDokumente) ? vm.schadenDokumente : [];
   const dokRows =
@@ -213,36 +364,114 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
 
   return `<div data-ccw-ro="fusa-schaeden" class="fusa-sch-detail" data-fusa-sch-detail-id="${esc(sid)}">
 <style>
-.fusa-sch-detail{max-width:100%;padding-bottom:24px;}
-@media (min-width:900px){.fusa-sch-detail{max-width:560px;margin:0 auto;}}
-.fusa-sch-detail-ws{display:flex;flex-direction:column;gap:10px;margin:16px 0;}
-.fusa-sch-ws-btn{width:100%;min-height:48px;font-size:1.05rem;padding:12px 16px;}
-@media (min-width:900px){.fusa-sch-ws-btn{min-height:44px;font-size:1rem;}}
-.fusa-sch-foto-actions{display:flex;flex-direction:column;gap:10px;margin:12px 0 16px;}
-.fusa-sch-foto-btn{width:100%;min-height:48px;font-size:1rem;}
-@media (min-width:900px){.fusa-sch-foto-btn{min-height:40px;}}
-.fusa-sch-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:8px;}
-.fusa-sch-gal-item{margin:0;}
-.fusa-sch-gal-item img{width:100%;height:140px;object-fit:cover;border-radius:8px;background:#eee;}
+.fusa-sch-detail{--fsd-card:var(--card,#fff);--fsd-soft:#f8fafc;--fsd-soft2:#eef2f7;--fsd-border:var(--border,#DDE3E8);--fsd-text:var(--text,#0F1923);--fsd-muted:var(--text2,#546E7A);--fsd-muted2:var(--text3,#90A4AE);--fsd-accent:#14b8a6;--fsd-accent-text:#06211e;max-width:1120px;margin:0 auto;padding:10px 18px 32px;color:var(--fsd-text);}
+html[data-theme='dark'] .fusa-sch-detail{--fsd-card:#101a29;--fsd-soft:#0b1422;--fsd-soft2:#172234;--fsd-border:#26364d;--fsd-text:#f8fafc;--fsd-muted:#aab7ca;--fsd-muted2:#96a4b8;--fsd-accent:#19b8a8;--fsd-accent-text:#06211e;}
+.fusa-sch-back{border:1px solid var(--fsd-border);background:var(--fsd-card);color:var(--fsd-muted);border-radius:10px;cursor:pointer;padding:9px 12px;margin-bottom:14px;font:inherit;font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.06);}
+.fusa-sch-back:hover{color:var(--fsd-text);border-color:var(--fsd-accent);}
+.fusa-sch-hero{background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--fsd-border);border-radius:16px;padding:18px;box-shadow:0 14px 32px rgba(15,23,42,.08);margin-bottom:14px;}
+html[data-theme='dark'] .fusa-sch-hero{background:linear-gradient(180deg,#182437,#111a29);border-color:#2f4058;box-shadow:0 16px 40px rgba(0,0,0,.18);}
+.fusa-sch-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.fusa-sch-eyebrow{color:var(--fsd-muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.fusa-sch-title{font-size:28px;line-height:1.12;margin:0;color:var(--fsd-text);}
+.fusa-sch-sub{margin:8px 0 0;color:var(--fsd-muted);font-size:14px;}
+.fusa-sch-badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.fusa-sch-badge{border:1px solid var(--fsd-border);background:var(--fsd-soft);color:var(--fsd-text);border-radius:999px;padding:7px 11px;font-size:12px;font-weight:800;white-space:nowrap;}
+.fusa-sch-badge--warn{background:#fff7ed;border-color:#fdba74;color:#9a3412;}
+html[data-theme='dark'] .fusa-sch-badge{border-color:#3d4f68;background:#0c1624;color:#dce7f5;}
+html[data-theme='dark'] .fusa-sch-badge--warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.42);color:#fbbf24;}
+.fusa-sch-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:14px;align-items:start;}
+.fusa-sch-card{background:var(--fsd-card);border:1px solid var(--fsd-border);border-radius:14px;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.08);}
+html[data-theme='dark'] .fusa-sch-card{border-color:#2c3c52;box-shadow:0 10px 26px rgba(0,0,0,.14);}
+.fusa-sch-card + .fusa-sch-card{margin-top:14px;}
+.fusa-sch-card h3{margin:0 0 12px;color:var(--fsd-text);font-size:16px;}
+.fusa-sch-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px;}
+.fusa-sch-card-head h3{margin:0 0 4px;}
+.fusa-sch-card-head p{margin:0;color:var(--fsd-muted2);font-size:13px;}
+.fusa-sch-proof-kpis{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.fusa-sch-proof-kpis span{border:1px solid var(--fsd-border);background:var(--fsd-soft);color:var(--fsd-text);border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;white-space:nowrap;}
+.fusa-sch-desc{background:var(--fsd-soft);border:1px solid var(--fsd-border);border-radius:12px;padding:14px;color:var(--fsd-text);line-height:1.55;white-space:pre-wrap;}
+.fusa-sch-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.fusa-sch-info{background:var(--fsd-soft);border:1px solid var(--fsd-border);border-radius:12px;padding:11px 12px;min-width:0;}
+.fusa-sch-info span{display:block;color:var(--fsd-muted2);font-size:12px;margin-bottom:4px;}
+.fusa-sch-info strong{display:block;color:var(--fsd-text);font-size:14px;word-break:break-word;}
+.fusa-sch-extra{margin-top:12px;display:grid;gap:8px;color:var(--fsd-muted);}
+.fusa-sch-extra p{margin:0;background:var(--fsd-soft);border:1px solid var(--fsd-border);border-radius:10px;padding:9px 11px;}
+.fusa-sch-detail-ws{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.fusa-sch-action-btn,.fusa-sch-photo-btn{border:0;border-radius:12px;min-height:46px;padding:12px 14px;font:inherit;font-weight:900;color:var(--fsd-accent-text);background:var(--fsd-accent);cursor:pointer;}
+.fusa-sch-action-btn--done{background:#22c55e;color:#052414;}
+.fusa-sch-action-btn--work{background:#14b8a6;}
+.fusa-sch-foto-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+.fusa-sch-photo-btn--secondary{background:var(--fsd-soft);color:var(--fsd-text);border:1px solid var(--fsd-border);}
+.fusa-sch-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px;}
+.fusa-sch-gal-item{margin:0;background:var(--fsd-soft);border:1px solid var(--fsd-border);border-radius:14px;overflow:hidden;}
+.fusa-sch-gal-item img{display:block;width:100%;height:190px;object-fit:cover;background:var(--fsd-soft2);}
+.fusa-sch-gal-item figcaption{padding:8px 10px;color:var(--fsd-muted);font-size:12px;font-weight:700;}
+.fusa-sch-tabs{display:flex;gap:8px;overflow-x:auto;padding:6px;margin:12px 0;background:var(--fsd-soft);border:1px solid var(--fsd-border);border-radius:14px;}
+.fusa-sch-tab{border:0;border-radius:10px;background:transparent;color:var(--fsd-muted);font:inherit;font-size:13px;font-weight:900;padding:9px 12px;white-space:nowrap;cursor:pointer;}
+.fusa-sch-tab.is-active{background:var(--fsd-accent);color:var(--fsd-accent-text);}
+.fusa-sch-tab-panel{display:none;}
+.fusa-sch-tab-panel.is-active{display:block;}
+.fusa-sch-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+.fusa-sch-compare-grid h4,.fusa-sch-tab-panel h4{margin:0 0 8px;font-size:14px;color:var(--fsd-text);}
+.fusa-sch-staff-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.fusa-sch-staff-events{display:grid;gap:10px;margin-top:14px;}
+.fusa-sch-staff-event{border-left:3px solid var(--fsd-accent);background:var(--fsd-soft);border-radius:10px;padding:10px 12px;color:var(--fsd-text);}
+.fusa-sch-staff-event strong{display:block;color:var(--fsd-text);}
+.fusa-sch-staff-event span{display:block;color:var(--fsd-muted2);font-size:12px;margin-top:2px;}
+.fusa-sch-staff-event p{margin:6px 0 0;color:var(--fsd-text);font-size:13px;white-space:pre-wrap;}
+.fusa-sch-empty-photo{display:flex;gap:12px;align-items:center;background:var(--fsd-soft);border:1px dashed var(--fsd-border);border-radius:14px;padding:16px;color:var(--fsd-muted);}
+.fusa-sch-empty-photo__icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--fsd-soft2);font-size:22px;flex:0 0 auto;}
+.fusa-sch-empty-photo strong{display:block;color:var(--fsd-text);margin-bottom:3px;}
+.fusa-sch-empty-photo span{display:block;font-size:13px;}
+@media (max-width:900px){.fusa-sch-layout{grid-template-columns:1fr}.fusa-sch-title{font-size:23px}.fusa-sch-hero-top,.fusa-sch-card-head{flex-direction:column}.fusa-sch-badges,.fusa-sch-proof-kpis{justify-content:flex-start}.fusa-sch-info-grid,.fusa-sch-detail-ws,.fusa-sch-foto-actions,.fusa-sch-compare-grid,.fusa-sch-staff-grid{grid-template-columns:1fr}}
 </style>
-  <button type="button" class="ckp-mock-note" data-fusa-schaden-back style="border:none;background:none;cursor:pointer;text-decoration:underline;padding:0;margin-bottom:12px;font:inherit;color:inherit;">← Zurück</button>
+  <button type="button" class="fusa-sch-back" data-fusa-schaden-back>← Zurück zur Übersicht</button>
   ${fallbackBanner}
-  <h2 class="ckp-api-auftrag-form__title" style="margin-top:0;">${esc(vm.titel)}</h2>
-  <p><strong>Schaden-ID:</strong> ${esc(vm.id)}</p>
-  <p><strong>Fahrzeug:</strong> ${esc(vm.fahrzeugDisplay)}</p>
-  <p><strong>Beschreibung:</strong> ${esc(vm.beschreibungDisplay)}</p>
-  <p><strong>Status (Meldung):</strong> ${esc(vm.meldungLabel)}</p>
-  <p><strong>Werkstatt:</strong> ${esc(vm.werkstattLabel)}</p>
-  <p><strong>Erfasst:</strong> ${esc(vm.createdAtDisplay)}</p>
-  ${bearbeitetBlock}
-  ${extraFelder}
-  ${terminanfrageBlock}
-  ${actionsWs}
-  <h3 class="ckp-snapshot-ro-section-title" style="margin-top:20px;">Fotos</h3>
-  ${fotoActions}
-  <p class="ckp-api-error" data-fusa-sch-detail-msg hidden role="alert"></p>
-  ${fotoBlock}
-  ${dateienBlock}
+  <section class="fusa-sch-hero">
+    <div class="fusa-sch-hero-top">
+      <div>
+        <div class="fusa-sch-eyebrow">Schaden / Werkstatt</div>
+        <h2 class="fusa-sch-title">${esc(vm.titel)}</h2>
+        <p class="fusa-sch-sub">${esc(vm.fahrzeugDisplay)} · erfasst ${esc(vm.createdAtDisplay)}</p>
+      </div>
+      <div class="fusa-sch-badges">
+        <span class="fusa-sch-badge">${esc(vm.meldungLabel)}</span>
+        <span class="fusa-sch-badge fusa-sch-badge--warn">Werkstatt: ${esc(vm.werkstattLabel)}</span>
+      </div>
+    </div>
+  </section>
+  <div class="fusa-sch-layout">
+    <main>
+      <section class="fusa-sch-card">
+        <h3>Beschreibung</h3>
+        <div class="fusa-sch-desc">${esc(vm.beschreibungDisplay)}</div>
+      </section>
+      ${evidenceBlock}
+      <section class="fusa-sch-card">
+        ${dateienBlock}
+      </section>
+    </main>
+    <aside>
+      <section class="fusa-sch-card">
+        <h3>Informationen</h3>
+        <div class="fusa-sch-info-grid">
+          <div class="fusa-sch-info"><span>Fahrzeug</span><strong>${esc(vm.fahrzeugDisplay)}</strong></div>
+          <div class="fusa-sch-info"><span>Erfasst</span><strong>${esc(vm.createdAtDisplay)}</strong></div>
+          <div class="fusa-sch-info"><span>Status</span><strong>${esc(vm.meldungLabel)}</strong></div>
+          <div class="fusa-sch-info"><span>Werkstatt</span><strong>${esc(vm.werkstattLabel)}</strong></div>
+        </div>
+        <div class="fusa-sch-extra">
+          ${bearbeitetBlock}
+          ${extraFelder}
+        </div>
+      </section>
+      <section class="fusa-sch-card">
+        <h3>Werkstatt</h3>
+        ${actionsWs}
+      </section>
+      ${terminanfrageBlock ? `<section class="fusa-sch-card">${terminanfrageBlock}</section>` : ''}
+    </aside>
+  </div>
 </div>`;
 }
 
@@ -283,6 +512,22 @@ export function attachFusaSchadenDetailHandlers(mount, onReload) {
       if (typeof onReload === 'function') void onReload();
     });
   }
+
+  mount.querySelectorAll('[data-fusa-sch-evidence-tab]').forEach(btn => {
+    if (!(btn instanceof HTMLButtonElement)) return;
+    btn.addEventListener('click', () => {
+      const key = String(btn.getAttribute('data-fusa-sch-evidence-tab') || '').trim();
+      if (!key) return;
+      mount.querySelectorAll('[data-fusa-sch-evidence-tab]').forEach(x => {
+        if (x instanceof HTMLElement) x.classList.toggle('is-active', x === btn);
+      });
+      mount.querySelectorAll('[data-fusa-sch-evidence-panel]').forEach(panel => {
+        if (panel instanceof HTMLElement) {
+          panel.classList.toggle('is-active', panel.getAttribute('data-fusa-sch-evidence-panel') === key);
+        }
+      });
+    });
+  });
 
   const root = mount.querySelector('[data-fusa-sch-detail-id]');
   const sid = root instanceof HTMLElement ? String(root.getAttribute('data-fusa-sch-detail-id') || '').trim() : '';

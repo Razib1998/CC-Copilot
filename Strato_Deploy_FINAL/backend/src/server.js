@@ -19,6 +19,7 @@ import {
   sendMobileSchadenMeldenPage,
   rateLimitPublicFahrzeugGet,
 } from './routes/public-melden.js';
+import { createWorkshopRepairRequestRouter } from './routes/workshop-repair-request.js';
 import { createApiV1Router } from './routes/api-v1.js';
 import { ensureDevTestLoginUser } from './lib/ensure-dev-test-login-user.js';
 import { sendError } from './lib/api-v1-envelope.js';
@@ -185,6 +186,7 @@ app.use('/auth', createAuthRouter(store));
 app.use('/invites', createInvitePublicRouter(store));
 
 app.use('/public', createPublicMeldenRouter(store));
+app.use('/public', createWorkshopRepairRequestRouter(store));
 app.get('/m/fahrzeug/:fahrzeugId', rateLimitPublicFahrzeugGet, sendMobileSchadenMeldenPage);
 
 app.get('/health', (_req, res) => {

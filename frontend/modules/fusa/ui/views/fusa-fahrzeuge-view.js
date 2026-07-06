@@ -226,7 +226,7 @@ function looksLikeHttpScanLandingUrl(url) {
 }
 
 /**
- * Kanonische Scan-URL wie Alt `printFzQR` (Query fz/n/d/t auf `/scan`).
+ * Kanonische mobile Fahrzeugseite. Alte `/scan?fz=...` URLs bleiben serverseitig als Redirect erhalten.
  * @param {Record<string, unknown>} vm
  */
 function buildDefaultScanQueryUrlForFz(vm) {
@@ -237,17 +237,22 @@ function buildDefaultScanQueryUrlForFz(vm) {
   let origin = base;
   try {
     const u = new URL(base.startsWith('http') ? base : `https://${base}`);
+    if (
+      typeof window !== 'undefined' &&
+      (u.hostname === 'localhost' || u.hostname === '127.0.0.1') &&
+      window.location?.hostname &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      u.hostname = window.location.hostname;
+    }
     origin = u.origin;
   } catch {
     /* keep */
   }
-  const params = new URLSearchParams();
-  if (vm.id) params.set('fz', String(vm.id));
-  if (vm.nummer) params.set('n', String(vm.nummer));
-  if (vm.depot) params.set('d', String(vm.depot));
-  const typLine = String((vm.subtyp != null ? vm.subtyp : '') || (vm.typ != null ? vm.typ : '') || '').trim();
-  if (typLine) params.set('t', typLine);
-  return `${String(origin).replace(/\/+$/, '')}/scan?${params.toString()}`;
+  const id = vm.id != null ? String(vm.id).trim() : '';
+  if (!id) return '';
+  return `${String(origin).replace(/\/+$/, '')}/m/fahrzeug/${encodeURIComponent(id)}`;
 }
 
 /**
@@ -319,23 +324,84 @@ async function renderQrIntoHost(host, text) {
 }
 
 /**
+ * @param {string} text
+ * @param {number} size
+ * @returns {Promise<string>}
+ */
+async function createQrPngDataUrl(text, size = 512) {
+  const t = String(text || '').trim();
+  if (!t) throw new Error('Kein Scan-Ziel.');
+  await loadQrCodeJsOnce();
+  const QR = /** @type {{ new (el: HTMLElement, o: object): unknown, CorrectLevel: { H: unknown } }} */ (
+    /** @type {unknown} */ (window).QRCode
+  );
+  if (!QR) throw new Error('QRCode.js nicht geladen.');
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '-10000px';
+  host.style.width = `${size}px`;
+  host.style.height = `${size}px`;
+  document.body.appendChild(host);
+  try {
+    // eslint-disable-next-line new-cap
+    new QR(host, {
+      text: t,
+      width: size,
+      height: size,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QR.CorrectLevel.H,
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 80));
+    const canvas = host.querySelector('canvas');
+    if (canvas instanceof HTMLCanvasElement) return canvas.toDataURL('image/png');
+    const img = host.querySelector('img');
+    if (img instanceof HTMLImageElement && img.src) return img.src;
+    throw new Error('QR konnte nicht erzeugt werden.');
+  } finally {
+    host.remove();
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} vm
+ */
+async function downloadFzQrPng(vm) {
+  const scanUrl = resolveCanonicalScanUrlForFz(vm);
+  const dataUrl = await createQrPngDataUrl(scanUrl, 768);
+  const rawName = String(vm.nummer || vm.id || 'fahrzeug').trim().replace(/[^a-zA-Z0-9._-]+/g, '_') || 'fahrzeug';
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = `qr-${rawName}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/**
  * @param {{ title: string, headline: string, sub: string, scanUrl: string, qrPixel?: number }} o
  */
-function openFzQrPrintWindow(o) {
-  const w = window.open('', '_blank', 'width=480,height=640,noopener,noreferrer');
+async function openFzQrPrintWindow(o) {
+  const w = window.open('', '_blank', 'width=480,height=640');
   if (!w) return;
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR-Code</title></head><body>QR-Code wird vorbereitet...</body></html>');
+  w.document.close();
   const title = esc(o.title);
   const headline = esc(o.headline);
   const sub = esc(o.sub);
   const px = Math.max(96, Math.min(320, o.qrPixel == null ? 220 : Number(o.qrPixel)));
-  const scanJson = JSON.stringify(o.scanUrl);
-  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><` +
-    `/script><style>body{font-family:system-ui,sans-serif;text-align:center;padding:28px;color:#111;}h1{font-size:20px;margin:0 0 6px;}p.sub{color:#555;font-size:13px;margin:0 0 18px;}#qwrap{display:inline-block;padding:12px;border:2px solid #000;border-radius:8px;}.url{font-family:monospace;font-size:10px;word-break:break-all;color:#333;margin-top:14px;max-width:420px;margin-left:auto;margin-right:auto;}@media print{body{padding:12px;}}</style></head><body><h1>${headline}</h1><p class="sub">${sub}</p><div id="qwrap"><div id="qrprint"></div></div><p class="url">${esc(
-    o.scanUrl,
-  )}</p><script>(function(){var u=${scanJson};function go(){try{if(window.QRCode&&document.getElementById("qrprint")){new QRCode(document.getElementById("qrprint"),{text:u,width:${String(
+  const qrDataUrl = await createQrPngDataUrl(o.scanUrl, px);
+  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:system-ui,sans-serif;text-align:center;padding:28px;color:#111;}h1{font-size:20px;margin:0 0 6px;}p.sub{color:#555;font-size:13px;margin:0 0 18px;}#qwrap{display:inline-block;padding:12px;border:2px solid #000;border-radius:8px;}#qwrap img{display:block;width:${String(
     px,
-  )},height:${String(px)},colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.H});}}catch(e){}setTimeout(function(){window.print();},650);}if(window.QRCode)go();else window.addEventListener("load",go);})();<` +
-    `/script></body></html>`;
+  )}px;height:${String(
+    px,
+  )}px;}.url{font-family:monospace;font-size:10px;word-break:break-all;color:#333;margin-top:14px;max-width:420px;margin-left:auto;margin-right:auto;}@media print{body{padding:12px;}}</style></head><body><h1>${headline}</h1><p class="sub">${sub}</p><div id="qwrap"><img alt="QR-Code" src="${esc(
+    qrDataUrl,
+  )}"></div><p class="url">${esc(
+    o.scanUrl,
+  )}</p><script>setTimeout(function(){window.print();},250);</script></body></html>`;
   w.document.open();
   w.document.write(body);
   w.document.close();
@@ -345,17 +411,20 @@ function openFzQrPrintWindow(o) {
  * @param {Record<string, unknown>} vm
  * @param {string} scanUrl
  */
-function openFzStickerPrintWindow(vm, scanUrl) {
-  const w = window.open('', '_blank', 'width=360,height=420,noopener,noreferrer');
+async function openFzStickerPrintWindow(vm, scanUrl) {
+  const w = window.open('', '_blank', 'width=360,height=420');
   if (!w) return;
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Aufkleber</title></head><body>Aufkleber wird vorbereitet...</body></html>');
+  w.document.close();
   const title = esc(`Aufkleber ${vm.nummer != null ? String(vm.nummer) : ''}`);
   const num = esc(vm.nummer != null ? String(vm.nummer) : '—');
-  const scanJson = JSON.stringify(scanUrl);
-  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><` +
-    `/script><style>@page{size:55mm 40mm;margin:2mm;}body{margin:0;padding:2mm;font-family:system-ui,sans-serif;}.wrap{display:flex;align-items:center;gap:2mm;height:34mm;}#qrprint{flex-shrink:0;width:18mm;height:18mm;}.txt{flex:1;font-size:8pt;line-height:1.15;font-weight:600;}.mono{font-size:5pt;word-break:break-all;color:#333;margin-top:1mm;}</style></head><body><div class="wrap"><div id="qrprint"></div><div class="txt">${num}<div class="mono">${esc(
+  const qrDataUrl = await createQrPngDataUrl(scanUrl, 240);
+  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>@page{size:55mm 40mm;margin:2mm;}body{margin:0;padding:2mm;font-family:system-ui,sans-serif;}.wrap{display:flex;align-items:center;gap:2mm;height:34mm;}.qr{flex-shrink:0;width:18mm;height:18mm;display:block;}.txt{flex:1;font-size:8pt;line-height:1.15;font-weight:600;}.mono{font-size:5pt;word-break:break-all;color:#333;margin-top:1mm;}</style></head><body><div class="wrap"><img class="qr" alt="QR-Code" src="${esc(
+    qrDataUrl,
+  )}"><div class="txt">${num}<div class="mono">${esc(
     scanUrl,
-  )}</div></div></div><script>(function(){var u=${scanJson};function go(){try{if(window.QRCode&&document.getElementById("qrprint")){new QRCode(document.getElementById("qrprint"),{text:u,width:72,height:72,colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.H});}}catch(e){}setTimeout(function(){window.print();},650);}if(window.QRCode)go();else window.addEventListener("load",go);})();<` +
-    `/script></body></html>`;
+  )}</div></div></div><script>setTimeout(function(){window.print();},250);</script></body></html>`;
   w.document.open();
   w.document.write(body);
   w.document.close();
@@ -364,11 +433,13 @@ function openFzStickerPrintWindow(vm, scanUrl) {
 /**
  * @param {Record<string, unknown>} vm
  */
-function openFahrzeugaktePdfPrint(vm) {
-  const w = window.open('', '_blank', 'width=900,height=1100,noopener,noreferrer');
+async function openFahrzeugaktePdfPrint(vm) {
+  const w = window.open('', '_blank', 'width=900,height=1100');
   if (!w) return;
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fahrzeugakte</title></head><body>PDF-Export wird vorbereitet...</body></html>');
+  w.document.close();
   const scanUrl = resolveCanonicalScanUrlForFz(vm);
-  const scanJson = JSON.stringify(scanUrl);
   const px = 160;
   const rows = [
     ['Fahrzeugnummer', String(vm.nummer || '—')],
@@ -387,13 +458,14 @@ function openFahrzeugaktePdfPrint(vm) {
     )
     .join('');
   const title = esc(`Fahrzeugakte ${vm.nummer != null ? String(vm.nummer) : ''}`);
-  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><` +
-    `/script><style>body{font-family:system-ui,sans-serif;padding:18px;color:#111;}h1{font-size:18px;}table{border-collapse:collapse;width:100%;margin-top:12px;}#qwrap{display:inline-block;padding:8px;border:1px solid #000;margin-top:10px;}@media print{body{padding:10px;}}</style></head><body><h1>Fahrzeugakte</h1><p style="color:#555;font-size:13px;">${esc(
-    String(vm.typ || '—'),
-  )} · ${esc(String(vm.betreiber || '—'))} · Depot ${esc(String(vm.depot || '—'))}</p><table>${tableHtml}</table><div id="qwrap"><div id="qrprint"></div></div><script>(function(){var u=${scanJson};function go(){try{if(window.QRCode&&document.getElementById("qrprint")){new QRCode(document.getElementById("qrprint"),{text:u,width:${String(
+  const qrDataUrl = await createQrPngDataUrl(scanUrl, px);
+  const body = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:system-ui,sans-serif;padding:18px;color:#111;}h1{font-size:18px;}table{border-collapse:collapse;width:100%;margin-top:12px;}#qwrap{display:inline-block;padding:8px;border:1px solid #000;margin-top:10px;}#qwrap img{display:block;width:${String(
     px,
-  )},height:${String(px)},colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.H});}}catch(e){}setTimeout(function(){window.print();},700);}if(window.QRCode)go();else window.addEventListener("load",go);})();<` +
-    `/script></body></html>`;
+  )}px;height:${String(px)}px;}@media print{body{padding:10px;}}</style></head><body><h1>Fahrzeugakte</h1><p style="color:#555;font-size:13px;">${esc(
+    String(vm.typ || '—'),
+  )} · ${esc(String(vm.betreiber || '—'))} · Depot ${esc(String(vm.depot || '—'))}</p><table>${tableHtml}</table><div id="qwrap"><img alt="QR-Code" src="${esc(
+    qrDataUrl,
+  )}"></div><script>setTimeout(function(){window.print();},250);</script></body></html>`;
   w.document.open();
   w.document.write(body);
   w.document.close();
@@ -1274,6 +1346,7 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button type="button" class="btn" data-fusa-fz-qr-print>🖨️ QR drucken</button>
+        <button type="button" class="btn" data-fusa-fz-qr-download>⬇ QR herunterladen</button>
         <button type="button" class="btn" data-fusa-fz-qr-sticker>🏷️ Aufkleber-Format</button>
         <button type="button" class="btn p" data-fusa-fz-scan-test>📱 Scan-Seite testen</button>
       </div>
@@ -1390,7 +1463,8 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
     }
     if (tab === 'schaeden') {
       const embedded = Array.isArray(f.schaeden) ? f.schaeden.filter(x => x && typeof x === 'object') : [];
-      const apiIds = new Set(currentDetailApiSchaeden.map(s => s.id));
+      const visibleApiSchaeden = currentDetailApiSchaeden.filter((s) => s && s.uploadArt !== 'fahrzeugfoto');
+      const apiIds = new Set(visibleApiSchaeden.map(s => s.id));
       const localOnly = embedded.filter(ls => {
         const o = /** @type {Record<string, unknown>} */ (ls);
         const id = o.id != null ? String(o.id) : '';
@@ -1398,7 +1472,7 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
       });
       /** @type {{ kind: 'api'; vm: NonNullable<ReturnType<typeof mapSchadenApiRowToViewModel>> }|{ kind: 'local'; o: Record<string, unknown> }}[]} */
       const merged = [
-        ...currentDetailApiSchaeden.map(vm => ({ kind: /** @type {const} */ ('api'), vm })),
+        ...visibleApiSchaeden.map(vm => ({ kind: /** @type {const} */ ('api'), vm })),
         ...localOnly.map(o => ({ kind: /** @type {const} */ ('local'), o: /** @type {Record<string, unknown>} */ (o) })),
       ];
       const head = `
@@ -1812,7 +1886,11 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
       }
       if (t.closest('[data-fusa-fz-foot-pdf]')) {
         ev.preventDefault();
-        if (currentDetail) openFahrzeugaktePdfPrint(currentDetail);
+        if (currentDetail) {
+          void openFahrzeugaktePdfPrint(currentDetail).catch((e) => {
+            window.alert(formatApiErrorForUi(e));
+          });
+        }
         return;
       }
       if (t.closest('[data-fusa-fz-schaden-open]')) {
@@ -1829,21 +1907,40 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
         ev.preventDefault();
         if (!currentDetail) return;
         const scanUrl = resolveCanonicalScanUrlForFz(currentDetail);
-        openFzQrPrintWindow({
+        void openFzQrPrintWindow({
           title: `QR ${currentDetail.nummer || ''}`,
           headline: String(currentDetail.nummer || '—'),
           sub: `${String(currentDetail.typ || '—')} · ${String(currentDetail.betreiber || currentDetail.depot || '')}`,
           scanUrl,
+        }).catch((e) => {
+          window.alert(formatApiErrorForUi(e));
         });
         return;
       }
       if (t.closest('[data-fusa-fz-qr-sticker]')) {
         ev.preventDefault();
         if (!currentDetail) return;
-        openFzStickerPrintWindow(currentDetail, resolveCanonicalScanUrlForFz(currentDetail));
+        void openFzStickerPrintWindow(currentDetail, resolveCanonicalScanUrlForFz(currentDetail)).catch((e) => {
+          window.alert(formatApiErrorForUi(e));
+        });
         return;
       }
-      if (t.closest('[data-fusa-fz-scan-open]') || t.closest('[data-fusa-fz-scan-test]')) {
+      if (t.closest('[data-fusa-fz-qr-download]')) {
+        ev.preventDefault();
+        if (!currentDetail) return;
+        void downloadFzQrPng(currentDetail).catch((e) => {
+          window.alert(formatApiErrorForUi(e));
+        });
+        return;
+      }
+      if (t.closest('[data-fusa-fz-scan-open]')) {
+        ev.preventDefault();
+        if (!currentDetail) return;
+        const scanUrl = resolveCanonicalScanUrlForFz(currentDetail);
+        window.open(scanUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (t.closest('[data-fusa-fz-scan-test]')) {
         ev.preventDefault();
         openScanOverlay();
         return;

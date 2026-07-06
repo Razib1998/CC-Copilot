@@ -33,7 +33,7 @@ const ABRECHNUNG_LEGACY_SET = new Set([
 
 const KLAERUNG_SET = new Set(['offen', 'in_klaerung', 'geklaert']);
 
-const REPARATUR_PHASE_SET = new Set(['geplant', 'termin_gesendet', 'termin_bestaetigt', 'in_reparatur']);
+const REPARATUR_PHASE_SET = new Set(['geplant', 'termin_gesendet', 'termin_vorschlag', 'termin_bestaetigt', 'in_reparatur', 'reparatur_abgeschlossen']);
 
 /**
  * @param {unknown} st
@@ -266,7 +266,8 @@ export function schadenReparaturFilterKey(o) {
   const prio = normalizeSchadenPriorisierung(o.prioritaet);
   if (prio === 'dringend') return 'dringend';
   const phase = normalizeReparaturPhase(o.reparatur_phase);
-  if (phase === 'termin_gesendet') return 'anfrage';
+  if (phase === 'reparatur_abgeschlossen') return 'behoben';
+  if (phase === 'termin_gesendet' || phase === 'termin_vorschlag') return 'anfrage';
   if (ws === 'in_arbeit' || phase === 'in_reparatur') return 'inarbeit';
   return 'geplant';
 }
@@ -282,7 +283,9 @@ export function schadenReparaturDisplayFromRow(o) {
   const prio = normalizeSchadenPriorisierung(o.prioritaet);
   if (prio === 'dringend') return { label: 'Dringend', badgeClass: 'br' };
   const phase = normalizeReparaturPhase(o.reparatur_phase);
+  if (phase === 'reparatur_abgeschlossen') return { label: 'Behoben', badgeClass: 'bg' };
   if (phase === 'termin_gesendet') return { label: 'Terminanfrage gesendet', badgeClass: 'bb' };
+  if (phase === 'termin_vorschlag') return { label: 'Neuer Termin vorgeschlagen', badgeClass: 'ba' };
   if (phase === 'termin_bestaetigt') return { label: 'Termin bestätigt ✓', badgeClass: 'bg' };
   if (ws === 'in_arbeit' || phase === 'in_reparatur') return { label: 'In Bearbeitung', badgeClass: 'bb' };
   return { label: 'Reparatur geplant', badgeClass: 'ba' };
@@ -313,6 +316,7 @@ export function schadenKpisFromRows(rows) {
   let dringend = 0;
   let unklar = 0;
   let fremdschaden = 0;
+  let eigenschaden = 0;
   let zurAbrechnung = 0;
   for (const r of list) {
     if (!r || typeof r !== 'object') continue;
@@ -329,6 +333,7 @@ export function schadenKpisFromRows(rows) {
     const typ = String(o.typ ?? '').trim();
     if (typ === 'Unklar') unklar += 1;
     if (typ === 'Fremdschaden') fremdschaden += 1;
+    if (typ === 'Eigenschaden') eigenschaden += 1;
     const leg = normalizeAbrechnungLegacy(o.abrechnung_legacy);
     if (leg && ['vormerken', 'klaerung', 'potenziell'].includes(leg)) zurAbrechnung += 1;
     else if (!leg) {
@@ -337,7 +342,7 @@ export function schadenKpisFromRows(rows) {
       if (abr === 'zur_abrechnung') zurAbrechnung += 1;
     }
   }
-  return { offen, inBearbeitung, erledigt, wsOffen, dringend, unklar, fremdschaden, zurAbrechnung, total: list.length };
+  return { offen, inBearbeitung, erledigt, wsOffen, dringend, unklar, fremdschaden, eigenschaden, zurAbrechnung, total: list.length };
 }
 
 /**

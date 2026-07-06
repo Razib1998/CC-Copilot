@@ -8,13 +8,28 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#1a56db" />
-  <meta name="cc-api-base" content="http://localhost:5371" />
+  <meta name="cc-api-base" content="http://127.0.0.1:5371" />
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('ccw-theme');
+        var theme = stored === 'dark' || stored === 'light'
+          ? stored
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = theme;
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.style.colorScheme = 'light';
+      }
+    })();
+  </script>
   <link rel="icon" href="/icons/favicon.ico" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
-  <script type="module" crossorigin src="/assets/index-kB1CWbY9.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/cc-auth-session-CFAgPnG7.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BkyJEkqV.css">
+  <script type="module" crossorigin src="/assets/index-c-ioZWE4.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/cc-auth-session-Ck1SoMjo.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-pEtxrT6A.css">
 </head>
 <body>
   <div id="cockpit-root" class="ckp-shell-layout" data-app-module="cockpit">
@@ -23,26 +38,56 @@
       data-ccw-ro="topbar"
       aria-label="Module"
     >
+      <button type="button" class="ckp-brand-mark" data-ccw-home aria-label="Zur Startseite">
+        <span class="ckp-brand-logo" aria-hidden="true">CC</span>
+        <span class="ckp-brand-copy">
+          <span class="ckp-brand-name">CC Werbung</span>
+          <span class="ckp-brand-line">Werbetechnik & Produktion</span>
+        </span>
+      </button>
+      <div class="ckp-module-nav" role="navigation" aria-label="Arbeitsbereiche">
       <button type="button" data-module="cockpit" class="ccds-top-tab ckp-mod-btn mod--cockpit active" aria-current="true">
-        <span class="ccds-t-icon-box" aria-hidden="true">⊞</span>
-        Cockpit
+        <span class="ccds-t-icon-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </span>
+        <span class="ckp-tab-copy"><span class="ckp-tab-title">Cockpit</span><span class="ckp-tab-sub">Steuerung</span></span>
       </button>
       <button type="button" data-module="fusa" class="ccds-top-tab ckp-mod-btn mod--fusa">
-        <span class="ccds-t-icon-box" aria-hidden="true">📋</span>
-        FUSA
+        <span class="ccds-t-icon-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+        </span>
+        <span class="ckp-tab-copy"><span class="ckp-tab-title">FUSA</span><span class="ckp-tab-sub">Fahrzeugwerbung</span></span>
       </button>
       <button type="button" data-module="ccintern" class="ccds-top-tab ckp-mod-btn mod--ccintern">
-        <span class="ccds-t-icon-box" aria-hidden="true">🏭</span>
-        CC Intern
+        <span class="ccds-t-icon-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-3"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M16 14h1"/><path d="M16 17h1"/></svg>
+        </span>
+        <span class="ckp-tab-copy"><span class="ckp-tab-title">CC Intern</span><span class="ckp-tab-sub">Produktion</span></span>
+      </button>
+      </div>
+      <button
+        type="button"
+        id="ccw-theme-toggle"
+        class="ccds-top-tab ckp-theme-toggle"
+        aria-label="Darstellung wechseln"
+        aria-pressed="false"
+        title="Darstellung wechseln"
+      >
+        <span class="ccds-t-icon-box ckp-theme-toggle__icon" aria-hidden="true">
+          <svg class="ckp-theme-toggle__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg class="ckp-theme-toggle__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 7 7 0 1 0 20.5 14.5Z"/></svg>
+        </span>
       </button>
       <button
         type="button"
         id="ccw-logout-btn"
-        class="ccds-top-tab"
-        style="margin-left:auto;"
+        class="ccds-top-tab ckp-logout-btn"
         hidden
       >
-        Abmelden
+        <span class="ccds-t-icon-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </span>
+        <span class="ckp-tab-copy"><span class="ckp-tab-title">Abmelden</span><span class="ckp-tab-sub">Sitzung</span></span>
       </button>
     </div>
     <div class="cockpit-body ckp-shell-body">
@@ -51,6 +96,11 @@
         <div id="cockpit-content" data-ccw-region="app-main" aria-live="polite"></div>
       </main>
     </div>
+    <footer class="ckp-shell-footer" aria-label="CC Werbung Firmeninfo">
+      <span><strong>CC Werbung GmbH</strong></span>
+      <span>Werbetechnik, Fahrzeugbeschriftung & Produktionssteuerung</span>
+      <span class="ckp-shell-footer__status">Cockpit fuer interne Ablaufe</span>
+    </footer>
   </div>
 </body>
 </html>

@@ -279,6 +279,60 @@ CREATE TABLE IF NOT EXISTS schaeden (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- 9a) Terminanfrage E-Mail/Antwort-Historie
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS email_outbox (
+  id CHAR(36) NOT NULL,
+  type VARCHAR(120) NOT NULL,
+  related_type VARCHAR(80) NULL,
+  related_id CHAR(36) NULL,
+  to_email VARCHAR(320) NOT NULL,
+  from_email VARCHAR(320) NULL,
+  subject VARCHAR(500) NOT NULL,
+  body_text MEDIUMTEXT NOT NULL,
+  body_html MEDIUMTEXT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  attempts INT NOT NULL DEFAULT 0,
+  last_error TEXT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  sent_at DATETIME(3) NULL,
+  PRIMARY KEY (id),
+  KEY idx_email_outbox_status (status, created_at),
+  KEY idx_email_outbox_related (related_type, related_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+  id CHAR(36) NOT NULL,
+  schaden_id CHAR(36) NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  email_outbox_id CHAR(36) NULL,
+  expires_at DATETIME(3) NOT NULL,
+  used_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  last_response_at DATETIME(3) NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_repair_tokens_hash (token_hash),
+  KEY idx_repair_tokens_schaden (schaden_id, created_at),
+  CONSTRAINT fk_repair_tokens_schaden
+    FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+  CONSTRAINT fk_repair_tokens_outbox
+    FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS schaden_history (
+  id CHAR(36) NOT NULL,
+  schaden_id CHAR(36) NOT NULL,
+  event_type VARCHAR(120) NOT NULL,
+  event_json JSON NULL,
+  created_by_type VARCHAR(40) NOT NULL DEFAULT 'system',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_schaden_history_schaden (schaden_id, created_at),
+  CONSTRAINT fk_schaden_history_schaden
+    FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- 10) schaden_fotos
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS schaden_fotos (

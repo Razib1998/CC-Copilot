@@ -1059,8 +1059,87 @@ async function ensureMysqlCcInternMitarbeiterOperativTables(pool) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
       [],
     );
+    await qRun(
+      pool,
+      `CREATE TABLE IF NOT EXISTS ccintern_mitarbeiter_arbeitszeit_session (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        project_id CHAR(36) NULL,
+        project_id_key VARCHAR(36) AS (IFNULL(project_id, '')) STORED,
+        status VARCHAR(16) NOT NULL,
+        started_at VARCHAR(40) NOT NULL,
+        pause_seconds INT NOT NULL DEFAULT 0,
+        pause_started_at VARCHAR(40) NULL,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (id),
+        UNIQUE KEY uk_cc_az_sess_user_proj (user_id, project_id_key),
+        CONSTRAINT fk_cc_az_sess_user
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
+    await qRun(
+      pool,
+      `CREATE TABLE IF NOT EXISTS ccintern_auftrag_arbeits_session (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        auftrag_id CHAR(36) NOT NULL,
+        schritt_key VARCHAR(64) NOT NULL,
+        status VARCHAR(16) NOT NULL,
+        started_at VARCHAR(40) NOT NULL,
+        pause_started_at VARCHAR(40) NULL,
+        pause_seconds INT NOT NULL DEFAULT 0,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (id),
+        KEY idx_cc_auftrag_arbeit_auftrag (auftrag_id),
+        KEY idx_cc_auftrag_arbeit_user_status (user_id, status),
+        CONSTRAINT fk_cc_auftrag_arbeit_user
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        CONSTRAINT fk_cc_auftrag_arbeit_auftrag
+          FOREIGN KEY (auftrag_id) REFERENCES ccintern_auftraege (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
   } catch (e) {
     console.error('[mysql] ensure ccintern mitarbeiter operativ', e);
+  }
+}
+
+/**
+ * Duplikate in ccintern_checklisten_zuordnung entfernen und
+ * UNIQUE-Constraint auf (firma_id, produkt_id, schritt, checkliste_id) setzen.
+ */
+async function ensureMysqlChecklistenZuordnungUnique(pool) {
+  try {
+    // Duplikate entfernen — pro Kombination den ältesten Eintrag (MIN id) behalten
+    await qRun(
+      pool,
+      `DELETE z FROM ccintern_checklisten_zuordnung z
+       WHERE z.id NOT IN (
+         SELECT id FROM (
+           SELECT MIN(id) AS id
+           FROM ccintern_checklisten_zuordnung
+           GROUP BY firma_id, produkt_id, schritt, checkliste_id
+         ) AS keep_ids
+       )`,
+      [],
+    );
+    // UNIQUE-Key anlegen — ignorieren falls bereits vorhanden
+    try {
+      await qRun(
+        pool,
+        `ALTER TABLE ccintern_checklisten_zuordnung
+         ADD UNIQUE KEY uk_ccintern_clz_combo (firma_id, produkt_id, schritt, checkliste_id)`,
+        [],
+      );
+    } catch (e) {
+      // Fehlercode 1061 = Duplicate key name → Index existiert bereits, kein Problem
+      if (e && e.errno !== 1061) throw e;
+    }
+  } catch (e) {
+    console.error('[mysql] ensureMysqlChecklistenZuordnungUnique', e);
   }
 }
 
@@ -1088,6 +1167,57 @@ async function ensureMysqlAuditLogTable(pool) {
   } catch (e) {
     console.error('[mysql] ensure audit_log table', e);
   }
+}
+
+async function ensureMysqlSchadenTerminanfrageEmailTables(pool) {
+  await pool.execute(`CREATE TABLE IF NOT EXISTS email_outbox (
+    id CHAR(36) NOT NULL,
+    type VARCHAR(120) NOT NULL,
+    related_type VARCHAR(80) NULL,
+    related_id CHAR(36) NULL,
+    to_email VARCHAR(320) NOT NULL,
+    from_email VARCHAR(320) NULL,
+    subject VARCHAR(500) NOT NULL,
+    body_text MEDIUMTEXT NOT NULL,
+    body_html MEDIUMTEXT NULL,
+    status VARCHAR(40) NOT NULL DEFAULT 'pending',
+    attempts INT NOT NULL DEFAULT 0,
+    last_error TEXT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    sent_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    KEY idx_email_outbox_status (status, created_at),
+    KEY idx_email_outbox_related (related_type, related_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.execute(`CREATE TABLE IF NOT EXISTS repair_appointment_tokens (
+    id CHAR(36) NOT NULL,
+    schaden_id CHAR(36) NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    email_outbox_id CHAR(36) NULL,
+    expires_at DATETIME(3) NOT NULL,
+    used_at DATETIME(3) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    last_response_at DATETIME(3) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_repair_tokens_hash (token_hash),
+    KEY idx_repair_tokens_schaden (schaden_id, created_at),
+    CONSTRAINT fk_repair_tokens_schaden
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE,
+    CONSTRAINT fk_repair_tokens_outbox
+      FOREIGN KEY (email_outbox_id) REFERENCES email_outbox (id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.execute(`CREATE TABLE IF NOT EXISTS schaden_history (
+    id CHAR(36) NOT NULL,
+    schaden_id CHAR(36) NOT NULL,
+    event_type VARCHAR(120) NOT NULL,
+    event_json JSON NULL,
+    created_by_type VARCHAR(40) NOT NULL DEFAULT 'system',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_schaden_history_schaden (schaden_id, created_at),
+    CONSTRAINT fk_schaden_history_schaden
+      FOREIGN KEY (schaden_id) REFERENCES schaeden (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 }
 
 /**
@@ -1656,10 +1786,12 @@ export async function createMysqlStore() {
   await ensureMysqlMesseflowProjekteTable(pool);
   await ensureMysqlMfDomainTables(pool);
   await ensureMysqlAuditLogTable(pool);
+  await ensureMysqlSchadenTerminanfrageEmailTables(pool);
   await ensureMysqlGeraeteTable(pool);
   await ensureMysqlCrmTables(pool);
   await ensureMysqlRefreshTokensAndMitarbeiterZeiten(pool);
   await ensureMysqlCcInternMitarbeiterOperativTables(pool);
+  await ensureMysqlChecklistenZuordnungUnique(pool);
 
   return {
     async getUserByEmail(email) {
@@ -2761,6 +2893,101 @@ export async function createMysqlStore() {
         [schadenId],
       );
     },
+    async insertEmailOutbox(row) {
+      const id = row.id || randomUUID();
+      await qRun(
+        pool,
+        `INSERT INTO email_outbox (
+          id, type, related_type, related_id, to_email, from_email, subject, body_text, body_html, status, attempts, last_error
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.type,
+          row.relatedType ?? row.related_type ?? null,
+          row.relatedId ?? row.related_id ?? null,
+          row.toEmail ?? row.to_email,
+          row.fromEmail ?? row.from_email ?? null,
+          row.subject,
+          row.bodyText ?? row.body_text,
+          row.bodyHtml ?? row.body_html ?? null,
+          row.status ?? 'pending',
+          row.attempts ?? 0,
+          row.lastError ?? row.last_error ?? null,
+        ],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async markEmailOutboxSent(id) {
+      await qRun(
+        pool,
+        "UPDATE email_outbox SET status = 'sent', attempts = attempts + 1, last_error = NULL, sent_at = NOW(3) WHERE id = ?",
+        [id],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async markEmailOutboxFailed(id, error) {
+      await qRun(
+        pool,
+        "UPDATE email_outbox SET status = 'failed', attempts = attempts + 1, last_error = ? WHERE id = ?",
+        [String(error || '').slice(0, 2000), id],
+      );
+      return qGet(pool, 'SELECT * FROM email_outbox WHERE id = ? LIMIT 1', [id]);
+    },
+    async insertRepairAppointmentToken(row) {
+      const id = row.id || randomUUID();
+      await qRun(
+        pool,
+        `INSERT INTO repair_appointment_tokens (id, schaden_id, token_hash, email_outbox_id, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.tokenHash ?? row.token_hash, row.emailOutboxId ?? row.email_outbox_id ?? null, row.expiresAt ?? row.expires_at],
+      );
+      return qGet(pool, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    async getRepairAppointmentTokenByHash(tokenHash) {
+      return qGet(
+        pool,
+        `SELECT t.*, s.project_id, s.fahrzeug_id, s.titel, s.beschreibung, s.status, s.extra_json, s.created_at AS schaden_created_at,
+                f.kennung AS fahrzeug_kennung
+         FROM repair_appointment_tokens t
+         JOIN schaeden s ON s.id = t.schaden_id
+         LEFT JOIN fahrzeuge f ON f.id = s.fahrzeug_id
+         WHERE t.token_hash = ? LIMIT 1`,
+        [tokenHash],
+      );
+    },
+    async markRepairAppointmentTokenResponded(id) {
+      await qRun(
+        pool,
+        'UPDATE repair_appointment_tokens SET used_at = COALESCE(used_at, NOW(3)), last_response_at = NOW(3) WHERE id = ?',
+        [id],
+      );
+      return qGet(pool, 'SELECT * FROM repair_appointment_tokens WHERE id = ? LIMIT 1', [id]);
+    },
+    async insertSchadenHistory(row) {
+      const id = row.id || randomUUID();
+      const eventJson =
+        row.eventJson != null
+          ? String(row.eventJson)
+          : row.event_json != null
+            ? String(row.event_json)
+            : row.event != null
+              ? JSON.stringify(row.event)
+              : null;
+      await qRun(
+        pool,
+        `INSERT INTO schaden_history (id, schaden_id, event_type, event_json, created_by_type)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, row.schadenId ?? row.schaden_id, row.eventType ?? row.event_type, eventJson, row.createdByType ?? row.created_by_type ?? 'system'],
+      );
+      return qGet(pool, 'SELECT * FROM schaden_history WHERE id = ? LIMIT 1', [id]);
+    },
+    async listSchadenHistory(schadenId) {
+      return qAll(
+        pool,
+        'SELECT id, schaden_id, event_type, event_json, created_by_type, created_at FROM schaden_history WHERE schaden_id = ? ORDER BY created_at ASC, id ASC',
+        [schadenId],
+      );
+    },
     async deleteSchadenByProject(schadenId, projectId) {
       const sid = typeof schadenId === 'string' ? schadenId.trim() : '';
       const pid = typeof projectId === 'string' ? projectId.trim() : '';
@@ -3512,6 +3739,24 @@ export async function createMysqlStore() {
           await conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, user.id]);
         }
         const uid = String(user.id);
+        const [uCheckRows] = await conn.execute(
+          'SELECT id, email, name FROM users WHERE id = ? LIMIT 1',
+          [uid],
+        );
+        const uCheck = /** @type {any} */ (uCheckRows)[0] ?? null;
+        const redeemedEmail =
+          uCheck?.email != null ? String(uCheck.email).trim().toLowerCase() : '';
+        if (redeemedEmail && redeemedEmail !== email) {
+          console.error('[INVITE_REDEEM_DEBUG]', {
+            phase: 'redeem_email_mismatch',
+            inviteId: inv.id,
+            inviteEmail: email,
+            redeemedUserId: uid,
+            redeemedUserEmail: redeemedEmail,
+          });
+          await conn.rollback();
+          return { ok: false, code: 'DATABASE_ERROR' };
+        }
         const modsRaw = parseInviteModulesFromRow(inviteRowField(inv, 'modules_json'));
         const rightsRaw = parseInviteRightsFromRow(inviteRowField(inv, 'rights_json'));
         const normalizedAccess = normalizeInviteAccessForRedeem(modsRaw, rightsRaw);
@@ -3996,6 +4241,10 @@ export async function createMysqlStore() {
         params,
       );
     },
+    async countKalenderTermineTableAll() {
+      const row = await qGet(pool, 'SELECT COUNT(*) AS c FROM kalender_termine LIMIT 1', []);
+      return row && row.c != null ? Number(row.c) : 0;
+    },
     async countKalenderTermineByFirma(firmaId, { typ = null, von = null, bis = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
       if (!fid) return 0;
@@ -4407,6 +4656,205 @@ export async function createMysqlStore() {
          LIMIT ?`,
         params,
       );
+    },
+    async getCcInternArbeitszeitSessionByUserProject(userId, projectId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      const pid = projectId != null && String(projectId).trim() !== '' ? String(projectId).trim() : null;
+      if (pid) {
+        return qGet(
+          pool,
+          `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+           FROM ccintern_mitarbeiter_arbeitszeit_session
+           WHERE user_id = ? AND project_id = ?
+           LIMIT 1`,
+          [uid, pid],
+        );
+      }
+      return qGet(
+        pool,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session
+         WHERE user_id = ? AND project_id IS NULL
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    async insertCcInternArbeitszeitSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      await qRun(
+        pool,
+        `INSERT INTO ccintern_mitarbeiter_arbeitszeit_session
+          (id, user_id, project_id, status, started_at, pause_seconds, pause_started_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          row.id,
+          row.user_id,
+          row.project_id ?? null,
+          row.status === 'paused' ? 'paused' : 'running',
+          startedAt,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+          row.pause_started_at ?? null,
+        ],
+      );
+      return this.getCcInternArbeitszeitSessionById(row.id);
+    },
+    async getCcInternArbeitszeitSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, project_id, status, started_at, pause_seconds, pause_started_at, created_at, updated_at
+         FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    async updateCcInternArbeitszeitSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = [];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        sets.push('status = ?');
+        params.push(patch.status === 'paused' ? 'paused' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternArbeitszeitSessionById(iid);
+      params.push(iid);
+      await qRun(
+        pool,
+        `UPDATE ccintern_mitarbeiter_arbeitszeit_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      return this.getCcInternArbeitszeitSessionById(iid);
+    },
+    async deleteCcInternArbeitszeitSession(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return false;
+      await qRun(pool, `DELETE FROM ccintern_mitarbeiter_arbeitszeit_session WHERE id = ?`, [iid]);
+      return true;
+    },
+    async listCcInternAuftragArbeitsSessionsAllActive(firmaId) {
+      const fid = String(firmaId || '').trim();
+      if (!fid) return [];
+      return qAll(pool,
+        `SELECT s.id, s.user_id, s.auftrag_id, s.schritt_key, s.status, s.started_at, s.pause_started_at, s.pause_seconds, s.created_at, s.updated_at
+         FROM ccintern_auftrag_arbeits_session s
+         JOIN ccintern_auftraege a ON s.auftrag_id = a.id
+         WHERE a.firma_id = ? AND s.status IN ('running', 'paused')`,
+        [fid],
+      );
+    },
+    async getCcInternAuftragArbeitsSessionActiveByUser(userId) {
+      const uid = String(userId || '').trim();
+      if (!uid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')
+         ORDER BY updated_at DESC
+         LIMIT 1`,
+        [uid],
+      );
+    },
+    async getCcInternAuftragArbeitsSessionById(id) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      return qGet(
+        pool,
+        `SELECT id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds, created_at, updated_at
+         FROM ccintern_auftrag_arbeits_session WHERE id = ? LIMIT 1`,
+        [iid],
+      );
+    },
+    async stopCcInternAuftragArbeitsSessionsForUser(userId, { exceptId = null } = {}) {
+      const uid = String(userId || '').trim();
+      if (!uid) return;
+      const rows = await qAll(
+        pool,
+        `SELECT id, status, pause_seconds, pause_started_at FROM ccintern_auftrag_arbeits_session
+         WHERE user_id = ? AND status IN ('running', 'paused')`,
+        [uid],
+      );
+      for (const row of rows) {
+        if (exceptId && String(row.id) === String(exceptId)) continue;
+        let pauseSec = Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0));
+        if (row.status === 'paused' && row.pause_started_at) {
+          const ps = new Date(row.pause_started_at);
+          if (!Number.isNaN(ps.getTime())) {
+            pauseSec += Math.max(0, Math.floor((Date.now() - ps.getTime()) / 1000));
+          }
+        }
+        await qRun(
+          pool,
+          `UPDATE ccintern_auftrag_arbeits_session
+           SET status = 'stopped', pause_seconds = ?, pause_started_at = NULL WHERE id = ?`,
+          [pauseSec, row.id],
+        );
+      }
+    },
+    async insertCcInternAuftragArbeitsSession(row) {
+      const startedAt =
+        row.started_at != null ? String(row.started_at).trim() : new Date().toISOString();
+      const st =
+        row.status === 'paused' ? 'paused' : row.status === 'stopped' ? 'stopped' : 'running';
+      await qRun(
+        pool,
+        `INSERT INTO ccintern_auftrag_arbeits_session
+          (id, user_id, auftrag_id, schritt_key, status, started_at, pause_started_at, pause_seconds)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          row.id,
+          row.user_id,
+          row.auftrag_id,
+          row.schritt_key,
+          st,
+          startedAt,
+          row.pause_started_at ?? null,
+          Math.max(0, Math.floor(Number(row.pause_seconds ?? 0) || 0)),
+        ],
+      );
+      return this.getCcInternAuftragArbeitsSessionById(row.id);
+    },
+    async updateCcInternAuftragArbeitsSession(id, patch) {
+      const iid = String(id || '').trim();
+      if (!iid) return null;
+      /** @type {string[]} */
+      const sets = [];
+      /** @type {unknown[]} */
+      const params = [];
+      if (patch.status != null) {
+        const st = String(patch.status).trim();
+        sets.push('status = ?');
+        params.push(st === 'paused' ? 'paused' : st === 'stopped' ? 'stopped' : 'running');
+      }
+      if (patch.pause_seconds != null) {
+        sets.push('pause_seconds = ?');
+        params.push(Math.max(0, Math.floor(Number(patch.pause_seconds) || 0)));
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'pause_started_at')) {
+        sets.push('pause_started_at = ?');
+        params.push(patch.pause_started_at ?? null);
+      }
+      if (!sets.length) return this.getCcInternAuftragArbeitsSessionById(iid);
+      params.push(iid);
+      await qRun(
+        pool,
+        `UPDATE ccintern_auftrag_arbeits_session SET ${sets.join(', ')} WHERE id = ?`,
+        params,
+      );
+      return this.getCcInternAuftragArbeitsSessionById(iid);
     },
     async listLagerMaterialByFirma(firmaId, { offset = 0, limit = 50, kategorie = null } = {}) {
       const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
@@ -5328,6 +5776,21 @@ export async function createMysqlStore() {
            AND z.schritt IN ('grafik','druck','laminat','montage','doku')
          LIMIT 1`,
         [zid, fid],
+      );
+    },
+    async findCcInternChecklistenZuordnungByKey(firmaId, produktId, schritt, checklisteId) {
+      const fid = typeof firmaId === 'string' ? firmaId.trim() : '';
+      const pid = typeof produktId === 'string' ? produktId.trim() : '';
+      const st = typeof schritt === 'string' ? schritt.trim() : '';
+      const cid = typeof checklisteId === 'string' ? checklisteId.trim() : '';
+      if (!fid || !pid || !st || !cid) return null;
+      return qGet(
+        pool,
+        `SELECT z.id, z.firma_id, z.produkt_id, z.schritt, z.checkliste_id, z.sortierung, z.aktiv, z.created_at, z.updated_at
+         FROM ccintern_checklisten_zuordnung z
+         WHERE z.firma_id = ? AND z.produkt_id = ? AND z.schritt = ? AND z.checkliste_id = ?
+         LIMIT 1`,
+        [fid, pid, st, cid],
       );
     },
     async createCcInternChecklistenZuordnung(firmaId, row) {
