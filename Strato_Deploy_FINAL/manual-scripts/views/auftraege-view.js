@@ -11,6 +11,9 @@
 
 /** Tab-Filter Auftragsverwaltung — muss vor erstem renderAuftragVerwaltung() gesetzt sein */
 var auVerwFilter = 'alle';
+var auVerwPage = 1;
+var auVerwLastFilterKey = '';
+var AU_VERW_PAGE_SIZE = 10;
 
 /** Checklisten-Vorlagen: aktuell ausgewählte Vorlage (Listen-Highlight + Detail) — muss deklariert sein (Strict Mode) */
 var clAktivId = null;
@@ -103,9 +106,37 @@ function _ccInternProduktionSyncAbgeschlossen(auftragRow) {
 
 function auVerwTab(el, filter){
   auVerwFilter = filter;
+  auVerwPage = 1;
   document.querySelectorAll('#au-verwaltung-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
   renderAuftragVerwaltung();
+}
+
+function auVerwGoPage(page){
+  var n = Number(page);
+  auVerwPage = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  renderAuftragVerwaltung();
+}
+
+function auVerwRenderPager(totalRows){
+  var pager = document.getElementById('au-verwaltung-pagination');
+  if(!pager) return;
+  var pageCount = Math.max(1, Math.ceil(totalRows / AU_VERW_PAGE_SIZE));
+  if(auVerwPage > pageCount) auVerwPage = pageCount;
+  var from = totalRows === 0 ? 0 : (auVerwPage - 1) * AU_VERW_PAGE_SIZE + 1;
+  var to = Math.min(totalRows, auVerwPage * AU_VERW_PAGE_SIZE);
+  var buttons = [];
+  for(var i=1;i<=pageCount;i++){
+    var active = i === auVerwPage;
+    buttons.push('<button type="button" class="cc-page-btn'+(active?' is-active':'')+'" onclick="auVerwGoPage('+i+')" aria-current="'+(active?'page':'false')+'">'+i+'</button>');
+  }
+  pager.innerHTML =
+    '<div class="cc-page-count">'+from+'-'+to+' von '+totalRows+'</div>'
+    +'<div class="cc-page-actions">'
+      +'<button type="button" class="cc-page-btn" onclick="auVerwGoPage('+(auVerwPage-1)+')" '+(auVerwPage<=1?'disabled':'')+'>Zurueck</button>'
+      +buttons.join('')
+      +'<button type="button" class="cc-page-btn" onclick="auVerwGoPage('+(auVerwPage+1)+')" '+(auVerwPage>=pageCount?'disabled':'')+'>Weiter</button>'
+    +'</div>';
 }
 
 /**
@@ -135,6 +166,11 @@ function _auVerwMatchesTab(a) {
 function renderAuftragVerwaltung(){
   var q = (document.getElementById('au-verwaltung-suche')?.value||'').toLowerCase();
   var src = auVerwAuftraegeQuelle();
+  var filterKey = auVerwFilter + '|' + q;
+  if(filterKey !== auVerwLastFilterKey){
+    auVerwPage = 1;
+    auVerwLastFilterKey = filterKey;
+  }
 
   // Filter: Tab nur nach archiv/step/rechnung wie Tabspezifikation; Suche zusätzlich
   var data = src.filter(function(a){
@@ -169,10 +205,15 @@ function renderAuftragVerwaltung(){
 
   if(!data.length){
     tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Keine Aufträge gefunden</td></tr>';
+    auVerwRenderPager(0);
     return;
   }
 
-  tbody.innerHTML = data.map(function(a){
+  var pageCount = Math.max(1, Math.ceil(data.length / AU_VERW_PAGE_SIZE));
+  if(auVerwPage > pageCount) auVerwPage = pageCount;
+  var pageData = data.slice((auVerwPage - 1) * AU_VERW_PAGE_SIZE, auVerwPage * AU_VERW_PAGE_SIZE);
+
+  tbody.innerHTML = pageData.map(function(a){
     var isAbg   = a.step==='abgeschlossen';
     var sl      = STEP_LABELS[a.step] || STEP_LABELS['abgeschlossen'];
     var heuteStr= new Date().toISOString().substring(0,10);
@@ -228,6 +269,7 @@ function renderAuftragVerwaltung(){
       +'</td>'
       +'</tr>';
   }).join('');
+  auVerwRenderPager(data.length);
 }
 
 /** Alias für `CCIntern.init` / Cockpit — identisch zu {@link renderAuftragVerwaltung} */
@@ -285,6 +327,215 @@ function renderChecklisten(){
 /** DB-Checkliste (Cockpit-API): Vorlagen-ID ist eine UUID. */
 function _clChecklisteIdIsApiUuid(idStr){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(idStr||'').trim());
+}
+
+var CL_ZUORD_SCHRITTE = ['grafik', 'druck', 'laminat', 'montage', 'doku'];
+
+function clZuordEscAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function clProdukteListeReadOnly() {
+  var list =
+    typeof window !== 'undefined' && Array.isArray(window.CC_PRODUKTE_LISTE_READ_ONLY)
+      ? window.CC_PRODUKTE_LISTE_READ_ONLY
+      : typeof CC_PRODUKTE_LISTE !== 'undefined' && Array.isArray(CC_PRODUKTE_LISTE)
+        ? CC_PRODUKTE_LISTE
+        : [];
+  return list;
+}
+
+function clZuordnungSchrittLabel(step) {
+  var map = { grafik: 'Grafik', druck: 'Druck', laminat: 'Laminat', montage: 'Montage', doku: 'Doku' };
+  return map[step] || step;
+}
+
+function clZuordnungPanelSkeletonHtml(checklisteId) {
+  var cid = clZuordEscAttr(checklisteId);
+  var schrittOpts = CL_ZUORD_SCHRITTE.map(function (st) {
+    return '<option value="' + clZuordEscAttr(st) + '">' + clZuordEscAttr(clZuordnungSchrittLabel(st)) + '</option>';
+  }).join('');
+  var produkte = clProdukteListeReadOnly();
+  var prodChecks = produkte
+    .map(function (p) {
+      if (!p || !p.id) return '';
+      var pid = clZuordEscAttr(String(p.id));
+      var plab = clZuordEscAttr(p.label || p.id);
+      return (
+        '<label style="display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 0;cursor:pointer;">'
+        + '<input type="checkbox" class="cl-zuord-prod-cb" value="' + pid + '" style="accent-color:var(--teal);">'
+        + '<span>' + plab + '</span></label>'
+      );
+    })
+    .join('');
+  return (
+    '<div id="cl-zuordnung-panel" data-checkliste-id="' + cid + '" style="border-top:2px solid var(--border);margin-top:8px;">'
+    + '<div style="padding:12px 16px 8px;">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:10px;">📋 ZUORDNUNG</div>'
+    + '<div class="frow" style="margin-bottom:8px;">'
+    + '<div class="fg" style="flex:1;">'
+    + '<label class="fl">Schritt</label>'
+    + '<select class="fs" id="cl-zuord-schritt">' + schrittOpts + '</select>'
+    + '</div></div>'
+    + '<div style="margin-bottom:8px;">'
+    + '<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:6px;">'
+    + '<input type="checkbox" id="cl-zuord-alle" onchange="clZuordAlleProdukteToggle(this.checked)" style="accent-color:var(--teal);"> Alle Produkte'
+    + '</label>'
+    + '<div id="cl-zuord-produkte" style="max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--gray-l);">'
+    + (prodChecks || '<span style="font-size:11px;color:var(--text3);">Keine Produkte geladen.</span>')
+    + '</div></div>'
+    + '<button type="button" class="btn p" style="width:100%;font-size:12px;margin-bottom:10px;" onclick="clZuordnungSpeichern(\'' + cid + '\')">Zuordnung speichern</button>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Bestehende Zuordnungen</div>'
+    + '<div id="cl-zuord-liste" style="font-size:11px;color:var(--text2);">Laden…</div>'
+    + '</div></div>'
+  );
+}
+
+function clZuordnungListeHtml(checklisteId, rows) {
+  var cid = String(checklisteId || '').trim();
+  var list = Array.isArray(rows) ? rows : [];
+  var mine = list.filter(function (r) {
+    return r && String(r.checkliste_id || '').trim() === cid;
+  });
+  if (!mine.length) {
+    return '<div style="padding:8px 0;color:var(--text3);">Keine Zuordnungen für diese Vorlage.</div>';
+  }
+  var prodMap = {};
+  clProdukteListeReadOnly().forEach(function (p) {
+    if (p && p.id) prodMap[String(p.id)] = p.label || p.id;
+  });
+  return mine
+    .map(function (r) {
+      var zid = clZuordEscAttr(String(r.id || ''));
+      var pid = String(r.produkt_id || '');
+      var plab = clZuordEscAttr(prodMap[pid] || pid);
+      var st = clZuordEscAttr(clZuordnungSchrittLabel(String(r.schritt || '')));
+      return (
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'
+        + '<span><strong>' + plab + '</strong> · ' + st + '</span>'
+        + '<button type="button" class="btn" style="font-size:10px;color:var(--red);padding:2px 8px;" onclick="clZuordnungLoeschen(\''
+        + zid + '\',\'' + clZuordEscAttr(cid) + '\')">Löschen</button></div>'
+      );
+    })
+    .join('');
+}
+
+function clZuordAlleProdukteToggle(checked) {
+  document.querySelectorAll('.cl-zuord-prod-cb').forEach(function (cb) {
+    cb.checked = !!checked;
+    cb.disabled = !!checked;
+  });
+  var wrap = document.getElementById('cl-zuord-produkte');
+  if (wrap) wrap.style.opacity = checked ? '0.55' : '1';
+}
+
+async function clLoadZuordnungPanel(checklisteId) {
+  var panel = document.getElementById('cl-zuordnung-panel');
+  var listEl = document.getElementById('cl-zuord-liste');
+  if (!panel || !listEl) return;
+  var cid = String(checklisteId || '').trim();
+  if (!_clChecklisteIdIsApiUuid(cid)) {
+    listEl.innerHTML =
+      '<div style="padding:8px 0;color:var(--text3);">Zuordnung nur für API-Vorlagen (UUID).</div>';
+    return;
+  }
+  listEl.textContent = 'Laden…';
+  var capi = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+  if (!capi || typeof capi.fetchCcInternChecklistenZuordnungAll !== 'function') {
+    listEl.innerHTML = '<div style="color:var(--red);">API nicht verfügbar.</div>';
+    return;
+  }
+  try {
+    var rows = await capi.fetchCcInternChecklistenZuordnungAll();
+    listEl.innerHTML = clZuordnungListeHtml(cid, rows);
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--red);">Zuordnungen konnten nicht geladen werden.</div>';
+  }
+}
+
+async function clZuordnungSpeichern(checklisteId) {
+  var cid = String(checklisteId || '').trim();
+  if (!_clChecklisteIdIsApiUuid(cid)) {
+    if (typeof showToast === 'function') showToast('⚠ Nur API-Vorlagen können zugeordnet werden.');
+    return;
+  }
+  var schrittEl = document.getElementById('cl-zuord-schritt');
+  var schritt = schrittEl ? String(schrittEl.value || '').trim() : '';
+  if (!schritt) {
+    if (typeof showToast === 'function') showToast('⚠ Bitte Schritt wählen.');
+    return;
+  }
+  var alleCb = document.getElementById('cl-zuord-alle');
+  var alle = alleCb && alleCb.checked;
+  var produktIds = [];
+  if (alle) {
+    clProdukteListeReadOnly().forEach(function (p) {
+      if (p && p.id) produktIds.push(String(p.id).trim());
+    });
+  } else {
+    document.querySelectorAll('.cl-zuord-prod-cb:checked').forEach(function (cb) {
+      if (cb.value) produktIds.push(String(cb.value).trim());
+    });
+  }
+  if (!produktIds.length) {
+    if (typeof showToast === 'function') showToast('⚠ Mindestens ein Produkt wählen.');
+    return;
+  }
+  var capi = window.CCIntern && window.CCIntern.cockpitApi;
+  if (!capi || typeof capi.createCcInternChecklistenZuordnung !== 'function') {
+    if (typeof showToast === 'function') showToast('⚠ API nicht verfügbar.');
+    return;
+  }
+  var ok = 0;
+  var fail = 0;
+  for (var i = 0; i < produktIds.length; i++) {
+    try {
+      await capi.createCcInternChecklistenZuordnung({
+        produkt_id: produktIds[i],
+        schritt: schritt,
+        checkliste_id: cid,
+        aktiv: true,
+        sortierung: 0,
+      });
+      ok += 1;
+    } catch (e) {
+      fail += 1;
+    }
+  }
+  await clLoadZuordnungPanel(cid);
+  if (typeof showToast === 'function') {
+    showToast(
+      ok > 0
+        ? '✓ ' + ok + ' Zuordnung(en) gespeichert' + (fail ? ' (' + fail + ' fehlgeschlagen)' : '')
+        : '⚠ Zuordnung fehlgeschlagen',
+    );
+  }
+}
+
+async function clZuordnungLoeschen(zuordnungId, checklisteId) {
+  var zid = String(zuordnungId || '').trim();
+  var cid = String(checklisteId || '').trim();
+  if (!zid) return;
+  var capi = window.CCIntern && window.CCIntern.cockpitApi;
+  if (!capi || typeof capi.deleteCcInternChecklistenZuordnung !== 'function') return;
+  try {
+    await capi.deleteCcInternChecklistenZuordnung(zid);
+    await clLoadZuordnungPanel(cid);
+    if (typeof showToast === 'function') showToast('✓ Zuordnung gelöscht');
+  } catch (e) {
+    if (typeof showToast === 'function') showToast('⚠ Löschen fehlgeschlagen');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.clZuordAlleProdukteToggle = clZuordAlleProdukteToggle;
+  window.clZuordnungSpeichern = clZuordnungSpeichern;
+  window.clZuordnungLoeschen = clZuordnungLoeschen;
 }
 
 function clOpenVorlage(id){
@@ -351,7 +602,9 @@ function clOpenVorlage(id){
       +'</div>'
       +'<div style="padding:10px 14px;border-top:1px solid var(--border);">'
         +'<button class="btn p" style="width:100%;" onclick="clAddPunkt(\''+vidAttr+'\')">+ Prüfpunkt hinzufügen</button>'
-      +'</div>';
+      +'</div>'
+      +clZuordnungPanelSkeletonHtml(vidAttr);
+    clLoadZuordnungPanel(idStr);
   }
 
   var capi=typeof window!=='undefined'&&window.__CCINTERN_COCKPIT_MOUNT__&&window.CCIntern&&window.CCIntern.cockpitApi;

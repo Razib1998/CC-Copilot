@@ -17,16 +17,26 @@
     );
   }
 
-  /** KPI „Aktive Aufträge“: nur step !== abgeschlossen (AUFTRAEGE, kein archiv-/Text-Status). */
-  function dashboardCorrectAktiveAuftraegeKpi() {
-    var host = document.querySelector('.cc-intern-root') || document.body;
-    var root = host.querySelector('#pg-dashboard');
-    if (!root || !root.classList.contains('active')) return;
-    var arr = typeof AUFTRAEGE !== 'undefined' && Array.isArray(AUFTRAEGE) ? AUFTRAEGE : [];
-    var n = arr.filter(function (a) {
-      if (!a) return false;
-      return String(a.step != null ? a.step : '').trim() !== 'abgeschlossen';
-    }).length;
+	  /** KPI „Aktive Aufträge“: nur step !== abgeschlossen (AUFTRAEGE, kein archiv-/Text-Status). */
+	  function dashboardIsArchived(a) {
+	    if (!a) return false;
+	    var v = a.archiv != null ? a.archiv : a.archived;
+	    if (v === true || v === 1) return true;
+	    if (v === false || v === 0 || v == null) return false;
+	    var s = String(v).trim().toLowerCase();
+	    return s === 'true' || s === '1' || s === 'ja' || s === 'archiviert';
+	  }
+
+	  function dashboardCorrectAktiveAuftraegeKpi() {
+	    var host = document.querySelector('.cc-intern-root') || document.body;
+	    var root = host.querySelector('#pg-dashboard');
+	    if (!root || !root.classList.contains('active')) return;
+	    var arr = typeof AUFTRAEGE !== 'undefined' && Array.isArray(AUFTRAEGE) ? AUFTRAEGE : [];
+	    var n = arr.filter(function (a) {
+	      if (!a) return false;
+	      if (dashboardIsArchived(a)) return false;
+	      return String(a.step != null ? a.step : '').trim() !== 'abgeschlossen';
+	    }).length;
     var el = root.querySelector('#db-stat-auftraege');
     if (el) el.textContent = String(n);
   }

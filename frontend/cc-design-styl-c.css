@@ -74,6 +74,168 @@ html[data-theme='dark'] body {
   color: var(--ccds-text);
 }
 
+/* ── Global form/control polish for legacy and plain module markup ── */
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), select, textarea, .srch, .fi, .fs, .fta) {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--ccds-border) 82%, #cbd5e1);
+  border-radius: 10px;
+  background: var(--ccds-card);
+  color: var(--ccds-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  outline: none;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;
+}
+
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(textarea, .fta) {
+  min-height: 84px;
+  resize: vertical;
+}
+
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), select, textarea, .srch, .fi, .fs, .fta):focus {
+  border-color: var(--ccds-primary);
+  box-shadow: 0 0 0 4px rgba(var(--ccds-primary-rgb), .14);
+}
+
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(input, textarea)::placeholder {
+  color: var(--ccds-muted);
+  opacity: 1;
+  font-weight: 600;
+}
+
+#cockpit-root :where(.tabs) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 42px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--ccds-border) 82%, #cbd5e1);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--ccds-card) 88%, var(--ccds-bg));
+}
+
+#cockpit-root :where(.tab) {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, var(--ccds-text) 64%, var(--ccds-muted));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+#cockpit-root :where(.tab:hover) {
+  background: color-mix(in srgb, var(--ccds-card) 72%, var(--ccds-bg));
+  color: var(--ccds-text);
+}
+
+#cockpit-root :where(.tab.active, .tab.fusa-re-tab--active) {
+  background: var(--ccds-primary);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(var(--ccds-primary-rgb), .2);
+}
+
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  button:not([class]):not(.ckp-mod-btn):not(.ccds-top-tab):not(.ccds-nav-btn):not(.ccds-btn-neu),
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(.btn:not(.p):not(.g):not(.primary), .ccds-sort-btn, .ccds-filter-chip, .ccds-dp-btn) {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--ccds-border) 82%, #cbd5e1);
+  border-radius: 10px;
+  background: var(--ccds-card);
+  color: var(--ccds-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+  transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  button:not([class]):not(.ckp-mod-btn):not(.ccds-top-tab):not(.ccds-nav-btn):not(.ccds-btn-neu):hover,
+#cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(.btn:not(.p):not(.g):not(.primary), .ccds-sort-btn, .ccds-filter-chip, .ccds-dp-btn):hover {
+  border-color: color-mix(in srgb, var(--ccds-primary) 46%, var(--ccds-border));
+  background: color-mix(in srgb, var(--ccds-card) 78%, var(--ccds-active-bg));
+  color: var(--ccds-active-text);
+  transform: translateY(-1px);
+}
+
+#cockpit-root :where(button, input, select, textarea):disabled,
+#cockpit-root :where(button[disabled], input[disabled], select[disabled], textarea[disabled]) {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+html[data-theme='dark'] #cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), select, textarea, .srch, .fi, .fs, .fta) {
+  background: #0b1426;
+  border-color: #334155;
+  color: #e5e7eb;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] #cockpit-root :where(.tabs) {
+  background: #0b1426;
+  border-color: #334155;
+}
+
+html[data-theme='dark'] #cockpit-root :where(.tab) {
+  color: #a8b3c7;
+}
+
+html[data-theme='dark'] #cockpit-root :where(.tab:hover) {
+  background: #172033;
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] #cockpit-root :where(.tab.active, .tab.fusa-re-tab--active) {
+  background: var(--ccds-primary-dark);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+}
+
+html[data-theme='dark'] #cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  button:not([class]):not(.ckp-mod-btn):not(.ccds-top-tab):not(.ccds-nav-btn):not(.ccds-btn-neu),
+html[data-theme='dark'] #cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(.btn:not(.p):not(.g):not(.primary), .ccds-sort-btn, .ccds-filter-chip, .ccds-dp-btn) {
+  background: #172033;
+  border-color: #334155;
+  color: #dbe4ef;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] #cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  button:not([class]):not(.ckp-mod-btn):not(.ccds-top-tab):not(.ccds-nav-btn):not(.ccds-btn-neu):hover,
+html[data-theme='dark'] #cockpit-root :where(#cockpit-content, .modal, .dpanel, .dp-body, .mbody, .panel, .ph-right, .tb-right)
+  :where(.btn:not(.p):not(.g):not(.primary), .ccds-sort-btn, .ccds-filter-chip, .ccds-dp-btn):hover {
+  background: #263244;
+  border-color: color-mix(in srgb, var(--ccds-primary) 58%, #334155);
+  color: #f8fafc;
+}
+
 /* ── Top tabs (Module) — dominante Modul-Schalter ── */
 .ccds-top-tabs {
   display: flex;
@@ -3483,6 +3645,50 @@ html[data-theme='dark'] #cockpit-root .ckp-shell-footer {
   background: #111827 !important;
   border-color: #263244 !important;
   color: #e5e7eb !important;
+}
+
+/* FUSA module cards: consistent KPI/stat presentation across light and dark themes. */
+#cockpit-root[data-app-module='fusa'] .ccds-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+#cockpit-root[data-app-module='fusa'] .ccds-stat-card {
+  min-height: 92px;
+  border-radius: 10px;
+  padding: 16px;
+  gap: 14px;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+#cockpit-root[data-app-module='fusa'] .ccds-stat-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+#cockpit-root[data-app-module='fusa'] .ccds-stat-val {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+#cockpit-root[data-app-module='fusa'] .ccds-stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme='dark'] #cockpit-root[data-app-module='fusa'] .ccds-stat-card {
+  background: #111827 !important;
+  border-color: #263244 !important;
+  box-shadow: none;
 }
 
 html[data-theme='dark'] #cockpit-root .ccds-table-head,

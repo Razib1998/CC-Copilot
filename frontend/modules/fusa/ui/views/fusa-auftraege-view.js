@@ -61,6 +61,40 @@ function computeFusaUmzugAuftragKpis(rows) {
   return { aktiv, produktion, endet, abgeschlossen };
 }
 
+const FUSA_AUF_PAGE_SIZE = 10;
+
+function getFusaAufCurrentPage(root) {
+  const n = Number(root.getAttribute("data-fusa-auf-page") || "1");
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+function setFusaAufCurrentPage(root, page) {
+  const n = Number(page);
+  root.setAttribute(
+    "data-fusa-auf-page",
+    String(Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1),
+  );
+}
+
+function renderFusaAufPager(root, totalRows, currentPage, pageSize) {
+  const pager = root.querySelector("[data-fusa-auf-pagination]");
+  if (!(pager instanceof HTMLElement)) return;
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize));
+  const from = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(totalRows, currentPage * pageSize);
+  const pageButtons = Array.from({ length: pageCount }, (_, idx) => {
+    const page = idx + 1;
+    return `<button type="button" class="fusa-list-pager__btn${page === currentPage ? " is-active" : ""}" data-fusa-auf-page-go="${page}" aria-current="${page === currentPage ? "page" : "false"}">${page}</button>`;
+  }).join("");
+  pager.hidden = false;
+  pager.innerHTML = `<div class="fusa-list-pager__count">${from}-${to} von ${totalRows}</div>
+    <div class="fusa-list-pager__actions">
+      <button type="button" class="fusa-list-pager__btn" data-fusa-auf-page-prev ${currentPage <= 1 ? "disabled" : ""}>Zurueck</button>
+      ${pageButtons}
+      <button type="button" class="fusa-list-pager__btn" data-fusa-auf-page-next ${currentPage >= pageCount ? "disabled" : ""}>Weiter</button>
+    </div>`;
+}
+
 /** Auszug aus FUSA_UMZUG `_COCKPIT_UMZUG/ui/fusa.css` — nur Aufträge-relevante Regeln, unter `.fusa-umz-auf-scope` gekapselt. */
 const FUSA_UMZUG_AUF_SCOPE_CSS = `<style>
 .fusa-umz-auf-scope{--blue:#D4500A;--blue-d:#A83D08;--blue-l:#FFF0E6;--green:#2E7D32;--green-l:#E8F5E9;--amber:#E65100;--amber-l:#FFF3E0;--red:#C62828;--red-l:#FFEBEE;--purple:#4527A0;--purple-l:#EDE7F6;--teal:#00695C;--teal-l:#E0F2F1;--gray:#546E7A;--gray-l:#ECEFF1;--border:#DDE3E8;--text:#0F1923;--text2:#546E7A;--text3:#90A4AE;--bg:#F0F4F8;--card:#FFF;}
@@ -100,6 +134,12 @@ const FUSA_UMZUG_AUF_SCOPE_CSS = `<style>
 .fusa-umz-auf-scope .btn.p.fusa-auf-neu-btn{padding:12px 20px;font-size:15px;border-radius:8px;}
 .fusa-umz-auf-scope .srch{padding:6px 12px;border:1px solid var(--border);border-radius:7px;font-size:12px;min-width:180px;flex:1;max-width:320px;outline:none;background:var(--gray-l);color:var(--text);}
 .fusa-umz-auf-scope .srch:focus{background:#fff;border-color:var(--blue);}
+.fusa-umz-auf-scope .fusa-list-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--border);}
+.fusa-umz-auf-scope .fusa-list-pager__count{font-size:12px;color:var(--text2);}
+.fusa-umz-auf-scope .fusa-list-pager__actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.fusa-umz-auf-scope .fusa-list-pager__btn{min-width:32px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;}
+.fusa-umz-auf-scope .fusa-list-pager__btn.is-active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.fusa-umz-auf-scope .fusa-list-pager__btn:disabled{opacity:.45;cursor:not-allowed;}
 .fusa-umz-auf-scope .overlay{display:none;position:fixed;inset:0;z-index:10050;align-items:flex-start;justify-content:flex-end;}
 .fusa-umz-auf-scope .overlay.fusa-auf-abnahme-overlay{z-index:10062;}
 .fusa-umz-auf-scope .dpanel[data-fusa-auf-abnahme-panel]{width:min(920px,100%);}
@@ -1474,6 +1514,7 @@ export async function renderFusaAuftraegeViewHtml() {
   </div>
   <div class="ph-tools">${searchField}${neuBtn}</div>
   ${await renderFusaApiAuftraegeUmzugTableInnerHtml(filtered, nameById)}
+  <div class="fusa-list-pager" data-fusa-auf-pagination></div>
 </div>`;
 
   const formInner =
@@ -1530,7 +1571,7 @@ export async function renderFusaAuftraegeViewHtml() {
 </div>`;
 
   return `${FUSA_UMZUG_AUF_SCOPE_CSS}
-<div data-ccw-ro="fusa-auftraege" class="fusa-umz-auf-scope" data-fusa-proj-names="${namesEncoded}" data-fusa-can-bearbeiten="${canBearbeiten ? "1" : "0"}" data-fusa-umz-active-tab="">
+<div data-ccw-ro="fusa-auftraege" class="fusa-umz-auf-scope" data-fusa-proj-names="${namesEncoded}" data-fusa-can-bearbeiten="${canBearbeiten ? "1" : "0"}" data-fusa-umz-active-tab="" data-fusa-auf-page="1">
   ${auftragLoadErr ? `<p class="ckp-api-error" role="alert">${esc(auftragLoadErr)}</p>` : ""}
   ${projLoadErr ? `<p class="ckp-api-error" role="alert">${esc(projLoadErr)}</p>` : ""}
   ${auftragLoadErr ? "" : kpiRow}
@@ -1549,7 +1590,24 @@ function applyFusaAuftragRowFilters(root) {
   const q =
     qel instanceof HTMLInputElement ? qel.value.trim().toLowerCase() : "";
   const tab = root.getAttribute("data-fusa-umz-active-tab") || "";
-  for (const tr of root.querySelectorAll("tbody tr[data-fusa-auf-payload]")) {
+  const rows = [
+    ...root.querySelectorAll(".panel tbody tr[data-fusa-auf-payload]"),
+  ].filter((tr) => tr instanceof HTMLElement);
+  const tbody = rows.length ? rows[0].closest("tbody") : root.querySelector(".panel tbody");
+  let emptyRow =
+    tbody instanceof HTMLElement
+      ? tbody.querySelector("[data-fusa-auf-filter-empty]")
+      : null;
+  if (tbody instanceof HTMLElement && !(emptyRow instanceof HTMLElement)) {
+    emptyRow = document.createElement("tr");
+    emptyRow.setAttribute("data-fusa-auf-filter-empty", "1");
+    emptyRow.innerHTML =
+      '<td colspan="8" style="padding:16px;text-align:center;color:var(--text2,#64748b);font-size:12px;">Keine Aufträge für diese Auswahl.</td>';
+    tbody.appendChild(emptyRow);
+  }
+  /** @type {HTMLElement[]} */
+  const visibleRows = [];
+  for (const tr of rows) {
     if (!(tr instanceof HTMLElement)) continue;
     let hay = "";
     try {
@@ -1562,8 +1620,23 @@ function applyFusaAuftragRowFilters(root) {
     const umz = tr.getAttribute("data-fusa-umz-tab") || "none";
     const okSearch = !q || hay.includes(q);
     const okTab = !tab || umz === tab;
-    tr.style.display = okSearch && okTab ? "" : "none";
+    const show = okSearch && okTab;
+    tr.style.display = "none";
+    if (show) visibleRows.push(tr);
   }
+  const pageCount = Math.max(1, Math.ceil(visibleRows.length / FUSA_AUF_PAGE_SIZE));
+  let currentPage = getFusaAufCurrentPage(root);
+  if (currentPage > pageCount) currentPage = pageCount;
+  setFusaAufCurrentPage(root, currentPage);
+  const start = (currentPage - 1) * FUSA_AUF_PAGE_SIZE;
+  const end = start + FUSA_AUF_PAGE_SIZE;
+  visibleRows.forEach((tr, index) => {
+    tr.style.display = index >= start && index < end ? "" : "none";
+  });
+  if (emptyRow instanceof HTMLElement) {
+    emptyRow.style.display = visibleRows.length === 0 && rows.length > 0 ? "" : "none";
+  }
+  renderFusaAufPager(root, visibleRows.length, currentPage, FUSA_AUF_PAGE_SIZE);
 }
 
 /**
@@ -1572,6 +1645,7 @@ function applyFusaAuftragRowFilters(root) {
  */
 function setUmzTabFilter(root, tabValue) {
   root.setAttribute("data-fusa-umz-active-tab", tabValue);
+  setFusaAufCurrentPage(root, 1);
   for (const b of root.querySelectorAll("[data-fusa-umz-tab]")) {
     if (!(b instanceof HTMLButtonElement)) continue;
     const v = b.getAttribute("data-fusa-umz-tab") ?? "";
@@ -1998,6 +2072,25 @@ export function attachFusaAuftraegeViewHandlers(mount, onReload) {
       setUmzTabFilter(root, umzTabBtn.getAttribute("data-fusa-umz-tab") ?? "");
       return;
     }
+    const pageBtn = t.closest && t.closest("[data-fusa-auf-page-go]");
+    if (pageBtn instanceof HTMLElement) {
+      ev.preventDefault();
+      setFusaAufCurrentPage(root, pageBtn.getAttribute("data-fusa-auf-page-go") || "1");
+      applyFusaAuftragRowFilters(root);
+      return;
+    }
+    if (t.closest && t.closest("[data-fusa-auf-page-prev]")) {
+      ev.preventDefault();
+      setFusaAufCurrentPage(root, Math.max(1, getFusaAufCurrentPage(root) - 1));
+      applyFusaAuftragRowFilters(root);
+      return;
+    }
+    if (t.closest && t.closest("[data-fusa-auf-page-next]")) {
+      ev.preventDefault();
+      setFusaAufCurrentPage(root, getFusaAufCurrentPage(root) + 1);
+      applyFusaAuftragRowFilters(root);
+      return;
+    }
     if (
       modal instanceof HTMLElement &&
       modal.classList.contains("open") &&
@@ -2088,8 +2181,12 @@ export function attachFusaAuftraegeViewHandlers(mount, onReload) {
 
   const searchEl = root.querySelector("[data-fusa-auf-suche]");
   if (searchEl instanceof HTMLInputElement) {
-    searchEl.addEventListener("input", () => applyFusaAuftragRowFilters(root));
+    searchEl.addEventListener("input", () => {
+      setFusaAufCurrentPage(root, 1);
+      applyFusaAuftragRowFilters(root);
+    });
   }
+  applyFusaAuftragRowFilters(root);
 
   if (modal instanceof HTMLElement) {
     /**

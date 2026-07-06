@@ -11,6 +11,9 @@
 
 /** Tab-Filter Auftragsverwaltung — muss vor erstem renderAuftragVerwaltung() gesetzt sein */
 var auVerwFilter = 'alle';
+var auVerwPage = 1;
+var auVerwLastFilterKey = '';
+var AU_VERW_PAGE_SIZE = 10;
 
 /** Checklisten-Vorlagen: aktuell ausgewählte Vorlage (Listen-Highlight + Detail) — muss deklariert sein (Strict Mode) */
 var clAktivId = null;
@@ -103,9 +106,37 @@ function _ccInternProduktionSyncAbgeschlossen(auftragRow) {
 
 function auVerwTab(el, filter){
   auVerwFilter = filter;
+  auVerwPage = 1;
   document.querySelectorAll('#au-verwaltung-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
   renderAuftragVerwaltung();
+}
+
+function auVerwGoPage(page){
+  var n = Number(page);
+  auVerwPage = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  renderAuftragVerwaltung();
+}
+
+function auVerwRenderPager(totalRows){
+  var pager = document.getElementById('au-verwaltung-pagination');
+  if(!pager) return;
+  var pageCount = Math.max(1, Math.ceil(totalRows / AU_VERW_PAGE_SIZE));
+  if(auVerwPage > pageCount) auVerwPage = pageCount;
+  var from = totalRows === 0 ? 0 : (auVerwPage - 1) * AU_VERW_PAGE_SIZE + 1;
+  var to = Math.min(totalRows, auVerwPage * AU_VERW_PAGE_SIZE);
+  var buttons = [];
+  for(var i=1;i<=pageCount;i++){
+    var active = i === auVerwPage;
+    buttons.push('<button type="button" class="cc-page-btn'+(active?' is-active':'')+'" onclick="auVerwGoPage('+i+')" aria-current="'+(active?'page':'false')+'">'+i+'</button>');
+  }
+  pager.innerHTML =
+    '<div class="cc-page-count">'+from+'-'+to+' von '+totalRows+'</div>'
+    +'<div class="cc-page-actions">'
+      +'<button type="button" class="cc-page-btn" onclick="auVerwGoPage('+(auVerwPage-1)+')" '+(auVerwPage<=1?'disabled':'')+'>Zurueck</button>'
+      +buttons.join('')
+      +'<button type="button" class="cc-page-btn" onclick="auVerwGoPage('+(auVerwPage+1)+')" '+(auVerwPage>=pageCount?'disabled':'')+'>Weiter</button>'
+    +'</div>';
 }
 
 /**
@@ -135,6 +166,11 @@ function _auVerwMatchesTab(a) {
 function renderAuftragVerwaltung(){
   var q = (document.getElementById('au-verwaltung-suche')?.value||'').toLowerCase();
   var src = auVerwAuftraegeQuelle();
+  var filterKey = auVerwFilter + '|' + q;
+  if(filterKey !== auVerwLastFilterKey){
+    auVerwPage = 1;
+    auVerwLastFilterKey = filterKey;
+  }
 
   // Filter: Tab nur nach archiv/step/rechnung wie Tabspezifikation; Suche zusätzlich
   var data = src.filter(function(a){
@@ -169,10 +205,15 @@ function renderAuftragVerwaltung(){
 
   if(!data.length){
     tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Keine Aufträge gefunden</td></tr>';
+    auVerwRenderPager(0);
     return;
   }
 
-  tbody.innerHTML = data.map(function(a){
+  var pageCount = Math.max(1, Math.ceil(data.length / AU_VERW_PAGE_SIZE));
+  if(auVerwPage > pageCount) auVerwPage = pageCount;
+  var pageData = data.slice((auVerwPage - 1) * AU_VERW_PAGE_SIZE, auVerwPage * AU_VERW_PAGE_SIZE);
+
+  tbody.innerHTML = pageData.map(function(a){
     var isAbg   = a.step==='abgeschlossen';
     var sl      = STEP_LABELS[a.step] || STEP_LABELS['abgeschlossen'];
     var heuteStr= new Date().toISOString().substring(0,10);
@@ -228,6 +269,7 @@ function renderAuftragVerwaltung(){
       +'</td>'
       +'</tr>';
   }).join('');
+  auVerwRenderPager(data.length);
 }
 
 /** Alias für `CCIntern.init` / Cockpit — identisch zu {@link renderAuftragVerwaltung} */

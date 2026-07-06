@@ -42,6 +42,36 @@ const ZEIT_SLOTS = [
   'Flexibel',
 ];
 
+const FUSA_SCH_PAGE_SIZE = 10;
+
+function renderFusaSchPager(pager, totalRows, currentPage, pageSize) {
+  if (!(pager instanceof HTMLElement)) return;
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize));
+  const from = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(totalRows, currentPage * pageSize);
+  const pageButtons = Array.from({ length: pageCount }, (_, idx) => {
+    const page = idx + 1;
+    const active = page === currentPage;
+    return `<button type="button" data-fusa-sch-page="${page}" aria-current="${active ? 'page' : 'false'}" style="min-width:32px;height:30px;border-radius:8px;border:1px solid ${active ? 'var(--blue,#2563EB)' : 'var(--border,#DDE3E8)'};background:${active ? 'var(--blue,#2563EB)' : 'var(--card,#fff)'};color:${active ? '#fff' : 'var(--text,#0F1923)'};font:inherit;font-size:12px;font-weight:700;cursor:pointer;">${page}</button>`;
+  }).join('');
+  pager.hidden = false;
+  pager.innerHTML = `<div style="font-size:12px;color:var(--text2,#546E7A);">${from}-${to} von ${totalRows}</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <button type="button" data-fusa-sch-page-prev ${currentPage <= 1 ? 'disabled' : ''} style="height:30px;border-radius:8px;border:1px solid var(--border,#DDE3E8);background:var(--card,#fff);color:var(--text,#0F1923);font:inherit;font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;${currentPage <= 1 ? 'opacity:.45;cursor:not-allowed;' : ''}">Zurueck</button>
+      ${pageButtons}
+      <button type="button" data-fusa-sch-page-next ${currentPage >= pageCount ? 'disabled' : ''} style="height:30px;border-radius:8px;border:1px solid var(--border,#DDE3E8);background:var(--card,#fff);color:var(--text,#0F1923);font:inherit;font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;${currentPage >= pageCount ? 'opacity:.45;cursor:not-allowed;' : ''}">Weiter</button>
+    </div>`;
+}
+
+function fusaSchadenCreatedDescThenIdAsc(a, b) {
+  const ta = Date.parse(String(a?.created_at || ''));
+  const tb = Date.parse(String(b?.created_at || ''));
+  const sa = Number.isFinite(ta) ? ta : 0;
+  const sb = Number.isFinite(tb) ? tb : 0;
+  if (sa !== sb) return sb - sa;
+  return String(a?.id || '').localeCompare(String(b?.id || ''));
+}
+
 /**
  * @param {string} iso
  */
@@ -132,10 +162,13 @@ function schadenAktionenHtml(vm, canEdit) {
  * @param {{ key: string; value: number; label: string; icon: string; iconClass: string; urgent?: boolean }} opts
  */
 function schKpiCard(opts) {
-  const urgent = opts.urgent ? 'style="border-top:2px solid #C62828;"' : '';
-  return `<div class="ccds-stat-card" ${urgent}>
-  <div class="ccds-stat-icon-box ${esc(opts.iconClass)}" aria-hidden="true">${esc(opts.icon)}</div>
-  <div><div class="ccds-stat-val" data-fusa-sch-kpi="${esc(opts.key)}">${esc(String(opts.value))}</div><div class="ccds-stat-label">${esc(opts.label)}</div></div>
+  const tone = opts.urgent ? 'urgent' : String(opts.key || '').replace(/[^a-z0-9_-]/gi, '');
+  return `<div class="fusa-sch-kpi-card fusa-sch-kpi-card--${esc(tone)}">
+  <div class="fusa-sch-kpi-icon ${esc(opts.iconClass)}" aria-hidden="true">${esc(opts.icon)}</div>
+  <div class="fusa-sch-kpi-copy">
+    <div class="fusa-sch-kpi-value" data-fusa-sch-kpi="${esc(opts.key)}">${esc(String(opts.value))}</div>
+    <div class="fusa-sch-kpi-label">${esc(opts.label)}</div>
+  </div>
 </div>`;
 }
 
@@ -238,7 +271,8 @@ export async function renderFusaSchaedenViewHtml() {
 
   const filteredVm = filtered
     .map(s => mapSchadenApiRowToViewModel(s && typeof s === 'object' ? /** @type {Record<string, unknown>} */ (s) : {}))
-    .filter(/** @returns {v is NonNullable<typeof v>} */ v => v != null);
+    .filter(/** @returns {v is NonNullable<typeof v>} */ v => v != null)
+    .sort(fusaSchadenCreatedDescThenIdAsc);
 
   const kpis = schadenKpisFromRows(filteredVm);
 
@@ -554,6 +588,42 @@ export async function renderFusaSchaedenViewHtml() {
 .fusa-sch-scope .fusa-sch-filter select:focus,.fusa-sch-scope .fusa-sch-filter input:focus{border-color:#4527A0;}
 .fusa-sch-scope .fusa-sch-filter .btn{font:inherit;font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;}
 .fusa-sch-scope .fusa-sch-filter .btn:hover{background:#f1f5f9;}
+.fusa-sch-scope .fusa-sch-table{width:100%;min-width:1120px;table-layout:fixed;border-collapse:collapse;}
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th{text-align:left;vertical-align:middle;padding:10px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;line-height:1.15;white-space:nowrap;}
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td{vertical-align:top;padding:10px 10px;line-height:1.35;}
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(3){white-space:normal;overflow-wrap:anywhere;}
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(4),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(5),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(6),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(7),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td:nth-child(8){padding-top:12px;}
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th:nth-child(4),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th:nth-child(5),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th:nth-child(6),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th:nth-child(7),
+.fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th:nth-child(8){text-align:left;}
+.fusa-sch-scope .fusa-sch-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.fusa-sch-scope .fusa-sch-kpi-card{min-height:92px;border:1px solid var(--border,#DDE3E8);border-radius:10px;background:var(--card,#fff);display:flex;align-items:center;gap:14px;padding:16px;box-shadow:0 1px 2px rgba(15,23,42,.04);position:relative;overflow:hidden;}
+.fusa-sch-scope .fusa-sch-kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--fusa-sch-kpi-accent,#64748b);}
+.fusa-sch-scope .fusa-sch-kpi-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 42px;font-size:18px;background:var(--fusa-sch-kpi-soft,#EEF2F7);color:var(--fusa-sch-kpi-accent,#64748b);}
+.fusa-sch-scope .fusa-sch-kpi-copy{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.fusa-sch-scope .fusa-sch-kpi-value{font-size:26px;font-weight:800;line-height:1;color:var(--text,#0F1923);letter-spacing:0;}
+.fusa-sch-scope .fusa-sch-kpi-label{font-size:12px;font-weight:700;line-height:1.25;color:var(--text2,#546E7A);overflow-wrap:anywhere;}
+.fusa-sch-scope .fusa-sch-kpi-card--urgent{--fusa-sch-kpi-accent:#C62828;--fusa-sch-kpi-soft:#FFEBEE;}
+.fusa-sch-scope .fusa-sch-kpi-card--unklar{--fusa-sch-kpi-accent:#6D28D9;--fusa-sch-kpi-soft:#F3E8FF;}
+.fusa-sch-scope .fusa-sch-kpi-card--fremdschaden{--fusa-sch-kpi-accent:#0F766E;--fusa-sch-kpi-soft:#CCFBF1;}
+.fusa-sch-scope .fusa-sch-kpi-card--eigenschaden{--fusa-sch-kpi-accent:#2563EB;--fusa-sch-kpi-soft:#DBEAFE;}
+.fusa-sch-scope .fusa-sch-kpi-card--zur_abrechnung{--fusa-sch-kpi-accent:#D97706;--fusa-sch-kpi-soft:#FEF3C7;}
+.fusa-sch-scope .fusa-sch-kpi-card--erledigt{--fusa-sch-kpi-accent:#15803D;--fusa-sch-kpi-soft:#DCFCE7;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card{background:#111827;border-color:#263244;box-shadow:none;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-value{color:#F8FAFC;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-label{color:#A7B3C6;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--urgent{--fusa-sch-kpi-soft:#450A0A;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--unklar{--fusa-sch-kpi-soft:#2E1065;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--fremdschaden{--fusa-sch-kpi-soft:#042F2E;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--eigenschaden{--fusa-sch-kpi-soft:#172554;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--zur_abrechnung{--fusa-sch-kpi-soft:#451A03;}
+html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--erledigt{--fusa-sch-kpi-soft:#052E16;}
 [data-fusa-sch-melden-btn]{font-size:13px;font-weight:600;padding:8px 18px;border-radius:8px;border:none;background:#4527A0;color:#fff;cursor:pointer;}
 [data-fusa-sch-melden-btn]:hover{background:#311B92;}
 #fusa-sch-melden-modal[style*="flex"]{display:flex!important;}
@@ -565,7 +635,7 @@ ${noProjMsg}
 ${wvBannerHtml}
 
 <!-- KPI Zeile (Alt: 5 Karten) -->
-<div class="ccds-stats-row" style="margin-bottom:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">
+<div class="fusa-sch-kpi-grid" aria-label="Schaden-Kennzahlen">
   ${schKpiCard({ key: 'dringend', value: kpis.dringend, label: 'Dringend', icon: '🔴', iconClass: 'ccds-stat-icon-box--red', urgent: true })}
   ${schKpiCard({ key: 'unklar', value: kpis.unklar, label: 'Unklar / Prüfung', icon: '❓', iconClass: 'ccds-stat-icon-box--purple' })}
   ${schKpiCard({ key: 'fremdschaden', value: kpis.fremdschaden, label: 'Fremdschäden', icon: '⚡', iconClass: 'ccds-stat-icon-box--teal' })}
@@ -590,17 +660,27 @@ ${canCreateSchaden && pid ? `<div style="margin-bottom:16px;"><button type="butt
 
   <!-- Tabelle -->
   <div style="overflow-x:auto;">
-  <table class="ckp-snapshot-ro-table" style="min-width:920px;">
+  <table class="ckp-snapshot-ro-table fusa-sch-table">
+    <colgroup>
+      <col style="width:100px;" />
+      <col style="width:135px;" />
+      <col style="width:360px;" />
+      <col style="width:120px;" />
+      <col style="width:150px;" />
+      <col style="width:120px;" />
+      <col style="width:90px;" />
+      <col style="width:145px;" />
+    </colgroup>
     <thead>
-      <tr>
-        <th class="ckp-snapshot-ro-th" style="width:100px;">ID / Datum</th>
+      <tr class="ckp-snapshot-ro-head-row">
+        <th class="ckp-snapshot-ro-th">ID / Datum</th>
         <th class="ckp-snapshot-ro-th">Fahrzeug</th>
         <th class="ckp-snapshot-ro-th">Beschreibung</th>
-        <th class="ckp-snapshot-ro-th" style="width:110px;">Schadentyp</th>
-        <th class="ckp-snapshot-ro-th" style="width:130px;">Reparaturstatus</th>
-        <th class="ckp-snapshot-ro-th" style="width:120px;">Abrechnung</th>
-        <th class="ckp-snapshot-ro-th" style="width:90px;">WV-Datum</th>
-        <th class="ckp-snapshot-ro-th" style="min-width:160px;">Aktion</th>
+        <th class="ckp-snapshot-ro-th">Schadentyp</th>
+        <th class="ckp-snapshot-ro-th">Reparaturstatus</th>
+        <th class="ckp-snapshot-ro-th">Abrechnung</th>
+        <th class="ckp-snapshot-ro-th">WV-Datum</th>
+        <th class="ckp-snapshot-ro-th">Aktion</th>
       </tr>
     </thead>
     <tbody data-fusa-sch-tbody>
@@ -608,6 +688,7 @@ ${canCreateSchaden && pid ? `<div style="margin-bottom:16px;"><button type="butt
     </tbody>
   </table>
   </div>
+  <div data-fusa-sch-pagination style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 4px 0;"></div>
 </section>
 
 ${meldenModal}
@@ -713,11 +794,22 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
   // Filter-Logik
   const tbody = scope.querySelector('[data-fusa-sch-tbody]');
   if (tbody) {
-    const applyFilter = () => {
+    const pager = scope.querySelector('[data-fusa-sch-pagination]');
+    let currentPage = 1;
+    let emptyFilterRow = tbody.querySelector('[data-fusa-sch-filter-empty]');
+    if (!(emptyFilterRow instanceof HTMLElement)) {
+      emptyFilterRow = document.createElement('tr');
+      emptyFilterRow.setAttribute('data-fusa-sch-filter-empty', '1');
+      emptyFilterRow.innerHTML = '<td colspan="8" style="padding:16px;text-align:center;color:var(--text2,#64748b);font-size:12px;">Keine Schäden für diese Auswahl.</td>';
+      tbody.appendChild(emptyFilterRow);
+    }
+    const applyFilter = (resetPage = false) => {
+      if (resetPage) currentPage = 1;
       const rep = /** @type {HTMLSelectElement|null} */ (scope.querySelector('[data-fusa-sch-filter-rep]'))?.value || '';
       const typ = /** @type {HTMLSelectElement|null} */ (scope.querySelector('[data-fusa-sch-filter-typ]'))?.value || '';
       const abr = /** @type {HTMLSelectElement|null} */ (scope.querySelector('[data-fusa-sch-filter-abr]'))?.value || '';
       const q = (/** @type {HTMLInputElement|null} */ (scope.querySelector('[data-fusa-sch-search]'))?.value || '').toLowerCase().trim();
+      const visibleRows = [];
       tbody.querySelectorAll('[data-fusa-schaden-row]').forEach(row => {
         const tr = /** @type {HTMLElement} */ (row);
         const rowRep = tr.dataset.schRep || '';
@@ -726,24 +818,65 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
         const rowHay = (tr.dataset.schSearch || '').toLowerCase();
         const ok =
           (!rep || rowRep === rep) && (!typ || rowTyp === typ) && (!abr || rowAbr === abr) && (!q || rowHay.includes(q));
-        tr.style.display = ok ? '' : 'none';
+        tr.style.display = 'none';
         const sid = tr.dataset.ccwRowId || '';
         const sub = sid ? tbody.querySelector(`[data-fusa-sch-anfrage-for="${sid}"]`) : null;
-        if (sub instanceof HTMLElement) sub.style.display = ok ? '' : 'none';
+        if (sub instanceof HTMLElement) sub.style.display = 'none';
+        if (ok) visibleRows.push(tr);
       });
+      const pageCount = Math.max(1, Math.ceil(visibleRows.length / FUSA_SCH_PAGE_SIZE));
+      if (currentPage > pageCount) currentPage = pageCount;
+      const start = (currentPage - 1) * FUSA_SCH_PAGE_SIZE;
+      const end = start + FUSA_SCH_PAGE_SIZE;
+      visibleRows.forEach((tr, index) => {
+        const pageVisible = index >= start && index < end;
+        tr.style.display = pageVisible ? '' : 'none';
+        const sid = tr.dataset.ccwRowId || '';
+        const sub = sid ? tbody.querySelector(`[data-fusa-sch-anfrage-for="${sid}"]`) : null;
+        if (sub instanceof HTMLElement) sub.style.display = pageVisible ? '' : 'none';
+      });
+      if (emptyFilterRow instanceof HTMLElement) {
+        emptyFilterRow.style.display = visibleRows.length === 0 ? '' : 'none';
+      }
+      renderFusaSchPager(pager, visibleRows.length, currentPage, FUSA_SCH_PAGE_SIZE);
     };
-    scope.querySelector('[data-fusa-sch-filter-rep]')?.addEventListener('change', applyFilter);
-    scope.querySelector('[data-fusa-sch-filter-typ]')?.addEventListener('change', applyFilter);
-    scope.querySelector('[data-fusa-sch-filter-abr]')?.addEventListener('change', applyFilter);
-    scope.querySelector('[data-fusa-sch-search]')?.addEventListener('input', applyFilter);
+    scope.querySelector('[data-fusa-sch-filter-rep]')?.addEventListener('change', () => applyFilter(true));
+    scope.querySelector('[data-fusa-sch-filter-typ]')?.addEventListener('change', () => applyFilter(true));
+    scope.querySelector('[data-fusa-sch-filter-abr]')?.addEventListener('change', () => applyFilter(true));
+    scope.querySelector('[data-fusa-sch-search]')?.addEventListener('input', () => applyFilter(true));
     scope.querySelector('[data-fusa-sch-filter-reset]')?.addEventListener('click', () => {
       scope.querySelectorAll('[data-fusa-sch-filter-rep],[data-fusa-sch-filter-typ],[data-fusa-sch-filter-abr]').forEach(s => {
         if (s instanceof HTMLSelectElement) s.value = '';
       });
       const search = scope.querySelector('[data-fusa-sch-search]');
       if (search instanceof HTMLInputElement) search.value = '';
-      applyFilter();
+      applyFilter(true);
     });
+    if (pager instanceof HTMLElement) {
+      pager.addEventListener('click', (ev) => {
+        const t = ev.target;
+        if (!t || typeof t.closest !== 'function') return;
+        const direct = t.closest('[data-fusa-sch-page]');
+        if (direct instanceof HTMLElement) {
+          const next = Number(direct.getAttribute('data-fusa-sch-page'));
+          if (Number.isFinite(next) && next >= 1) {
+            currentPage = Math.floor(next);
+            applyFilter();
+          }
+          return;
+        }
+        if (t.closest('[data-fusa-sch-page-prev]')) {
+          currentPage = Math.max(1, currentPage - 1);
+          applyFilter();
+          return;
+        }
+        if (t.closest('[data-fusa-sch-page-next]')) {
+          currentPage += 1;
+          applyFilter();
+        }
+      });
+    }
+    applyFilter();
   }
 
   // Detail-Ansicht öffnen (Zeilen-Click oder Details-Button)

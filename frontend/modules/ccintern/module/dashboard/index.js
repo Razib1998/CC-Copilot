@@ -55,13 +55,38 @@
     return '€ ' + Number(n).toLocaleString('de-DE');
   }
 
-  function _fmtDatum(str) {
-    if (!str) return '—';
-    try {
-      var d = new Date(str);
-      return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch (e) { return str; }
-  }
+	  function _fmtDatum(str) {
+	    if (!str) return '—';
+	    try {
+	      var d = new Date(str);
+	      return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+	    } catch (e) { return str; }
+	  }
+
+	  function _isArchived(a) {
+	    if (!a) return false;
+	    var v = a.archiv != null ? a.archiv : a.archived;
+	    if (v === true || v === 1) return true;
+	    if (v === false || v === 0 || v == null) return false;
+	    var s = String(v).trim().toLowerCase();
+	    return s === 'true' || s === '1' || s === 'ja' || s === 'archiviert';
+	  }
+
+	  function _isAktiverAuftrag(a) {
+	    if (!a) return false;
+	    if (_isArchived(a)) return false;
+	    return String(a.step != null ? a.step : '').trim() !== 'abgeschlossen';
+	  }
+
+	  function _auftragSortKey(a) {
+	    if (!a) return 0;
+	    var id = String(a.id || a.auftragsnummer || '');
+	    var m = id.match(/AU-(\d{4})-(\d+)/i);
+	    if (m) return Number(m[1]) * 100000 + Number(m[2]);
+	    var raw = a.erstellt_am || a.erstelltAm || a.created_at || a.createdAt || a.montageDatum || a.lieferdatum || a.terminDatum || '';
+	    var t = raw ? Date.parse(String(raw)) : 0;
+	    return Number.isFinite(t) ? t : 0;
+	  }
 
   function _dashboardMaMatchesSchritt(uid, kuerzel, sch) {
     if (!sch || !uid) return false;
@@ -152,7 +177,7 @@
 
     // ── 2. Aufträge-Stat ─────────────────────────────────────────────
     var auftraege = typeof AUFTRAEGE !== 'undefined' ? AUFTRAEGE : [];
-    var aktiveAuf = auftraege.filter(function (a) { return a.step !== 'abgeschlossen' && !a.archiv; });
+	    var aktiveAuf = auftraege.filter(_isAktiverAuftrag);
     var dringendAuf = aktiveAuf.filter(function (a) { return a.urgent; });
     _txt('db-stat-auftraege', aktiveAuf.length);
     _txt('db-stat-auftraege-dringend', dringendAuf.length > 0 ? dringendAuf.length + ' dringend' : 'Kein dringend');
@@ -176,7 +201,9 @@
       if (!aktiveAuf.length) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:16px;font-size:12px;">Keine aktiven Aufträge</td></tr>';
       } else {
-        var letzten5 = aktiveAuf.slice(-5).reverse();
+	        var letzten5 = aktiveAuf.slice().sort(function (a, b) {
+	          return _auftragSortKey(b) - _auftragSortKey(a);
+	        }).slice(0, 5);
         tbody.innerHTML = letzten5.map(function (a) {
           var sub = a.fahrzeug || a.projekt || '';
           return '<tr onclick="openAuftragDetail(\'' + a.id + '\')" style="cursor:pointer;">'

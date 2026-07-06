@@ -378,6 +378,39 @@ function setInviteActivationShellMode(active) {
   }
 }
 
+/**
+ * Normale Login-Ansicht: gleiche Vollbild-Darstellung wie nach Seiten-Refresh.
+ * @param {boolean} active
+ */
+function setLoginShellMode(active) {
+  const root = document.getElementById("cockpit-root");
+  const topbar = document.querySelector('[data-ccw-ro="topbar"]');
+  const modBar = document.querySelector(".ckp-topbar-modules");
+  const sidebar = document.getElementById("cockpit-sidebar");
+  const main = document.getElementById("cockpit-main");
+  const content = document.getElementById("cockpit-content");
+  if (!root) return;
+  if (active) {
+    activeModule = "cockpit";
+    activeView = getDefaultNavKeyForModule("cockpit");
+    root.setAttribute("data-app-module", "cockpit");
+    root.setAttribute("data-active-view", activeView);
+    root.classList.add("ckp-shell-layout--login-only");
+    if (main) main.classList.add("ckp-main--login-only");
+    if (content) content.classList.add("ckp-login-fullscreen-host");
+    if (topbar instanceof HTMLElement) topbar.style.display = "none";
+    if (modBar instanceof HTMLElement) modBar.style.display = "none";
+    if (sidebar instanceof HTMLElement) sidebar.style.display = "none";
+    setLogoutVisibility(false);
+  } else {
+    root.classList.remove("ckp-shell-layout--login-only");
+    if (main) main.classList.remove("ckp-main--login-only");
+    if (content) content.classList.remove("ckp-login-fullscreen-host");
+    if (topbar instanceof HTMLElement) topbar.style.display = "";
+    if (modBar instanceof HTMLElement) modBar.style.display = "";
+  }
+}
+
 function esc(s) {
   if (s == null || s === "") return "";
   return String(s)
@@ -1635,7 +1668,6 @@ function renderLoginPanelHtml() {
       <button type="submit" class="ckp-api-login-submit">Anmelden</button>
       <p class="ckp-api-error" data-ccw-login-msg hidden role="alert"></p>
     </form>
-    <p class="ckp-login-api-note">API <code>${esc(getApiBaseUrl())}</code> · <code>POST /auth/login</code></p>
   </section>
 </div>`;
 }
@@ -1687,6 +1719,7 @@ function renderInviteTokenPanelHtml(token, payload, errMsg) {
 function clearInviteFromLocation() {
   stripInviteParamsFromLocation();
   setInviteActivationShellMode(false);
+  setLoginShellMode(false);
 }
 
 /**
@@ -1703,8 +1736,8 @@ function doLogout(sidebar, content, main) {
   clearKalenderNowLineTimer();
   closeNeuDropdown();
   closeCalendarEventDetail();
-  sidebar.style.display = "none";
-  setLogoutVisibility(false);
+  setInviteActivationShellMode(false);
+  setLoginShellMode(true);
   content.innerHTML = renderLoginPanelHtml();
   attachLoginPanelHandlers(content, sidebar, main);
 }
@@ -1744,10 +1777,9 @@ function attachInviteTokenPanelHandlers(content, token, sidebar, main) {
         clearSession();
         clearMyRightsCache();
         stripInviteParamsFromLocation();
-        sidebar.style.display = "none";
-        content.innerHTML = wrapInviteShellFullscreenHtml(
-          `${renderLoginPanelHtml()}<p class="ckp-api-login-panel__hint" style="margin:12px 0 0;text-align:center;">Konto aktiviert. Bitte normal anmelden.</p>`,
-        );
+        setInviteActivationShellMode(false);
+        setLoginShellMode(true);
+        content.innerHTML = `${renderLoginPanelHtml()}<p class="ckp-api-login-panel__hint" style="margin:12px 0 0;text-align:center;">Konto aktiviert. Bitte normal anmelden.</p>`;
         attachLoginPanelHandlers(content, sidebar, main);
       } catch (e) {
         const ne = normalizeApiError(e);
@@ -1780,6 +1812,7 @@ function attachLoginPanelHandlers(content, sidebar, main) {
       clearMyRightsCache();
       stripInviteParamsFromLocation();
       setInviteActivationShellMode(false);
+      setLoginShellMode(false);
       sidebar.style.display = "";
       await mountCockpitShellAuthenticated(sidebar, content, main);
     } catch (e) {
@@ -1799,6 +1832,7 @@ function attachLoginPanelHandlers(content, sidebar, main) {
  */
 async function mountCockpitShellAuthenticated(sidebar, content, main) {
   setInviteActivationShellMode(false);
+  setLoginShellMode(false);
   content.innerHTML =
     '<div class="ckp-mock-note" role="status" aria-live="polite" data-ccw-ro="cockpit-loading">Rechte werden geladen…</div>';
 
@@ -1912,6 +1946,7 @@ export async function mountCockpitShell() {
   }
 
   setInviteActivationShellMode(false);
+  setLoginShellMode(false);
 
   if (getAccessToken()) {
     stripInviteParamsFromLocation();
@@ -1921,6 +1956,7 @@ export async function mountCockpitShell() {
     ? parseInviteTokenFromLocation()
     : null;
   if (inviteTok) {
+    setLoginShellMode(false);
     setInviteActivationShellMode(true);
     try {
       const data = await fetchPublicInvite(inviteTok);
@@ -1938,13 +1974,13 @@ export async function mountCockpitShell() {
   }
 
   if (!getAccessToken()) {
-    sidebar.style.display = "none";
-    setLogoutVisibility(false);
+    setLoginShellMode(true);
     content.innerHTML = renderLoginPanelHtml();
     attachLoginPanelHandlers(content, sidebar, main);
     return;
   }
 
+  setLoginShellMode(false);
   sidebar.style.display = "";
   if (getAccessToken()) {
     console.warn("[REFRESH_FLOW]", "mountCockpitShell boot refresh attempt");

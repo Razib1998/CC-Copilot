@@ -310,6 +310,7 @@ window.CCIntern.templates.getShellHTML = function() {
         </thead>
         <tbody id="au-verwaltung-tbody"></tbody>
       </table>
+      <div id="au-verwaltung-pagination" class="cc-page-nav"></div>
     </div>
   </div>
 
@@ -1547,11 +1548,6 @@ window.CCIntern.templates.getShellHTML = function() {
             <div class="fg"><label class="fl">Kunde / Firma <span>*</span></label>
               <select class="fs" id="ag-kunde">
                 <option value="">— wählen —</option>
-                <option>Ruhrbahn GmbH</option><option>DVG Duisburg</option>
-                <option>Bogestra AG</option><option>Radio Essen</option>
-                <option>Stadt Essen</option><option>Sparkasse Essen</option>
-                <option>NRZ</option><option>Neue Ruhr Zeitung</option>
-                <option>Essen Marketing GmbH</option><option>TÜV Rheinland</option>
               </select>
             </div>
             <div class="fg"><label class="fl">Ansprechpartner</label><input class="fi" id="ag-ap" type="text" placeholder="z.B. Hr. Müller"></div>

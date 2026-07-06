@@ -214,6 +214,11 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
     const t = String(r.event_type || '');
     return t === 'staff_repair_started' || t === 'staff_repair_completed';
   });
+  const isDamageRepaired =
+    vm.status === 'erledigt' ||
+    vm.werkstatt_status === 'fertig' ||
+    vm.reparaturPhase === 'reparatur_abgeschlossen' ||
+    Boolean(String(vm.repairCompletedAt || '').trim());
 
   function galleryHtml(list, emptyText, caption) {
     return list.length === 0
@@ -276,7 +281,7 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
 </div>`
     : `<p class="ckp-mock-note" role="status">Kein Recht zum Hochladen — <code>fusa.schaeden.upload</code>.</p>`;
 
-  const evidenceBlock = `<section class="fusa-sch-card fusa-sch-evidence">
+  const repairEvidenceBlock = `<section class="fusa-sch-card fusa-sch-evidence">
     <div class="fusa-sch-card-head">
       <div>
         <h3>Reparatur-Nachweis</h3>
@@ -321,6 +326,23 @@ export async function renderFusaSchadenDetailHtml(schadenId) {
       ${historyBlock}
     </div>
   </section>`;
+
+  const damagePhotosBlock = `<section class="fusa-sch-card fusa-sch-evidence">
+    <div class="fusa-sch-card-head">
+      <div>
+        <h3>Schadensfotos</h3>
+        <p>Originale Fotos zur Schadensmeldung. Reparatur-Nachweis erscheint erst nach Abschluss.</p>
+      </div>
+      <div class="fusa-sch-proof-kpis">
+        <span>${schadenFotoVms.length} Foto${schadenFotoVms.length === 1 ? '' : 's'}</span>
+      </div>
+    </div>
+    ${fotoActions}
+    <p class="ckp-api-error" data-fusa-sch-detail-msg hidden role="alert"></p>
+    ${galleryHtml(schadenFotoVms, 'Wenn der Fahrer ein Schadensfoto hochgeladen hat, erscheint es hier.', 'Schadensfoto')}
+  </section>`;
+
+  const evidenceBlock = isDamageRepaired ? repairEvidenceBlock : damagePhotosBlock;
 
   const actionsWs = canWs
     ? `<div class="fusa-sch-detail-ws" aria-label="Werkstattstatus ändern">

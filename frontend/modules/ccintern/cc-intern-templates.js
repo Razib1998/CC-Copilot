@@ -310,6 +310,7 @@ window.CCIntern.templates.getShellHTML = function() {
         </thead>
         <tbody id="au-verwaltung-tbody"></tbody>
       </table>
+      <div id="au-verwaltung-pagination" class="cc-page-nav"></div>
     </div>
   </div>
 

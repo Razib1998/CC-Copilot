@@ -11,6 +11,96 @@
 // ════════════════════════════════════════════════════════════════════
 
 
+function ccInternAuftragIstInProduktion(a){
+  if(!a) return false;
+  var st = String(a.ccinternStatus || a.status || '').trim().toLowerCase();
+  if(st === 'in_produktion' || st === 'produktion') return true;
+  return !!(a.prod && a.prod.produktion && a.prod.produktion.bestaetigt);
+}
+
+function ccInternAktiverSchrittObjekt(a){
+  if(!a || !a.schritte || !a.step) return null;
+  if(a.schritte[a.step]) return a.schritte[a.step];
+  var keys = Object.keys(a.schritte);
+  var want = String(a.step || '').trim().toLowerCase();
+  for(var i=0;i<keys.length;i++){
+    if(String(keys[i]).trim().toLowerCase() === want) return a.schritte[keys[i]];
+  }
+  return null;
+}
+
+function ccInternSchrittHatVerantwortlichen(sch){
+  if(!sch || typeof sch !== 'object') return false;
+  if(sch.werId || sch.maId || sch.verantwortlicher) return true;
+  if(Array.isArray(sch.maIds) && sch.maIds.length) return true;
+  if(Array.isArray(sch.teamMaIds) && sch.teamMaIds.length) return true;
+  return false;
+}
+
+function ccInternProduktionsfreigabeInfo(a){
+  var inProd = ccInternAuftragIstInProduktion(a);
+  if(inProd) return { ok:true, inProduktion:true, text:'Der Auftrag ist bereits in Produktion.' };
+  if(!a || !a.ccApiId) {
+    return { ok:false, inProduktion:false, text:'Auftrag zuerst speichern.' };
+  }
+  var sch = ccInternAktiverSchrittObjekt(a);
+  if(!sch) {
+    return { ok:false, inProduktion:false, text:'Aktiver Schritt fehlt.' };
+  }
+  if(!ccInternSchrittHatVerantwortlichen(sch)) {
+    return { ok:false, inProduktion:false, text:'Bitte dem aktiven Schritt einen verantwortlichen Mitarbeiter zuweisen.' };
+  }
+  return { ok:true, inProduktion:false, text:'Bereit für die Übergabe an Produktion.' };
+}
+
+async function ccInternAuftragAnProduktion(auftragId){
+  var a=AUFTRAEGE.find(function(x){return x.id===auftragId;});
+  if(!a) return;
+  var info = ccInternProduktionsfreigabeInfo(a);
+  if(info.inProduktion){
+    showToast('✓ Auftrag ist bereits in Produktion');
+    return;
+  }
+  if(!info.ok){
+    showToast('⚠ '+info.text);
+    return;
+  }
+  var api = typeof window !== 'undefined' ? (window.CCIntern && window.CCIntern.cockpitApi) : null;
+  if(!api || typeof api.ccInternAuftragAnProduktion !== 'function'){
+    showToast('⚠ Produktionsübergabe ist nicht verfügbar');
+    return;
+  }
+  try{
+    if(typeof saveAuftraege === 'function') saveAuftraege(null, auftragId);
+    if(api && typeof api.flushAuftraegeNow === 'function'){
+      await api.flushAuftraegeNow(typeof showToast === 'function' ? showToast : null, auftragId);
+    }
+    await api.ccInternAuftragAnProduktion(a, typeof showToast === 'function' ? showToast : null);
+    a.status='in_produktion';
+    a.ccinternStatus='in_produktion';
+    if(!a.prod) a.prod={planung:{},produktion:{},template:{},dateien:[]};
+    if(!a.prod.produktion) a.prod.produktion={};
+    a.prod.produktion.bestaetigt=true;
+    a.prod.produktion.bestaetigtAm=new Date().toISOString();
+    await auftragAufgabenErzeugen(auftragId);
+    maKapWarnungAnzeigen(auftragId);
+    saveAufgaben();
+    if(typeof saveAuftraege === 'function') saveAuftraege(null, auftragId);
+    renderKanban();
+    if(currentPage==='auftraege') renderAuftragVerwaltung();
+    if(currentPage==='kalender') buildCCCalendar();
+    openAuftragDetail(auftragId);
+  }catch(e){
+    if(typeof console !== 'undefined' && console.warn) console.warn('[ccInternAuftragAnProduktion]', e);
+    var msg = e && e.message ? String(e.message) : 'Produktionsübergabe fehlgeschlagen';
+    showToast('⚠ '+msg);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.ccInternAuftragAnProduktion = ccInternAuftragAnProduktion;
+}
+
 async function openAuftragDetail(id){
   const a=AUFTRAEGE.find(x=>x.id===id); if(!a) return;
   var _werIdMigrationNeedSave = false;
@@ -65,6 +155,8 @@ async function openAuftragDetail(id){
   const p=a.prod; const pl=p.planung||{}; const pr=p.produktion||{}; const tpl=p.template||{};
   const isAbg=a.step==='abgeschlossen';
   const sl=STEP_LABELS[a.step];
+  const produktionsInfo = ccInternProduktionsfreigabeInfo(a);
+  const istInProduktion = produktionsInfo.inProduktion;
 
   // Termin formatiert
   const tStr=(a.terminDatum||a.liefertermin||'').substring(0,10);
@@ -110,22 +202,23 @@ async function openAuftragDetail(id){
     var zusatzNames = sch ? (sch.zusatzMaNames||[]) : [];
     var clDone = sch ? (sch.checkliste||[]).filter(function(c){return c.erledigt;}).length : 0;
     var clTotal= sch ? (sch.checkliste||[]).length : 0;
-    stepRows+='<div style="padding:8px 0;border-bottom:1px solid var(--border);">'
-      +'<div style="display:flex;align-items:center;gap:8px;">'
-        +'<div style="width:10px;height:10px;border-radius:50%;background:'+(isDone?col:isCurr?col:'var(--border)')+';flex-shrink:0;"></div>'
-        +'<div style="flex:1;">'
-          +'<div style="font-size:12px;font-weight:'+(isCurr?'700':'500')+';color:'+(isDone||isCurr?col:'var(--text3)')+'">'+STEP_LABELS[s].title+'</div>'
+	    stepRows+='<div style="padding:8px 0;border-bottom:1px solid var(--border);">'
+	      +'<div style="display:flex;align-items:center;gap:8px;">'
+	        +'<div style="width:10px;height:10px;border-radius:50%;background:'+(isDone?col:isCurr?col:'var(--border)')+';flex-shrink:0;"></div>'
+	        +'<div style="flex:1;">'
+	          +'<div style="font-size:12px;font-weight:'+(isCurr?'700':'500')+';color:'+(isDone||isCurr?col:'var(--text3)')+'">'+STEP_LABELS[s].title+'</div>'
           +'<div style="font-size:10px;color:var(--text2);margin-top:1px;">'
             +'👤 <strong>'+verantName+'</strong>'
             +(zusatzNames.length?' · +'+zusatzNames.join(', '):'')
-            +(sch&&sch.zeit?' · ✓ '+sch.zeit:'')
-          +'</div>'
-          +(clTotal?'<div style="font-size:10px;color:var(--text3);margin-top:1px;">📋 '+clDone+'/'+clTotal+'</div>':'')
-        +'</div>'
-        +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+sm.bg+';color:'+sm.tc+';">'+sm.lbl+'</span>'
-      +'</div>'
-    +'</div>';
-  });
+	            +(sch&&sch.zeit?' · ✓ '+sch.zeit:'')
+	          +'</div>'
+	          +(clTotal?'<div style="font-size:10px;color:var(--text3);margin-top:1px;">📋 '+clDone+'/'+clTotal+'</div>':'')
+	        +'</div>'
+	        +'<button class="btn" onclick="ccInternAssignStepStaff(\''+a.id+'\',\''+s+'\')" style="font-size:10px;padding:4px 8px;white-space:nowrap;">👤 Zuweisen</button>'
+	        +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+sm.bg+';color:'+sm.tc+';">'+sm.lbl+'</span>'
+	      +'</div>'
+	    +'</div>';
+	  });
   if (_werIdMigrationNeedSave && typeof saveAuftraege === 'function') saveAuftraege();
 
   // ── Zeiterfassung ──
@@ -545,20 +638,36 @@ async function openAuftragDetail(id){
 
     // ══ SCHNELL-AKTIONEN ═══════════════════════════════════════
     +(function(){
-      var hatAufgaben = INTERN_AUFGABEN.some(function(g){ return g.auftragId===a.id; });
-      return '<div style="padding:10px 16px;background:#FAFAFA;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">'
+	      var hatAufgaben = INTERN_AUFGABEN.some(function(g){ return g.auftragId===a.id; });
+	      return '<div style="padding:10px 16px;background:#FAFAFA;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">'
         +'<button onclick="auDetailAktion(\'termin\',\''+a.id+'\')" class="btn" style="font-size:11px;">📅 Starttermin ändern</button>'
         +'<button onclick="auDetailAktion(\'mitarbeiter\',\''+a.id+'\')" class="btn" style="font-size:11px;">👤 Mitarbeiter</button>'
         +(isAbg?''
           :'<button onclick="auDetailAktion(\'status\',\''+a.id+'\')" class="btn" style="font-size:11px;background:'+sl.col+';color:#fff;border-color:'+sl.col+';">⏩ '+sl.title+' → fertig</button>')
-        +(!hatAufgaben
-          ?'<button onclick="auDetailAktion(\'handy-fix\',\''+a.id+'\')" class="btn" style="font-size:11px;background:#FF9500;color:#fff;border-color:#FF9500;font-weight:700;">📱 Im Handy sichtbar machen</button>'
-          :'')
-      +'</div>';
-    })()
+	        +(!hatAufgaben && istInProduktion
+	          ?'<button onclick="auDetailAktion(\'handy-fix\',\''+a.id+'\')" class="btn" style="font-size:11px;background:#FF9500;color:#fff;border-color:#FF9500;font-weight:700;">📱 Im Handy sichtbar machen</button>'
+	          :'')
+	      +'</div>';
+	    })()
 
-    // ══ WORKFLOW-STATUS ════════════════════════════════════════
-    +'<div class="dp-section"><div class="dp-slbl">Workflow-Status</div>'+stepRows+'</div>'
+	    // ══ PRODUKTIONSFREIGABE ═════════════════════════════════════
+	    +(function(){
+	      var badge = istInProduktion
+	        ? '<span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-l);border:1px solid rgba(46,125,50,.22);border-radius:20px;padding:4px 10px;">In Produktion</span>'
+	        : produktionsInfo.ok
+	          ? '<span style="font-size:11px;font-weight:800;color:var(--blue);background:var(--blue-l);border:1px solid rgba(21,101,192,.18);border-radius:20px;padding:4px 10px;">Bereit</span>'
+	          : '<span style="font-size:11px;font-weight:800;color:var(--amber);background:var(--amber-l);border:1px solid rgba(230,81,0,.20);border-radius:20px;padding:4px 10px;">Vorbereitung</span>';
+	      return '<div class="dp-section" style="border-left:4px solid '+(istInProduktion?'var(--green)':produktionsInfo.ok?'var(--blue)':'var(--amber)')+';">'
+	        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">'
+	          +'<div class="dp-slbl" style="margin-bottom:0;">Produktionsfreigabe</div>'
+	          +badge
+	        +'</div>'
+	        +'<div style="font-size:12px;color:var(--text2);line-height:1.45;">'+produktionsInfo.text+'</div>'
+	      +'</div>';
+	    })()
+
+	    // ══ WORKFLOW-STATUS ════════════════════════════════════════
+	    +'<div class="dp-section"><div class="dp-slbl">Workflow-Status</div>'+stepRows+'</div>'
 
     // ══ KOMMUNIKATION / CHAT ════════════════════════════════════
     +'<div class="dp-section" style="padding:0;">'
@@ -744,12 +853,15 @@ async function openAuftragDetail(id){
     +(isAbg?'<div class="dp-section"><div class="dp-slbl">Rechnungsstatus</div>'
     +'<div style="display:flex;gap:6px;padding:4px 0;">'+renderRechnungButtons(a.id,a.rechnung)+'</div></div>':'');
 
-  document.getElementById('dpFooter').innerHTML=
-    '<button class="btn" onclick="document.getElementById(\'detailOverlay\').classList.remove(\'open\')">Schließen</button>'
-    +(a.step==='doku'?'<label class="btn" style="cursor:pointer;">📷 Fotos<input type="file" accept="image/*" multiple style="display:none;" data-aid="'+a.id+'" onchange="dokuFotoUpload(event,this.dataset.aid)"></label>':'')
-    +(isAbg
-      ?'<span class="bdg bg" style="padding:6px 12px;">✅ Abgeschlossen</span>'
-      :'<button class="btn p" onclick="document.getElementById(\'detailOverlay\').classList.remove(\'open\');schrittFertig(\''+a.id+'\')">✓ '+sl.title+' fertig →</button>');
+	  document.getElementById('dpFooter').innerHTML=
+	    '<button class="btn" onclick="document.getElementById(\'detailOverlay\').classList.remove(\'open\')">Schließen</button>'
+	    +(a.step==='doku'?'<label class="btn" style="cursor:pointer;">📷 Fotos<input type="file" accept="image/*" multiple style="display:none;" data-aid="'+a.id+'" onchange="dokuFotoUpload(event,this.dataset.aid)"></label>':'')
+	    +(!isAbg && !istInProduktion
+	      ?'<button class="btn p" style="background:var(--green);border-color:var(--green);color:#fff;" onclick="ccInternAuftragAnProduktion(\''+a.id+'\')">→ An Produktion übergeben</button>'
+	      :'')
+	    +(isAbg
+	      ?'<span class="bdg bg" style="padding:6px 12px;">✅ Abgeschlossen</span>'
+	      :'<button class="btn p" onclick="document.getElementById(\'detailOverlay\').classList.remove(\'open\');schrittFertig(\''+a.id+'\')">✓ '+sl.title+' fertig →</button>');
 
   document.getElementById('detailOverlay').classList.add('open');
   // Chat-Bereich rendern (nach DOM-Einfügen)
@@ -1406,21 +1518,72 @@ function auDetailAktion(typ, auId){
       if(currentPage==='kalender') buildCCCalendar();
       showToast('📅 Termine aktualisiert');
     });
-  }
-  else if(typ==='mitarbeiter'){
-    var sch = (typeof _internSchrittObjektFuerAuftragUndStep === 'function')
-      ? _internSchrittObjektFuerAuftragUndStep(a, a.step)
-      : (a.schritte && a.schritte[a.step]);
-    if (!sch) return;
-    if(typeof ccInternPromptText !== 'function') return;
-    ccInternPromptText('Mitarbeiter zuweisen', 'Mitarbeiter für "'+STEP_LABELS[a.step].title+'"', sch.wer||'', function(neu){
-      if(!neu) return;
-      if (typeof console !== 'undefined' && console.log) {
-        const a0 = AUFTRAEGE.find(function(x){ return x.id === auId; });
-        if (a0) console.log('[auDetailAktion.mitarbeiter] vor Änderung', a0.step, a0.schritte && a0.schritte[a0.step]);
-      }
-      const raw = String(neu).trim();
-      const parts = raw.split(/\s*\+\s*/).map(function (p) { return p.trim(); }).filter(function (p) { return p.length; });
+	  }
+	  else if(typ==='mitarbeiter'){
+	    ccInternAssignStepStaff(auId, a.step);
+	  }
+	  else if(typ==='status'){
+	    if(typeof ccInternConfirm !== 'function') return;
+	    var stepKey = a.step;
+	    var offenCl = typeof ccInternHatOffeneChecklistenpunkte === 'function' && ccInternHatOffeneChecklistenpunkte(a, stepKey);
+	    var msg = offenCl
+	      ? 'Es sind noch Checklistenpunkte offen. Auftrag trotzdem fortsetzen?'
+	      : 'Schritt "'+STEP_LABELS[a.step].title+'" als fertig markieren?';
+	    ccInternConfirm(msg, function(){
+	    document.getElementById('detailOverlay').classList.remove('open');
+	    schrittFertig(auId);
+	    });
+	  }
+	  else if(typ==='handy-fix'){
+	    if(!ccInternAuftragIstInProduktion(a)){
+	      showToast('⚠ Erst an Produktion übergeben');
+	      return;
+	    }
+	    // Schritte ohne Stunden → Default einsetzen, dann Aufgaben erzeugen
+	    var changed = false;
+	    ['grafik','druck','laminat','montage','doku'].forEach(function(s){
+	      var sch = a.schritte && a.schritte[s]; if(!sch) return;
+	      if((sch.dauer||0) <= 0){
+	        var def = AU_STEP_CONFIG && AU_STEP_CONFIG[s] ? AU_STEP_CONFIG[s].defaultDauer : 0;
+	        if(def > 0){ sch.dauer = def; changed = true; }
+	      }
+	    });
+	    // Bestehende Aufgaben für diesen Auftrag entfernen und neu anlegen
+	    for(var i = INTERN_AUFGABEN.length-1; i>=0; i--){
+	      if(INTERN_AUFGABEN[i].auftragId === auId) INTERN_AUFGABEN.splice(i,1);
+	    }
+	    void (async function () {
+	      await auftragAufgabenErzeugen(auId);
+	      if(changed) saveAuftraege();
+	      saveAufgaben();
+	      renderMitarbeiter();
+	      openAuftragDetail(auId);
+	      showToast('📱 Auftrag ist jetzt im Handy sichtbar!');
+	    })();
+	  }
+	}
+
+function ccInternAssignStepStaff(auId, stepKey){
+  var a=AUFTRAEGE.find(function(x){return x.id===auId;}); if(!a) return;
+  var step = stepKey || a.step;
+  var label = STEP_LABELS[step] ? STEP_LABELS[step].title : step;
+  if (ccInternOpenStepStaffPicker(auId, step)) return;
+	    var sch = (typeof _internSchrittObjektFuerAuftragUndStep === 'function')
+	      ? _internSchrittObjektFuerAuftragUndStep(a, step)
+	      : (a.schritte && a.schritte[step]);
+	    if (!sch) {
+	      if(!a.schritte) a.schritte = {};
+	      sch = a.schritte[step] = { status: 'offen' };
+	    }
+	    if(typeof ccInternPromptText !== 'function') return;
+	    ccInternPromptText('Mitarbeiter zuweisen', 'Mitarbeiter für "'+label+'"', sch.wer||sch.verantwortlicherName||'', function(neu){
+	      if(!neu) return;
+	      if (typeof console !== 'undefined' && console.log) {
+	        const a0 = AUFTRAEGE.find(function(x){ return x.id === auId; });
+	        if (a0) console.log('[ccInternAssignStepStaff] vor Änderung', step, a0.schritte && a0.schritte[step]);
+	      }
+	      const raw = String(neu).trim();
+	      const parts = raw.split(/\s*\+\s*/).map(function (p) { return p.trim(); }).filter(function (p) { return p.length; });
       if (!parts.length) return;
 
       var prevMainId = sch.maId != null && String(sch.maId).trim() !== '' ? String(sch.maId).trim() : '';
@@ -1511,12 +1674,12 @@ function auDetailAktion(typ, auId){
         sch.zusatzMaNames = [];
       }
 
-      // INTERN-Aufgaben des betroffenen Schritts auf neue Zuordnung spiegeln (sofort sichtbar in Mobile-App).
-      if (typeof INTERN_AUFGABEN !== 'undefined' && Array.isArray(INTERN_AUFGABEN)) {
-        var stCanon = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(a.step || '') : String(a.step || '');
-        INTERN_AUFGABEN.forEach(function (g) {
-          if (!g || !mobAuftragIdsGleich(g.auftragId, a.id)) return;
-          var gStep = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(g.schritt || '') : String(g.schritt || '');
+	      // INTERN-Aufgaben des betroffenen Schritts auf neue Zuordnung spiegeln (sofort sichtbar in Mobile-App).
+	      if (typeof INTERN_AUFGABEN !== 'undefined' && Array.isArray(INTERN_AUFGABEN)) {
+	        var stCanon = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(step || '') : String(step || '');
+	        INTERN_AUFGABEN.forEach(function (g) {
+	          if (!g || !mobAuftragIdsGleich(g.auftragId, a.id)) return;
+	          var gStep = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(g.schritt || '') : String(g.schritt || '');
           if (gStep !== stCanon) return;
           if (typeof mobTaskIstFertig === 'function' && mobTaskIstFertig(g)) return;
           g.maId = sch.maId != null ? String(sch.maId) : null;
@@ -1543,52 +1706,149 @@ function auDetailAktion(typ, auId){
         if (mainNow2) mobNachbessernInternAusDesktopKeys(mainNow2);
       }
       if (typeof mobRenderHome === 'function') mobRenderHome();
-      if (typeof MOB_AKTIV_TAB !== 'undefined' && MOB_AKTIV_TAB === 'aufgaben' && typeof mobRenderAlle === 'function') mobRenderAlle();
-      openAuftragDetail(auId);
-      if (typeof console !== 'undefined' && console.log) {
-        const ap = AUFTRAEGE.find(function(x){ return x.id === auId; });
-        if (ap) {
-          console.log('[auDetailAktion.mitarbeiter] nach save', ap.step, ap.schritte && ap.schritte[ap.step]);
-        }
-      }
-      showToast('👤 Mitarbeiter geändert: ' + (sch.verantwortlicherName || sch.wer));
+	      if (typeof MOB_AKTIV_TAB !== 'undefined' && MOB_AKTIV_TAB === 'aufgaben' && typeof mobRenderAlle === 'function') mobRenderAlle();
+	      openAuftragDetail(auId);
+	      if (typeof console !== 'undefined' && console.log) {
+	        const ap = AUFTRAEGE.find(function(x){ return x.id === auId; });
+	        if (ap) {
+	          console.log('[ccInternAssignStepStaff] nach save', step, ap.schritte && ap.schritte[step]);
+	        }
+	      }
+	      showToast('👤 '+label+' zugewiesen: ' + (sch.verantwortlicherName || sch.wer));
+	    });
+}
+
+function ccInternStepStaffEsc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function ccInternStepStaffEscArg(s){
+  return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function ccInternCloseStepStaffPicker(){
+  var o = document.getElementById('cc-step-staff-picker');
+  if(o) o.style.display = 'none';
+}
+
+function ccInternOpenStepStaffPicker(auId, stepKey){
+  var cfg = (typeof AU_STEP_CONFIG !== 'undefined' && AU_STEP_CONFIG && AU_STEP_CONFIG[stepKey]) ? AU_STEP_CONFIG[stepKey] : {};
+  var rows = typeof auSchrittVerantwortlicheZeilen === 'function'
+    ? auSchrittVerantwortlicheZeilen(cfg.maOptions || [])
+    : (typeof MA_DATA !== 'undefined' && Array.isArray(MA_DATA) ? MA_DATA.slice() : []);
+  rows = rows.filter(function(m){ return !!auSchrittMaRowId(m); });
+  if(!rows.length) return false;
+
+  var label = STEP_LABELS[stepKey] ? STEP_LABELS[stepKey].title : stepKey;
+  var o = document.getElementById('cc-step-staff-picker');
+  if(!o){
+    o = document.createElement('div');
+    o.id = 'cc-step-staff-picker';
+    o.setAttribute('role', 'dialog');
+    o.setAttribute('aria-modal', 'true');
+	    o.style.cssText = 'display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
+	    o.innerHTML =
+	      '<div style="background:var(--card,var(--surface,#fff));color:var(--text,#111827);border:1px solid var(--border,#d8dee9);border-radius:14px;max-width:520px;width:min(520px,96vw);max-height:min(78vh,640px);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.32);">'
+	      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border,#d8dee9);background:var(--surface,var(--panel,#f8fafc));">'
+	        +'<div><div id="cc-step-staff-title" style="font-size:15px;font-weight:800;color:var(--text,#111827);">Mitarbeiter zuweisen</div><div id="cc-step-staff-sub" style="font-size:12px;color:var(--text2,#667085);margin-top:2px;"></div></div>'
+	        +'<button type="button" onclick="ccInternCloseStepStaffPicker()" style="width:34px;height:34px;border:1px solid var(--border,#d8dee9);border-radius:9px;background:var(--gray-l,transparent);color:var(--text,#111827);font-size:20px;line-height:1;cursor:pointer;">×</button>'
+	      +'</div>'
+	      +'<div id="cc-step-staff-body" style="overflow:auto;padding:10px;background:var(--card,var(--surface,#fff));"></div>'
+	      +'</div>';
+    o.addEventListener('click', function(e){ if(e.target === o) ccInternCloseStepStaffPicker(); });
+    document.body.appendChild(o);
+  }
+
+  var title = document.getElementById('cc-step-staff-title');
+  var sub = document.getElementById('cc-step-staff-sub');
+  var body = document.getElementById('cc-step-staff-body');
+  if(title) title.textContent = 'Mitarbeiter zuweisen';
+  if(sub) sub.textContent = label + ' · ' + rows.length + ' verfügbare Mitarbeiter';
+  if(body){
+    body.innerHTML = rows.map(function(m){
+      var id = auSchrittMaRowId(m);
+      var name = m.n || m.name || id;
+      var kuerzel = m.k || m.position || m.maId || '';
+      var rolle = m.rolle || m.role || '';
+      var av = m.av || (name ? String(name).slice(0,2).toUpperCase() : 'MA');
+	      var col = m.col || 'var(--blue,#1565c0)';
+	      return '<button type="button" onclick="ccInternAssignStepStaffDirect(\''+ccInternStepStaffEscArg(auId)+'\',\''+ccInternStepStaffEscArg(stepKey)+'\',\''+ccInternStepStaffEscArg(id)+'\')" '
+	        +'style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 10px;border:1px solid var(--border,#d8dee9);border-radius:10px;background:var(--surface,var(--card,#fff));color:var(--text,#111827);cursor:pointer;text-align:left;margin-bottom:8px;box-shadow:none;">'
+	        +'<span style="width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:'+col+'22;color:'+col+';font-size:12px;font-weight:900;flex:0 0 auto;">'+ccInternStepStaffEsc(av)+'</span>'
+	        +'<span style="flex:1;min-width:0;"><span style="display:block;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+ccInternStepStaffEsc(name)+'</span>'
+	        +'<span style="display:block;font-size:11px;color:var(--text2,#667085);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+ccInternStepStaffEsc(kuerzel)+(rolle?' · '+ccInternStepStaffEsc(rolle):'')+'</span></span>'
+        +'<span style="font-size:12px;font-weight:800;color:var(--blue,#1565c0);">Auswählen</span>'
+      +'</button>';
+    }).join('');
+  }
+  o.style.display = 'flex';
+  return true;
+}
+
+function ccInternAssignStepStaffDirect(auId, stepKey, rawId){
+  var a=AUFTRAEGE.find(function(x){return x.id===auId;}); if(!a) return;
+  var step = stepKey || a.step;
+  var label = STEP_LABELS[step] ? STEP_LABELS[step].title : step;
+  var sch = (typeof _internSchrittObjektFuerAuftragUndStep === 'function')
+    ? _internSchrittObjektFuerAuftragUndStep(a, step)
+    : (a.schritte && a.schritte[step]);
+  if(!sch){
+    if(!a.schritte) a.schritte = {};
+    sch = a.schritte[step] = { status: 'offen' };
+  }
+  var raw = String(rawId || '').trim();
+  var m = typeof maDataFindByWorkflowKey === 'function' ? maDataFindByWorkflowKey(raw) : null;
+  var uuid = typeof maKuerzelOderIdZuUserUuid === 'function' ? (maKuerzelOderIdZuUserUuid(raw) || null) : null;
+  if(!uuid && m && m.id != null && typeof maIstCockpitUserUuid === 'function' && maIstCockpitUserUuid(String(m.id))) uuid = String(m.id);
+  if(!uuid && m && m.maId != null && typeof maIstCockpitUserUuid === 'function' && maIstCockpitUserUuid(String(m.maId))) uuid = String(m.maId);
+  if(!uuid && typeof maIstCockpitUserUuid === 'function' && maIstCockpitUserUuid(raw)) uuid = raw;
+  if(!uuid){
+    showToast('⚠ Mitarbeiter hat keine gültige User-ID');
+    return;
+  }
+  var name = (m && (m.n || m.name)) ? String(m.n || m.name) : raw;
+  var k = m && m.k != null && String(m.k).trim() !== '' ? String(m.k).trim().toUpperCase() : name;
+  sch.werId = uuid;
+  sch.verantwortlicher = uuid;
+  sch.maId = uuid;
+  sch.maIds = [uuid];
+  sch.teamMaIds = [uuid];
+  sch.zusatzMa = [];
+  sch.zusatzMaNames = [];
+  sch.verantwortlicherName = name;
+  sch.wer = k;
+
+  if (typeof INTERN_AUFGABEN !== 'undefined' && Array.isArray(INTERN_AUFGABEN)) {
+    var stCanon = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(step || '') : String(step || '');
+    INTERN_AUFGABEN.forEach(function(g){
+      if (!g || !mobAuftragIdsGleich(g.auftragId, a.id)) return;
+      var gStep = typeof mobCanonicalWorkflowStep === 'function' ? mobCanonicalWorkflowStep(g.schritt || '') : String(g.schritt || '');
+      if (gStep !== stCanon) return;
+      if (typeof mobTaskIstFertig === 'function' && mobTaskIstFertig(g)) return;
+      g.maId = uuid;
+      g.maIds = [uuid];
+      g.teamMaIds = [uuid];
+      g.verantwortlicher = uuid;
+      g.verantwortlicherName = name;
+      g.ma = uuid;
     });
   }
-  else if(typ==='status'){
-    if(typeof ccInternConfirm !== 'function') return;
-    var stepKey = a.step;
-    var offenCl = typeof ccInternHatOffeneChecklistenpunkte === 'function' && ccInternHatOffeneChecklistenpunkte(a, stepKey);
-    var msg = offenCl
-      ? 'Es sind noch Checklistenpunkte offen. Auftrag trotzdem fortsetzen?'
-      : 'Schritt "'+STEP_LABELS[a.step].title+'" als fertig markieren?';
-    ccInternConfirm(msg, function(){
-    document.getElementById('detailOverlay').classList.remove('open');
-    schrittFertig(auId);
-    });
-  }
-  else if(typ==='handy-fix'){
-    // Schritte ohne Stunden → Default einsetzen, dann Aufgaben erzeugen
-    var changed = false;
-    ['grafik','druck','laminat','montage','doku'].forEach(function(s){
-      var sch = a.schritte && a.schritte[s]; if(!sch) return;
-      if((sch.dauer||0) <= 0){
-        var def = AU_STEP_CONFIG && AU_STEP_CONFIG[s] ? AU_STEP_CONFIG[s].defaultDauer : 0;
-        if(def > 0){ sch.dauer = def; changed = true; }
-      }
-    });
-    // Bestehende Aufgaben für diesen Auftrag entfernen und neu anlegen
-    for(var i = INTERN_AUFGABEN.length-1; i>=0; i--){
-      if(INTERN_AUFGABEN[i].auftragId === auId) INTERN_AUFGABEN.splice(i,1);
-    }
-    void (async function () {
-      await auftragAufgabenErzeugen(auId);
-      if(changed) saveAuftraege();
-      saveAufgaben();
-      renderMitarbeiter();
-      openAuftragDetail(auId);
-      showToast('📱 Auftrag ist jetzt im Handy sichtbar!');
-    })();
-  }
+
+  ccInternCloseStepStaffPicker();
+  if (typeof saveAufgaben === 'function') saveAufgaben();
+  saveAuftraege();
+  openAuftragDetail(auId);
+  showToast('👤 '+label+' zugewiesen: '+name);
+}
+
+if (typeof window !== 'undefined') {
+  window.ccInternAssignStepStaff = ccInternAssignStepStaff;
+  window.ccInternAssignStepStaffDirect = ccInternAssignStepStaffDirect;
+  window.ccInternCloseStepStaffPicker = ccInternCloseStepStaffPicker;
 }
 // ── Toast-Benachrichtigung ────────────────────────────────────────
 var _toastTimer = null;
@@ -9608,12 +9868,7 @@ async function submitAuftrag(){
   var ersterWer=buildSchritt(firstStep).wer||'—';
   showWorkflowNotif({id:openId,fz,kunde},null,firstStep,ersterWer,
     new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
-  // Interne Aufgaben anlegen
-  await auftragAufgabenErzeugen(openId);
-  // Kapazitätsprüfung: Warnungen anzeigen wenn MA überlastet
-  maKapWarnungAnzeigen(openId);
-  // Aufgaben-Vorschau sofort im Detail-Panel anzeigen
-  showAufgabenVorschau(openId);
+	  // Interne Aufgaben entstehen erst nach der expliziten Übergabe an Produktion.
   var clAnzahl =
     aNachPost && Array.isArray(aNachPost.checklisten) ? aNachPost.checklisten.length : 0;
   showToast('✓ '+openId+' angelegt · '+kunde+(terminDatum||liefert?' · 📅':'')
@@ -10149,9 +10404,10 @@ async function mobAufgabenNacherzeugen(){
   if(needSave) saveAuftraege();
 
   for (var aj = 0; aj < AUFTRAEGE.length; aj++) {
-    var a2 = AUFTRAEGE[aj];
-    if(a2.step === 'abgeschlossen') continue;
-    // Prüfen ob schon Aufgaben existieren
+	    var a2 = AUFTRAEGE[aj];
+	    if(a2.step === 'abgeschlossen') continue;
+	    if(!ccInternAuftragIstInProduktion(a2)) continue;
+	    // Prüfen ob schon Aufgaben existieren
     var hatAufgaben = INTERN_AUFGABEN.some(function(g){ return g.auftragId === a2.id; });
     if(hatAufgaben) continue;
 
@@ -10203,11 +10459,11 @@ if (typeof window !== 'undefined') {
 async function ccInternRebuildInternAufgabenFromAuftraege(){
   INTERN_AUFGABEN.length = 0;
   aufgabenNr = 1;
-  for (var ri = 0; ri < AUFTRAEGE.length; ri++) {
-    var a = AUFTRAEGE[ri];
-    if (a && a.id != null) {
-      await auftragAufgabenErzeugen(a.id);
-    }
+	  for (var ri = 0; ri < AUFTRAEGE.length; ri++) {
+	    var a = AUFTRAEGE[ri];
+	    if (a && a.id != null && ccInternAuftragIstInProduktion(a)) {
+	      await auftragAufgabenErzeugen(a.id);
+	    }
   }
   saveAufgaben();
 }
@@ -10215,4 +10471,3 @@ async function ccInternRebuildInternAufgabenFromAuftraege(){
 if (typeof window !== 'undefined') {
   window.ccInternRebuildInternAufgabenFromAuftraege = ccInternRebuildInternAufgabenFromAuftraege;
 }
-

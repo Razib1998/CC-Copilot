@@ -4286,6 +4286,49 @@ select.ccw-cockpit-kal-filter-control:not(.ccw-cockpit-kal-filter-select-multi) 
   }
 }
 
+/* Login — ohne App-Chrome, identisch zum unauthentifizierten Seitenaufruf. */
+#cockpit-root.ckp-shell-layout--login-only {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#cockpit-root.ckp-shell-layout--login-only .ckp-topbar,
+#cockpit-root.ckp-shell-layout--login-only .ckp-topbar-modules,
+#cockpit-root.ckp-shell-layout--login-only [data-ccw-ro='topbar'],
+#cockpit-root.ckp-shell-layout--login-only #cockpit-sidebar,
+#cockpit-root.ckp-shell-layout--login-only #ccw-theme-toggle,
+#cockpit-root.ckp-shell-layout--login-only #ccw-logout-btn,
+#cockpit-root.ckp-shell-layout--login-only .ckp-shell-footer {
+  display: none !important;
+}
+
+#cockpit-root.ckp-shell-layout--login-only .cockpit-body,
+#cockpit-root.ckp-shell-layout--login-only .ckp-shell-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  width: 100%;
+}
+
+#cockpit-root.ckp-shell-layout--login-only #cockpit-main.ckp-main--login-only {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: auto;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+#cockpit-root.ckp-shell-layout--login-only #cockpit-content.ckp-login-fullscreen-host {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
 /* Mitarbeiter-App-only — keine Cockpit-Topbar, kein Shell-Header, volle Höhe */
 #cockpit-root.ckp-shell-layout--mitarbeiter-app-only .ckp-topbar-modules,
 #cockpit-root.ckp-shell-layout--mitarbeiter-app-only #cockpit-sidebar,

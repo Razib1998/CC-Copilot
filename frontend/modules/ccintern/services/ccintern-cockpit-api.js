@@ -441,6 +441,8 @@ export function apiRowToUi(row) {
     ccApiId: row.id,
     id: auftragsnummer || row.id,
     kunde: row.kunde != null ? row.kunde : payload.kunde,
+    status: row.status != null ? row.status : payload.status,
+    ccinternStatus: row.status != null ? row.status : payload.ccinternStatus,
     step: payload.step || row.schritt || 'draft',
     terminDatum:
       payload.terminDatum ||
@@ -536,7 +538,7 @@ export function uiToApiBody(a) {
     firmaIdRaw != null && String(firmaIdRaw).trim() !== '' ? String(firmaIdRaw).trim() : null;
   return {
     kunde,
-    status: nullableStr(copy.statusText || copy.druckStatus || copy.status),
+    status: nullableStr(copy.ccinternStatus || copy.status || copy.statusText || copy.druckStatus),
     schritt: nullableStr(copy.step || copy.schritt),
     prioritaet: nullableStr(copy.prioritaet),
     lieferdatum: isoOrNull(copy.terminDatum || copy.liefertermin),
@@ -545,6 +547,40 @@ export function uiToApiBody(a) {
     bemerkung,
     ...(firmaId ? { firma_id: firmaId } : {}),
   };
+}
+
+/**
+ * Übergibt einen vorbereiteten CC-Intern-Auftrag explizit an die Produktion.
+ * Der Backend-Endpunkt erstellt die Produktionszeile nur, wenn der aktive Schritt
+ * einen verantwortlichen Mitarbeiter enthält.
+ *
+ * @param {Record<string, unknown>} a
+ * @param {(msg: string) => void} [showToast]
+ */
+export async function ccInternAuftragAnProduktion(a, showToast) {
+  if (!a || typeof a !== 'object') throw new Error('Auftrag fehlt.');
+  const apiId = a.ccApiId != null && isUuid(String(a.ccApiId)) ? String(a.ccApiId).trim() : '';
+  if (!apiId) throw new Error('Auftrag ist noch nicht auf dem Server gespeichert.');
+  const res = await apiFetch(API_ROUTES.ccintern.auftraege + '/' + encodeURIComponent(apiId) + '/an-produktion', {
+    method: 'POST',
+    body: {},
+  });
+  a.status = 'in_produktion';
+  a.ccinternStatus = 'in_produktion';
+  if (!a.prod || typeof a.prod !== 'object') a.prod = {};
+  const prod = /** @type {Record<string, unknown>} */ (a.prod);
+  if (!prod.produktion || typeof prod.produktion !== 'object') prod.produktion = {};
+  const pr = /** @type {Record<string, unknown>} */ (prod.produktion);
+  pr.bestaetigt = true;
+  pr.bestaetigtAm = new Date().toISOString();
+  const pa = res && typeof res.produktion_auftrag === 'object' ? res.produktion_auftrag : null;
+  if (pa) {
+    pr.produktionAuftragId = pa.id || pr.produktionAuftragId || null;
+    pr.verantwortlich = pa.verantwortlich || pr.verantwortlich || null;
+    pr.schritt = pa.schritt || pr.schritt || null;
+  }
+  if (showToast) showToast('✓ Auftrag wurde an Produktion übergeben');
+  return res;
 }
 
 /** @param {number} page @param {number} limit */

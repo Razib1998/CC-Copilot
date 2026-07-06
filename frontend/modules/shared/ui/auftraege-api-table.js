@@ -142,7 +142,7 @@ export async function renderFusaApiAuftraegeUmzugTableInnerHtml(auftraege, proje
   const sorted = [...list].sort((a, b) => {
     const ka = createdAtSortKey(a);
     const kb = createdAtSortKey(b);
-    if (ka !== kb) return ka - kb;
+    if (ka !== kb) return kb - ka;
     const ida = a?.id != null ? String(a.id) : '';
     const idb = b?.id != null ? String(b.id) : '';
     return ida.localeCompare(idb);

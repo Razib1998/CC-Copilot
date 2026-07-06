@@ -39,6 +39,27 @@ const FZ_LOC_FILTERS = [
   { id: 'fusa-fz-loc-muelheim', label: 'Mülheim Duisburgerstr.' },
 ];
 
+const FUSA_FZ_PAGE_SIZE = 10;
+
+function renderFusaFzPager(pager, totalRows, currentPage, pageSize) {
+  if (!(pager instanceof HTMLElement)) return;
+  const pageCount = Math.max(1, Math.ceil(totalRows / pageSize));
+  const from = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(totalRows, currentPage * pageSize);
+  const pageButtons = Array.from({ length: pageCount }, (_, idx) => {
+    const page = idx + 1;
+    const active = page === currentPage;
+    return `<button type="button" data-fusa-fz-page="${page}" aria-current="${active ? 'page' : 'false'}" style="min-width:32px;height:30px;border-radius:8px;border:1px solid ${active ? 'var(--blue,#2563EB)' : 'var(--border,#DDE3E8)'};background:${active ? 'var(--blue,#2563EB)' : 'var(--card,#fff)'};color:${active ? '#fff' : 'var(--text,#0F1923)'};font:inherit;font-size:12px;font-weight:700;cursor:pointer;">${page}</button>`;
+  }).join('');
+  pager.hidden = false;
+  pager.innerHTML = `<div style="font-size:12px;color:var(--text2,#546E7A);">${from}-${to} von ${totalRows}</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <button type="button" data-fusa-fz-page-prev ${currentPage <= 1 ? 'disabled' : ''} style="height:30px;border-radius:8px;border:1px solid var(--border,#DDE3E8);background:var(--card,#fff);color:var(--text,#0F1923);font:inherit;font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;${currentPage <= 1 ? 'opacity:.45;cursor:not-allowed;' : ''}">Zurueck</button>
+      ${pageButtons}
+      <button type="button" data-fusa-fz-page-next ${currentPage >= pageCount ? 'disabled' : ''} style="height:30px;border-radius:8px;border:1px solid var(--border,#DDE3E8);background:var(--card,#fff);color:var(--text,#0F1923);font:inherit;font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;${currentPage >= pageCount ? 'opacity:.45;cursor:not-allowed;' : ''}">Weiter</button>
+    </div>`;
+}
+
 const BETREIBER_DEPOTS = {
   'Ruhrbahn Essen': [
     'Essen Econova-Alee',
@@ -513,6 +534,7 @@ function mapFahrzeugToViewModel(row) {
   const typeSearch = `${typ} ${subtyp} ${typKategorie} ${antriebStr} ${herstellerStr} ${modellStr}`.trim();
   return {
     id: row.id != null ? String(row.id) : '',
+    created_at: row.created_at != null ? String(row.created_at) : '',
     nummer: row.kennung != null ? String(row.kennung) : row.num != null ? String(row.num) : '',
     kennzeichen: row.kennzeichen != null ? String(row.kennzeichen) : '',
     typ,
@@ -572,6 +594,15 @@ function mapFahrzeugToViewModel(row) {
     ),
     locationSearch: toLower(depot),
   };
+}
+
+function fusaCreatedDescThenIdAsc(a, b) {
+  const ta = Date.parse(String(a?.created_at || ''));
+  const tb = Date.parse(String(b?.created_at || ''));
+  const sa = Number.isFinite(ta) ? ta : 0;
+  const sb = Number.isFinite(tb) ? tb : 0;
+  if (sa !== sb) return sb - sa;
+  return String(a?.id || '').localeCompare(String(b?.id || ''));
 }
 
 function kpiCardHtml(opts) {
@@ -643,7 +674,8 @@ export async function renderFusaFahrzeugeViewHtml() {
       const emb = Array.isArray(row.schaeden) && row.schaeden.length > 0;
       return { ...vm, hasSchadenDot: apiC > 0 || emb };
     })
-    .filter((v) => v && v.id);
+    .filter((v) => v && v.id)
+    .sort(fusaCreatedDescThenIdAsc);
 
   const kpiBelegt = allRows.filter((r) => r.statusGroup === 'belegt').length;
   const kpiFrei = allRows.filter((r) => r.statusGroup === 'frei').length;
@@ -946,6 +978,21 @@ export async function renderFusaFahrzeugeViewHtml() {
     .fusa-fz-view .btn:hover{background:var(--gray-l,#F3F5F7)}
     .fusa-fz-view .btn.p{background:var(--blue,#D4500A);color:#fff;border-color:var(--blue,#D4500A)}
     .fusa-fz-view .btn.p:hover{background:var(--blue-d,#B84308)}
+    .fusa-fz-view .fusa-fz-toolbar{display:flex;align-items:stretch;justify-content:space-between;gap:12px;margin:0 0 14px;padding:12px;border:1px solid rgba(221,227,232,.9);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(248,250,252,.95));box-shadow:0 1px 3px rgba(15,25,35,.05)}
+    .fusa-fz-view .fusa-fz-toolbar__main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;flex-wrap:wrap}
+    .fusa-fz-view .fusa-fz-search{position:relative;min-width:min(100%,320px);flex:1 1 340px;max-width:460px}
+    .fusa-fz-view .fusa-fz-search::before{content:"";position:absolute;left:14px;top:50%;width:14px;height:14px;border:2px solid var(--text3,#90A4AE);border-radius:50%;transform:translateY(-58%);pointer-events:none}
+    .fusa-fz-view .fusa-fz-search::after{content:"";position:absolute;left:26px;top:50%;width:7px;height:2px;border-radius:2px;background:var(--text3,#90A4AE);transform:translateY(4px) rotate(45deg);pointer-events:none}
+    .fusa-fz-view .fusa-fz-search input{width:100%;height:42px;padding:0 14px 0 42px;border:1px solid var(--border,#DDE3E8);border-radius:10px;background:var(--card,#fff);color:var(--text,#0F1923);font:inherit;font-size:13px;font-weight:600;outline:none;box-shadow:0 1px 0 rgba(15,25,35,.03);transition:border-color .14s ease,box-shadow .14s ease,background .14s ease}
+    .fusa-fz-view .fusa-fz-search input::placeholder{color:var(--text3,#90A4AE);font-weight:600}
+    .fusa-fz-view .fusa-fz-search input:focus{border-color:var(--blue,#D4500A);box-shadow:0 0 0 4px rgba(212,80,10,.12)}
+    .fusa-fz-view .fusa-fz-segments{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border,#DDE3E8);border-radius:11px;background:#F8FAFC;min-height:42px}
+    .fusa-fz-view .fusa-fz-seg{height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--text2,#546E7A);font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;transition:background .14s ease,color .14s ease,box-shadow .14s ease}
+    .fusa-fz-view .fusa-fz-seg:hover{background:#EEF2F7;color:var(--text,#0F1923)}
+    .fusa-fz-view .fusa-fz-seg.active{background:var(--blue,#D4500A);color:#fff;box-shadow:0 6px 16px rgba(212,80,10,.18)}
+    .fusa-fz-view .fusa-fz-reset{height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:1px solid var(--border,#DDE3E8);border-radius:10px;background:var(--card,#fff);color:var(--text2,#546E7A);font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;transition:border-color .14s ease,background .14s ease,color .14s ease}
+    .fusa-fz-view .fusa-fz-reset:hover{border-color:#F3B37B;background:#FFF7ED;color:var(--blue,#D4500A)}
+    .fusa-fz-view .fusa-fz-reset__icon{font-size:14px;line-height:1}
     .fusa-fz-view .panel{background:#fff;border:1px solid var(--border,#DDE3E8);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
     .fusa-fz-view .ph{padding:13px 16px;border-bottom:1px solid var(--border,#DDE3E8);display:flex;align-items:center;justify-content:space-between}
     .fusa-fz-view .ph-title{font-size:13px;font-weight:600}
@@ -993,6 +1040,21 @@ export async function renderFusaFahrzeugeViewHtml() {
     .fusa-fz-view [data-fusa-fz-detail-body] .panel th,.fusa-fz-view [data-fusa-fz-detail-body] .panel td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
     .fusa-fz-view [data-fusa-fz-detail-body] .panel thead th{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;background:#f8fafc}
     .fusa-fz-view [data-fusa-fz-detail-body] .tm{font-weight:600;color:var(--text)}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-toolbar{background:linear-gradient(180deg,rgba(17,24,39,.94),rgba(15,23,42,.96));border-color:#263244;box-shadow:none}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-search input,
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-reset{background:#0B1426;border-color:#334155;color:#E5E7EB}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-search input::placeholder{color:#7B879A}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-segments{background:#0B1426;border-color:#334155}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-seg{color:#A8B3C7}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-seg:hover{background:#172033;color:#F8FAFC}
+    html[data-theme='dark'] .fusa-fz-view .fusa-fz-reset:hover{background:#172033;border-color:#D4500A;color:#FDBA74}
+    @media (max-width: 760px){
+      .fusa-fz-view .fusa-fz-toolbar{flex-direction:column;padding:10px}
+      .fusa-fz-view .fusa-fz-search{max-width:none;width:100%;flex-basis:auto}
+      .fusa-fz-view .fusa-fz-segments{width:100%;overflow-x:auto;justify-content:flex-start}
+      .fusa-fz-view .fusa-fz-seg{flex:1 0 auto}
+      .fusa-fz-view .fusa-fz-reset{width:100%}
+    }
   </style>
   ${loadErr ? `<p class="ckp-api-error" role="alert">${esc(loadErr)}</p>` : ''}
   ${projectHint}
@@ -1002,15 +1064,19 @@ export async function renderFusaFahrzeugeViewHtml() {
     ${kpiCardHtml({ key: 'schaden', value: kpiSchaden, label: 'Schaden gemeldet', icon: '⚠', iconClass: 'ccds-stat-icon-box--red' })}
     ${kpiCardHtml({ key: 'endet', value: kpiEndet, label: 'Laufzeit endet bald', icon: '◔', iconClass: 'ccds-stat-icon-box--orange' })}
   </div>
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
-    <input class="srch" id="fusa-fz-search" data-fusa-fz-search placeholder="Fahrzeug suchen..." style="width:260px;background:#fff;" />
-    <div class="tabs" data-fusa-fz-tabs>
-      <button type="button" class="tab active" data-fusa-fz-tab="alle">Alle</button>
-      <button type="button" class="tab" data-fusa-fz-tab="belegt">Belegt</button>
-      <button type="button" class="tab" data-fusa-fz-tab="frei">Frei</button>
-      <button type="button" class="tab" data-fusa-fz-tab="schaden">Schaden</button>
+  <div class="fusa-fz-toolbar" aria-label="Fahrzeuge suchen und filtern">
+    <div class="fusa-fz-toolbar__main">
+      <label class="fusa-fz-search" for="fusa-fz-search">
+        <input id="fusa-fz-search" data-fusa-fz-search type="search" placeholder="Fahrzeug, Kennzeichen, Depot oder Betreiber suchen" autocomplete="off" />
+      </label>
+      <div class="fusa-fz-segments" data-fusa-fz-tabs role="tablist" aria-label="Fahrzeugstatus filtern">
+        <button type="button" class="fusa-fz-seg active" data-fusa-fz-tab="alle" aria-pressed="true">Alle</button>
+        <button type="button" class="fusa-fz-seg" data-fusa-fz-tab="belegt" aria-pressed="false">Belegt</button>
+        <button type="button" class="fusa-fz-seg" data-fusa-fz-tab="frei" aria-pressed="false">Frei</button>
+        <button type="button" class="fusa-fz-seg" data-fusa-fz-tab="schaden" aria-pressed="false">Schaden</button>
+      </div>
     </div>
-    <button type="button" class="btn" style="margin-left:auto;font-size:12px;" data-fusa-fz-reset>Filter zuruecksetzen</button>
+    <button type="button" class="fusa-fz-reset" data-fusa-fz-reset><span class="fusa-fz-reset__icon" aria-hidden="true">↺</span> Filter zurücksetzen</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
     <div style="border-radius:10px;overflow:hidden;border:1px solid #E8C87A;">
@@ -1052,6 +1118,7 @@ export async function renderFusaFahrzeugeViewHtml() {
         <tbody data-fusa-fz-table-body>${tableRowsHtml}</tbody>
       </table>
     </div>
+    <div data-fusa-fz-pagination style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 4px 0;"></div>
   </section>
   <div class="modal-ov" data-fusa-fz-detail-modal style="display:none;" aria-hidden="true">
     <div class="fusa-fz-detail-panel" data-fusa-fz-detail-panel>
@@ -1109,12 +1176,14 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
   const resultCountEl = fzScope.querySelector('[data-fusa-fz-result-count]');
   const chipsWrap = fzScope.querySelector('[data-fusa-fz-chips]');
   const tbody = fzScope.querySelector('[data-fusa-fz-table-body]');
+  const pager = fzScope.querySelector('[data-fusa-fz-pagination]');
   const emptyRow = tbody && typeof tbody.querySelector === 'function' ? tbody.querySelector('[data-fusa-fz-empty-row]') : null;
   const rowEls = tbody ? [...tbody.querySelectorAll('[data-fusa-fz-row]')] : [];
   const typeChecks = [...fzScope.querySelectorAll('[data-fusa-fz-type-filter]')];
   const locChecks = [...fzScope.querySelectorAll('[data-fusa-fz-loc-filter]')];
   /** @type {'alle'|'belegt'|'frei'|'schaden'} */
   let activeTab = 'alle';
+  let currentPage = 1;
 
   function selectedTypeTokens() {
     return typeChecks
@@ -1170,7 +1239,8 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
     set('endet', endet);
   }
 
-  function applyFilters() {
+  function applyFilters(resetPage = false) {
+    if (resetPage) currentPage = 1;
     const q = searchEl instanceof HTMLInputElement ? String(searchEl.value || '').trim().toLowerCase() : '';
     const typeTokens = selectedTypeTokens();
     const locTokens = selectedLocTokens();
@@ -1190,20 +1260,30 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
       const locMatch = locTokens.length === 0 ? true : locTokens.some((t) => locText.includes(t.toLowerCase()));
       const searchMatch = !q || searchText.includes(q);
       const show = tabMatch && typeMatch && locMatch && searchMatch;
-      tr.style.display = show ? '' : 'none';
+      tr.style.display = 'none';
       if (show) {
         visibleCount += 1;
         visibleRows.push(tr);
       }
     }
 
+    const pageCount = Math.max(1, Math.ceil(visibleRows.length / FUSA_FZ_PAGE_SIZE));
+    if (currentPage > pageCount) currentPage = pageCount;
+    const start = (currentPage - 1) * FUSA_FZ_PAGE_SIZE;
+    const end = start + FUSA_FZ_PAGE_SIZE;
+    visibleRows.forEach((tr, index) => {
+      tr.style.display = index >= start && index < end ? '' : 'none';
+    });
+
     if (resultCountEl instanceof HTMLElement) {
-      resultCountEl.textContent = `${visibleCount} Fahrzeug${visibleCount === 1 ? '' : 'e'} gefunden`;
+      const suffix = visibleCount > FUSA_FZ_PAGE_SIZE ? ` · Seite ${currentPage}/${pageCount}` : '';
+      resultCountEl.textContent = `${visibleCount} Fahrzeug${visibleCount === 1 ? '' : 'e'} gefunden${suffix}`;
     }
     if (emptyRow instanceof HTMLElement) {
       emptyRow.style.display = visibleCount === 0 ? '' : 'none';
     }
     syncKpis(visibleRows);
+    renderFusaFzPager(pager, visibleRows.length, currentPage, FUSA_FZ_PAGE_SIZE);
   }
 
   if (tabsWrap instanceof HTMLElement) {
@@ -1215,29 +1295,59 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
       if (k !== 'alle' && k !== 'belegt' && k !== 'frei' && k !== 'schaden') return;
       activeTab = k;
       for (const b of tabsWrap.querySelectorAll('[data-fusa-fz-tab]')) {
-        b.classList.toggle('active', b === btn);
+        const isActive = b === btn;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       }
-      applyFilters();
+      applyFilters(true);
     });
   }
   if (searchEl instanceof HTMLInputElement) {
-    searchEl.addEventListener('input', applyFilters);
+    searchEl.addEventListener('input', () => applyFilters(true));
   }
   for (const x of [...typeChecks, ...locChecks]) {
-    x.addEventListener('change', applyFilters);
+    x.addEventListener('change', () => applyFilters(true));
   }
   if (resetBtn instanceof HTMLButtonElement) {
     resetBtn.addEventListener('click', () => {
       activeTab = 'alle';
       if (tabsWrap instanceof HTMLElement) {
         const tabButtons = [...tabsWrap.querySelectorAll('[data-fusa-fz-tab]')];
-        tabButtons.forEach((b, i) => b.classList.toggle('active', i === 0));
+        tabButtons.forEach((b, i) => {
+          const isActive = i === 0;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
       }
       if (searchEl instanceof HTMLInputElement) searchEl.value = '';
       for (const x of [...typeChecks, ...locChecks]) {
         if (x instanceof HTMLInputElement) x.checked = false;
       }
-      applyFilters();
+      applyFilters(true);
+    });
+  }
+  if (pager instanceof HTMLElement) {
+    pager.addEventListener('click', (ev) => {
+      const t = ev.target;
+      if (!t || typeof t.closest !== 'function') return;
+      const direct = t.closest('[data-fusa-fz-page]');
+      if (direct instanceof HTMLElement) {
+        const next = Number(direct.getAttribute('data-fusa-fz-page'));
+        if (Number.isFinite(next) && next >= 1) {
+          currentPage = Math.floor(next);
+          applyFilters();
+        }
+        return;
+      }
+      if (t.closest('[data-fusa-fz-page-prev]')) {
+        currentPage = Math.max(1, currentPage - 1);
+        applyFilters();
+        return;
+      }
+      if (t.closest('[data-fusa-fz-page-next]')) {
+        currentPage += 1;
+        applyFilters();
+      }
     });
   }
 

@@ -2734,15 +2734,15 @@ export function createApiV1Router(store) {
         payload: {
           ccintern_status: created ? 'created' : 'linked',
           ccintern_auftrag_id: linked?.id ?? null,
-          produktion_status: bridge.productionCreated ? 'created' : bridge.production ? 'linked' : 'skipped',
-          produktion_auftrag_id: bridge.production?.id ?? null,
+          produktion_status: 'wartet_auf_ccintern_freigabe',
+          produktion_auftrag_id: null,
         },
       });
       return sendSuccess(res, 200, {
         status: created ? 'created' : 'linked',
         fusa_auftrag_id: fusaAuftragId,
         ccintern_auftrag_id: linked?.id ?? null,
-        produktion_auftrag_id: bridge.production?.id ?? null,
+        produktion_auftrag_id: null,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -4902,7 +4902,7 @@ export function createApiV1Router(store) {
           id,
           auftragsnummer,
           kunde,
-          status: nullableTrimmed(req.body?.status),
+          status: nullableTrimmed(req.body?.status) || 'vorbereitung',
           schritt: nullableTrimmed(req.body?.schritt),
           prioritaet: nullableTrimmed(req.body?.prioritaet),
           lieferdatum,
@@ -4913,7 +4913,6 @@ export function createApiV1Router(store) {
           erstellt_von: req.auth.userId,
           firma_id: firmaId,
         });
-        await storeArg.ensureProduktionRowForCcInternAuftrag(id, firmaId);
         const row = await storeArg.getCcInternAuftragById(id, firmaId);
         await syncCcInternMontageTermin({
           store: storeArg,
@@ -4930,6 +4929,56 @@ export function createApiV1Router(store) {
           payload: { auftragsnummer },
         });
         return sendSuccess(res, 201, { auftrag: mapCcInternAuftrag(row) });
+      } catch (e) {
+        return next(e);
+      }
+    });
+
+    auftraegeR.post('/:id/an-produktion', ccinternAuftraegeBearbeiten, async (req, res, next) => {
+      try {
+        const firmaId = await resolveFirmaIdForRequest(req);
+        if (!firmaId) {
+          return sendError(res, 400, 'VALIDATION_ERROR', 'firma_id fehlt (oder User ohne company_id).');
+        }
+        const id = requiredTrimmed(req.params.id);
+        if (!id) return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Auftrags-ID.');
+        const existing = await storeArg.getCcInternAuftragById(id, firmaId);
+        if (!existing) return sendError(res, 404, 'NOT_FOUND', 'Auftrag nicht gefunden.');
+        if (typeof storeArg.ensureProduktionRowForCcInternAuftrag !== 'function') {
+          return sendError(res, 500, 'INTERNAL_ERROR', 'Produktionsübergabe ist im Store nicht verfügbar.');
+        }
+
+        const production = await storeArg.ensureProduktionRowForCcInternAuftrag(id, firmaId);
+        if (!production) {
+          return sendError(
+            res,
+            400,
+            'VALIDATION_ERROR',
+            'Auftrag ist noch nicht bereit für Produktion. Bitte aktiven Schritt und verantwortlichen Mitarbeiter zuweisen.',
+          );
+        }
+
+        const row =
+          (await storeArg.updateCcInternAuftrag(id, firmaId, {
+            status: 'in_produktion',
+          })) || existing;
+        await logAudit(storeArg, {
+          user: req.auth,
+          modul: 'ccintern',
+          action: 'POST',
+          resource_type: 'ccintern_auftrag_produktionsfreigabe',
+          resource_id: id,
+          project_id: null,
+          payload: {
+            produktion_auftrag_id: production.id ?? null,
+            schritt: production.schritt ?? null,
+            verantwortlich: production.verantwortlich ?? null,
+          },
+        });
+        return sendSuccess(res, 200, {
+          auftrag: mapCcInternAuftrag(row),
+          produktion_auftrag: production,
+        });
       } catch (e) {
         return next(e);
       }

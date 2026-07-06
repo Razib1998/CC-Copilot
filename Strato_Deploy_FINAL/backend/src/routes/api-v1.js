@@ -2,6 +2,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express, { Router } from 'express';
 import { normalizeInviteAccessForRedeem } from '../auth/invite-redeem-normalize.js';
 import { generateInviteToken } from '../auth/invite-token.js';
@@ -39,7 +40,8 @@ import {
 } from '../lib/fusa-belegung-verfuegbarkeit.js';
 import { pruefeFahrzeugVerfuegbarkeit } from '../lib/fusa-fahrzeug-verfuegbarkeit.js';
 import { registerMesseflowPruefProxyRoutes } from './messeflow-pruef-proxy.js';
-import { syncCcInternMontageTermin, syncFusaTerminAndLinkedCcIntern } from '../lib/auftrag-kalender-sync.js';
+import { syncCcInternMontageTermin } from '../lib/auftrag-kalender-sync.js';
+import { ensureCcInternProductionForFusaAuftrag } from '../lib/fusa-ccintern-production-bridge.js';
 import { parseModulesCsv } from '../lib/parse-modules-csv.js';
 import {
   createGenehmigteUrlaubKalenderTermine,
@@ -137,6 +139,43 @@ function normalizeApiEmail(raw) {
   const t = raw.trim().toLowerCase();
   if (!t || !t.includes('@')) return '';
   return t;
+}
+
+/**
+ * Ziel-User für Einladung: optional user_id / mitarbeiter_id — E-Mail immer aus users (nicht Admin-Session).
+ * @param {object} store
+ * @param {{ email: string, userId?: string, mitarbeiterId?: string, firmaId?: string|null }} opts
+ */
+async function resolveInviteTargetUserForCreate(store, opts) {
+  let targetUserId = opts.userId != null ? String(opts.userId).trim() : '';
+  const mitarbeiterId = opts.mitarbeiterId != null ? String(opts.mitarbeiterId).trim() : '';
+  const firmaId = opts.firmaId != null ? String(opts.firmaId).trim() : '';
+
+  if (!targetUserId && mitarbeiterId && firmaId && typeof store.getMitarbeiterById === 'function') {
+    const m = await store.getMitarbeiterById(mitarbeiterId, firmaId);
+    if (m?.user_id != null) targetUserId = String(m.user_id).trim();
+  }
+
+  if (!targetUserId) {
+    return { email: opts.email, targetUser: null, emailOverridden: false, mitarbeiterId: mitarbeiterId || null };
+  }
+
+  const targetUser = await store.getUserById(targetUserId);
+  if (!targetUser) {
+    return { error: 'VALIDATION_ERROR', message: 'Ziel-user_id unbekannt.' };
+  }
+  const canonical = normalizeApiEmail(targetUser.email);
+  if (!canonical) {
+    return { error: 'VALIDATION_ERROR', message: 'Zielbenutzer hat keine gültige E-Mail.' };
+  }
+  const emailOverridden = canonical !== opts.email;
+  return {
+    email: canonical,
+    targetUser,
+    targetUserId: String(targetUser.id),
+    emailOverridden,
+    mitarbeiterId: mitarbeiterId || null,
+  };
 }
 
 /**
@@ -1519,6 +1558,7 @@ export function createApiV1Router(store) {
           kuerzel: String(u.kuerzel || '').trim().toUpperCase(),
           global_role: u.global_role ?? 'INTERN',
           companyId: u.company_id ?? null,
+          company_id: u.company_id ?? null,
           modules: parseModulesCsv(u.modules_csv),
           soll,
           urlaub,
@@ -2676,44 +2716,13 @@ export function createApiV1Router(store) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'FUSA-Auftrag hat keinen verknüpfbaren Kunden (fusa_kunde_id).');
       }
 
-      let linked = await store.getCcInternAuftragByFusaAuftragId(fusaAuftragId, firmaId);
-      let created = false;
-      if (!linked) {
-        const year = new Date().getFullYear();
-        const last = await store.getLastCcInternAuftragsnummerForYear(year);
-        const m = String(last?.auftragsnummer || '').match(new RegExp(`^AU-${year}-(\\d{3})$`));
-        const nextNr = (m ? Number.parseInt(m[1], 10) : 0) + 1;
-        const auftragsnummer = `AU-${year}-${String(nextNr).padStart(3, '0')}`;
-        const id = randomUUID();
-        const kunde =
-          requiredTrimmed(fusaAuftrag.kunde_name)
-          || requiredTrimmed(fusaAuftrag.title)
-          || `FUSA ${String(fusaAuftragId).slice(0, 8)}`;
-        await store.insertCcInternAuftrag({
-          id,
-          auftragsnummer,
-          kunde,
-          status: nullableTrimmed(fusaAuftrag.status),
-          schritt: null,
-          prioritaet: null,
-          lieferdatum: nullableTrimmed(fusaAuftrag.termin_ende),
-          montage_datum: nullableTrimmed(fusaAuftrag.termin),
-          bemerkung: `Freigegeben aus FUSA-Auftrag ${fusaAuftragId}`,
-          fusa_auftrag_id: fusaAuftragId,
-          quelle: 'fusa',
-          erstellt_von: req.auth.userId,
-          firma_id: firmaId,
-        });
-        linked = await store.getCcInternAuftragById(id, firmaId);
-        created = true;
-      }
-
-      await syncFusaTerminAndLinkedCcIntern({
+      const bridge = await ensureCcInternProductionForFusaAuftrag({
         store,
         fusaAuftrag,
-        linkedCcInternAuftrag: linked || null,
         actorUserId: req.auth.userId,
       });
+      const linked = bridge.linked || null;
+      const created = bridge.ccinternCreated === true;
 
       await logAudit(store, {
         user: req.auth,
@@ -2722,12 +2731,18 @@ export function createApiV1Router(store) {
         resource_type: 'fusa_auftrag_freigabe',
         resource_id: fusaAuftragId,
         project_id: auftragProjectId,
-        payload: { ccintern_status: created ? 'created' : 'linked', ccintern_auftrag_id: linked?.id ?? null },
+        payload: {
+          ccintern_status: created ? 'created' : 'linked',
+          ccintern_auftrag_id: linked?.id ?? null,
+          produktion_status: 'wartet_auf_ccintern_freigabe',
+          produktion_auftrag_id: null,
+        },
       });
       return sendSuccess(res, 200, {
         status: created ? 'created' : 'linked',
         fusa_auftrag_id: fusaAuftragId,
         ccintern_auftrag_id: linked?.id ?? null,
+        produktion_auftrag_id: null,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -3110,6 +3125,35 @@ export function createApiV1Router(store) {
     return ((end - start) / 86400000) + 1;
   }
 
+  /** IST-Diagnose Kalender-API (immer bei GET, keine andere Termin-Quelle in dieser Route). */
+  async function logKalenderApiIst(storeArg, payload) {
+    const apiV1Dir = path.dirname(fileURLToPath(import.meta.url));
+    const sqlitePath =
+      String(process.env.SQLITE_DB_PATH || '').trim() ||
+      path.join(apiV1Dir, '..', '..', 'data', 'cc-cockpit.db');
+    const mysqlOn = Boolean(
+      String(process.env.MYSQL_HOST || '').trim() &&
+        String(process.env.MYSQL_USER || '').trim() &&
+        String(process.env.MYSQL_DATABASE || '').trim(),
+    );
+    let countTableAll = null;
+    try {
+      if (typeof storeArg.countKalenderTermineTableAll === 'function') {
+        countTableAll = await storeArg.countKalenderTermineTableAll();
+      }
+    } catch (e) {
+      countTableAll = 'error:' + (e instanceof Error ? e.message : String(e));
+    }
+    console.log('[KALENDER_API_IST]', {
+      ...payload,
+      countKalenderTermineTableAll: countTableAll,
+      dbDriver: mysqlOn ? 'mysql' : 'sqlite',
+      sqliteDbPath: mysqlOn ? null : sqlitePath,
+      datenquelle: 'nur kalender_termine (listKalenderTermineByFirma); mapKalenderTerminWithCcInternAuftragContext reichert nur an',
+      kalenderFusionCache: 'n/a (nur Frontend cockpit-kalender-view.js)',
+    });
+  }
+
   function createKalenderRouter(storeArg) {
     const kalenderR = Router();
     kalenderR.get('/', ccinternKalenderSehen, async (req, res, next) => {
@@ -3126,6 +3170,16 @@ export function createApiV1Router(store) {
       const total = await storeArg.countKalenderTermineByFirma(firmaId, { typ, von, bis });
       const rows = await storeArg.listKalenderTermineByFirma(firmaId, { offset, limit, typ, von, bis });
       const data = await Promise.all(rows.map((row) => mapKalenderTerminWithCcInternAuftragContext(storeArg, row)));
+      await logKalenderApiIst(storeArg, {
+        route: 'GET /api/v1/stammdaten/kalender',
+        firmaId,
+        query: { page, limit, typ, von, bis },
+        countKalenderTermineByFirma: total,
+        rowsFromDb: rows.length,
+        responseTermineLength: data.length,
+        ersteTitel: data.slice(0, 5).map((t) => t?.titel ?? null),
+        quellen: [...new Set(data.map((t) => t?.quelle).filter(Boolean))],
+      });
       return sendSuccess(res, 200, { termine: data, total });
     } catch (e) {
       return next(e);
@@ -4848,7 +4902,7 @@ export function createApiV1Router(store) {
           id,
           auftragsnummer,
           kunde,
-          status: nullableTrimmed(req.body?.status),
+          status: nullableTrimmed(req.body?.status) || 'vorbereitung',
           schritt: nullableTrimmed(req.body?.schritt),
           prioritaet: nullableTrimmed(req.body?.prioritaet),
           lieferdatum,
@@ -4859,7 +4913,6 @@ export function createApiV1Router(store) {
           erstellt_von: req.auth.userId,
           firma_id: firmaId,
         });
-        await storeArg.ensureProduktionRowForCcInternAuftrag(id, firmaId);
         const row = await storeArg.getCcInternAuftragById(id, firmaId);
         await syncCcInternMontageTermin({
           store: storeArg,
@@ -4876,6 +4929,56 @@ export function createApiV1Router(store) {
           payload: { auftragsnummer },
         });
         return sendSuccess(res, 201, { auftrag: mapCcInternAuftrag(row) });
+      } catch (e) {
+        return next(e);
+      }
+    });
+
+    auftraegeR.post('/:id/an-produktion', ccinternAuftraegeBearbeiten, async (req, res, next) => {
+      try {
+        const firmaId = await resolveFirmaIdForRequest(req);
+        if (!firmaId) {
+          return sendError(res, 400, 'VALIDATION_ERROR', 'firma_id fehlt (oder User ohne company_id).');
+        }
+        const id = requiredTrimmed(req.params.id);
+        if (!id) return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Auftrags-ID.');
+        const existing = await storeArg.getCcInternAuftragById(id, firmaId);
+        if (!existing) return sendError(res, 404, 'NOT_FOUND', 'Auftrag nicht gefunden.');
+        if (typeof storeArg.ensureProduktionRowForCcInternAuftrag !== 'function') {
+          return sendError(res, 500, 'INTERNAL_ERROR', 'Produktionsübergabe ist im Store nicht verfügbar.');
+        }
+
+        const production = await storeArg.ensureProduktionRowForCcInternAuftrag(id, firmaId);
+        if (!production) {
+          return sendError(
+            res,
+            400,
+            'VALIDATION_ERROR',
+            'Auftrag ist noch nicht bereit für Produktion. Bitte aktiven Schritt und verantwortlichen Mitarbeiter zuweisen.',
+          );
+        }
+
+        const row =
+          (await storeArg.updateCcInternAuftrag(id, firmaId, {
+            status: 'in_produktion',
+          })) || existing;
+        await logAudit(storeArg, {
+          user: req.auth,
+          modul: 'ccintern',
+          action: 'POST',
+          resource_type: 'ccintern_auftrag_produktionsfreigabe',
+          resource_id: id,
+          project_id: null,
+          payload: {
+            produktion_auftrag_id: production.id ?? null,
+            schritt: production.schritt ?? null,
+            verantwortlich: production.verantwortlich ?? null,
+          },
+        });
+        return sendSuccess(res, 200, {
+          auftrag: mapCcInternAuftrag(row),
+          produktion_auftrag: production,
+        });
       } catch (e) {
         return next(e);
       }
@@ -5504,7 +5607,7 @@ export function createApiV1Router(store) {
       if (typeof emailRaw !== 'string' || !normalizeApiEmail(emailRaw)) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Feld „email“ ist erforderlich.');
       }
-      const email = normalizeApiEmail(emailRaw);
+      let email = normalizeApiEmail(emailRaw);
       if (!isValidGlobalRole(req.body?.global_role)) {
         return sendError(
           res,
@@ -5539,15 +5642,6 @@ export function createApiV1Router(store) {
       if (modules.length === 0) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Mindestens ein gültiges Modul ist erforderlich.');
       }
-      const pending = await store.getPendingCockpitInviteByEmail(email);
-      if (pending) {
-        return sendError(
-          res,
-          409,
-          'CONFLICT',
-          'Für diese E-Mail existiert bereits eine offene Einladung.',
-        );
-      }
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
       const expiresAtIso = expiresAt.toISOString();
@@ -5564,6 +5658,37 @@ export function createApiV1Router(store) {
         if (!fExists) {
           return sendError(res, 400, 'VALIDATION_ERROR', 'Firma nicht gefunden.');
         }
+      }
+      const targetUserIdRaw =
+        req.body?.user_id ?? req.body?.target_user_id ?? req.body?.benutzerId ?? null;
+      const mitarbeiterIdRaw = req.body?.mitarbeiter_id ?? null;
+      const resolved = await resolveInviteTargetUserForCreate(store, {
+        email,
+        userId: targetUserIdRaw != null ? String(targetUserIdRaw) : '',
+        mitarbeiterId: mitarbeiterIdRaw != null ? String(mitarbeiterIdRaw) : '',
+        firmaId,
+      });
+      if (resolved.error) {
+        return sendError(res, 400, resolved.error, resolved.message || 'Ungültiger Zielbenutzer.');
+      }
+      email = resolved.email;
+      console.info('[INVITE_CREATE_DEBUG]', {
+        targetEmail: email,
+        targetUserId: resolved.targetUserId ?? resolved.targetUser?.id ?? null,
+        targetUserName: resolved.targetUser?.name ?? null,
+        createdByUserId: req.auth?.userId ?? null,
+        mitarbeiterId: resolved.mitarbeiterId ?? null,
+        emailOverridden: resolved.emailOverridden === true,
+        bodyEmailRaw: normalizeApiEmail(emailRaw),
+      });
+      const pending = await store.getPendingCockpitInviteByEmail(email);
+      if (pending) {
+        return sendError(
+          res,
+          409,
+          'CONFLICT',
+          'Für diese E-Mail existiert bereits eine offene Einladung.',
+        );
       }
       const rightsRaw = req.body?.rights && typeof req.body.rights === 'object' ? req.body.rights : {};
       const storedAccess = normalizeInviteAccessForRedeem(modules, rightsRaw);
