@@ -9,6 +9,7 @@ import CCState from '../../../../core/state/state.js';
 import { mapSchadenApiRowToViewModel } from '../../lib/fusa-schaden-view-model.js';
 import { loadMyRights, myRight } from '../../../../core/access/cc-my-rights.js';
 import { getFusaAppProject, ensureFusaProjectSelection } from '../../fusa-project-context.js';
+import { confirmDelete } from '../../../shared/ui/delete-confirm-modal.js';
 
 /**
  * Laufzeit-Debug (DevTools): `sessionStorage.setItem('cc_fusa_fz_debug','1')` oder `?fzdebug=1` in der URL.
@@ -698,7 +699,7 @@ export async function renderFusaFahrzeugeViewHtml() {
 
   const tableRowsHtml =
     allRows.length === 0
-      ? `<tr data-fusa-fz-empty-row><td colspan="7" class="ckp-snapshot-ro-empty-cell">Keine Fahrzeuge in diesem Projekt.</td></tr>`
+      ? `<tr data-fusa-fz-empty-row><td colspan="8" class="ckp-snapshot-ro-empty-cell">Keine Fahrzeuge in diesem Projekt.</td></tr>`
       : allRows
           .map((f) => {
             const detailPayload = encodeDetailPayload(f);
@@ -742,6 +743,9 @@ export async function renderFusaFahrzeugeViewHtml() {
           <td class="ckp-snapshot-ro-td">${auftragCol}</td>
           <td class="ckp-snapshot-ro-td"><div style="font-size:12px;color:${f.eigenwerbung || (!f.auftragKunde && !f.auftragPaket) ? 'var(--text3)' : 'var(--text)'};">${bisCol}</div>${f.eigenwerbung ? '' : laufzeitBlock}</td>
           <td class="ckp-snapshot-ro-td"><span class="bdg b${esc(f.statusBadge)}">${esc(f.statusLabel)}</span></td>
+          <td class="ckp-snapshot-ro-td">
+            <button type="button" class="btn" data-fusa-fz-delete-placeholder="${esc(f.id)}" data-fusa-fz-delete-label="${esc(f.nummer || f.kennung || f.id)}" style="font-size:11px;padding:4px 10px;background:var(--red-l,#FFEBEE);border-color:var(--red,#C62828);color:var(--red,#C62828);white-space:nowrap;">🗑 Löschen</button>
+          </td>
         </tr>`;
           })
           .join('');
@@ -993,6 +997,9 @@ export async function renderFusaFahrzeugeViewHtml() {
     .fusa-fz-view .fusa-fz-reset{height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:1px solid var(--border,#DDE3E8);border-radius:10px;background:var(--card,#fff);color:var(--text2,#546E7A);font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;transition:border-color .14s ease,background .14s ease,color .14s ease}
     .fusa-fz-view .fusa-fz-reset:hover{border-color:#F3B37B;background:#FFF7ED;color:var(--blue,#D4500A)}
     .fusa-fz-view .fusa-fz-reset__icon{font-size:14px;line-height:1}
+    .fusa-fz-view .fusa-fz-filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .fusa-fz-view .fusa-fz-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .fusa-fz-view .fusa-fz-table{min-width:1040px}
     .fusa-fz-view .panel{background:#fff;border:1px solid var(--border,#DDE3E8);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
     .fusa-fz-view .ph{padding:13px 16px;border-bottom:1px solid var(--border,#DDE3E8);display:flex;align-items:center;justify-content:space-between}
     .fusa-fz-view .ph-title{font-size:13px;font-weight:600}
@@ -1048,12 +1055,47 @@ export async function renderFusaFahrzeugeViewHtml() {
     html[data-theme='dark'] .fusa-fz-view .fusa-fz-seg{color:#A8B3C7}
     html[data-theme='dark'] .fusa-fz-view .fusa-fz-seg:hover{background:#172033;color:#F8FAFC}
     html[data-theme='dark'] .fusa-fz-view .fusa-fz-reset:hover{background:#172033;border-color:#D4500A;color:#FDBA74}
-    @media (max-width: 760px){
+    @media (max-width: 900px){
+      .fusa-fz-view .ccds-stats-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
       .fusa-fz-view .fusa-fz-toolbar{flex-direction:column;padding:10px}
+      .fusa-fz-view .fusa-fz-toolbar__main{width:100%;flex-direction:column;align-items:stretch}
       .fusa-fz-view .fusa-fz-search{max-width:none;width:100%;flex-basis:auto}
-      .fusa-fz-view .fusa-fz-segments{width:100%;overflow-x:auto;justify-content:flex-start}
+      .fusa-fz-view .fusa-fz-segments{width:100%;overflow-x:auto;justify-content:flex-start;box-sizing:border-box}
       .fusa-fz-view .fusa-fz-seg{flex:1 0 auto}
       .fusa-fz-view .fusa-fz-reset{width:100%}
+      .fusa-fz-view .fusa-fz-filter-grid{grid-template-columns:1fr;gap:10px}
+      .fusa-fz-view .fusa-fz-table-wrap{overflow-x:visible}
+      .fusa-fz-view .fusa-fz-table{display:block;width:100%;min-width:0!important;border-collapse:separate}
+      .fusa-fz-view .fusa-fz-table thead{display:none}
+      .fusa-fz-view .fusa-fz-table tbody{display:block}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row]{display:block;margin:0 0 12px;padding:12px;border:1px solid var(--border,#DDE3E8);border-radius:12px;background:var(--card,#fff)!important;box-shadow:0 1px 3px rgba(15,23,42,.06);cursor:pointer}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td{display:block;padding:8px 0!important;border:0!important;max-width:none!important;white-space:normal!important;font-size:12px}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td::before{display:block;margin-bottom:3px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text3,#90A4AE);line-height:1.3}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(1)::before{content:'Fahrzeug'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(2)::before{content:'Typ'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(3)::before{content:'Depot / Standort'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(4)::before{content:'Betreiber'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(5)::before{content:'Aktuelle Auftrag'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(6)::before{content:'Laufzeit bis'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(7)::before{content:'Status'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(8)::before{content:'Aktion'}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row] td:nth-child(8) .btn{width:100%;height:36px}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-empty-row] td{display:block!important;padding:18px!important;text-align:center}
+      .fusa-fz-view [data-fusa-fz-detail-modal]{justify-content:center}
+      .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-panel{width:100%;height:100vh}
+      .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-hdr{padding:13px 14px}
+      .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-tabs]{overflow-x:auto;padding:0 12px}
+      .fusa-fz-view [data-fusa-fz-detail-modal] [data-fusa-fz-detail-body]{padding:14px}
+      .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot{padding:12px 14px}
+      .fusa-fz-view [data-fusa-fz-detail-modal] .fusa-fz-detail-foot .btn{flex:1 1 140px}
+    }
+    @media (max-width: 760px){
+      .fusa-fz-view .frow2,.fusa-fz-view .frow3{grid-template-columns:1fr}
+    }
+    @media (max-width: 520px){
+      .fusa-fz-view .ccds-stats-row{grid-template-columns:1fr!important}
+      .fusa-fz-view .fusa-fz-table tr[data-fusa-fz-row]{padding:11px}
+      .fusa-fz-view [data-fusa-fz-detail-body] .foto-grid{grid-template-columns:1fr 1fr}
     }
   </style>
   ${loadErr ? `<p class="ckp-api-error" role="alert">${esc(loadErr)}</p>` : ''}
@@ -1078,7 +1120,7 @@ export async function renderFusaFahrzeugeViewHtml() {
     </div>
     <button type="button" class="fusa-fz-reset" data-fusa-fz-reset><span class="fusa-fz-reset__icon" aria-hidden="true">↺</span> Filter zurücksetzen</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+  <div class="fusa-fz-filter-grid">
     <div style="border-radius:10px;overflow:hidden;border:1px solid #E8C87A;">
       <button type="button" data-fusa-fz-accordion-toggle="typ" aria-expanded="true" style="width:100%;background:#E8A83A;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border:none;cursor:pointer;">
         <span style="font-size:13px;font-weight:700;color:#fff;">Fahrzeugtyp-Filter</span>
@@ -1102,8 +1144,8 @@ export async function renderFusaFahrzeugeViewHtml() {
   ${createModal}
   <section class="ckp-snapshot-ro-section" style="margin-top:20px;">
     <h3 class="ckp-snapshot-ro-section-title">Fahrzeugliste (operativ)</h3>
-    <div class="ckp-snapshot-ro-wrap ckp-table-wrap">
-      <table class="ckp-table ckp-snapshot-ro-table">
+    <div class="ckp-snapshot-ro-wrap ckp-table-wrap fusa-fz-table-wrap">
+      <table class="ckp-table ckp-snapshot-ro-table fusa-fz-table">
         <thead>
           <tr class="ckp-snapshot-ro-head-row">
             <th scope="col" class="ckp-snapshot-ro-th">Fahrzeug</th>
@@ -1113,6 +1155,7 @@ export async function renderFusaFahrzeugeViewHtml() {
             <th scope="col" class="ckp-snapshot-ro-th">Aktuelle Auftrag</th>
             <th scope="col" class="ckp-snapshot-ro-th">Laufzeit bis</th>
             <th scope="col" class="ckp-snapshot-ro-th">Status</th>
+            <th scope="col" class="ckp-snapshot-ro-th">Aktion</th>
           </tr>
         </thead>
         <tbody data-fusa-fz-table-body>${tableRowsHtml}</tbody>
@@ -1149,6 +1192,7 @@ export async function renderFusaFahrzeugeViewHtml() {
         <button type="button" class="btn" data-fusa-fz-qr-print>🔲 QR-Code drucken</button>
         <button type="button" class="btn" data-fusa-fz-foot-schaden>⚠ Schaden melden</button>
         <button type="button" class="btn" data-fusa-fz-foot-auftrag>+ Auftrag</button>
+        <button type="button" class="btn" data-fusa-fz-detail-delete-placeholder="1" style="background:var(--red-l,#FFEBEE);border-color:var(--red,#C62828);color:var(--red,#C62828);">🗑 Löschen</button>
         <button type="button" class="btn p" style="margin-left:auto;" data-fusa-fz-foot-pdf>PDF Export →</button>
       </div>
     </div>
@@ -1712,6 +1756,29 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
   if (tbody instanceof HTMLElement) {
     tbody.addEventListener('click', (ev) => {
       const t = ev.target;
+      const del = t && typeof t.closest === 'function' ? t.closest('[data-fusa-fz-delete-placeholder]') : null;
+      if (del) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const fid = del instanceof HTMLElement ? String(del.getAttribute('data-fusa-fz-delete-placeholder') || '').trim() : '';
+        const fLabel = del instanceof HTMLElement ? String(del.getAttribute('data-fusa-fz-delete-label') || '').trim() : '';
+        if (!fid) return;
+        void (async () => {
+          const ok = await confirmDelete({
+            title: 'Fahrzeug löschen?',
+            itemLabel: `Fahrzeug ${fLabel || fid}`,
+            message: 'Löscht das Fahrzeug dauerhaft. Verknüpfte Schäden und reine Fahrzeug-Aufträge werden mit entfernt.',
+          });
+          if (!ok) return;
+          try {
+            await apiFetch(`${API_ROUTES.fusa.fahrzeuge}/${encodeURIComponent(fid)}`, { method: 'DELETE' });
+            if (typeof onReload === 'function') await onReload();
+          } catch (err) {
+            window.alert(formatApiErrorForUi(err));
+          }
+        })();
+        return;
+      }
       const tr = t && typeof t.closest === 'function' ? t.closest('[data-fusa-fz-row]') : null;
       if (!(tr instanceof HTMLElement)) return;
       void openDetailByRow(tr);
@@ -1974,6 +2041,27 @@ export function attachFusaFahrzeugeHandlers(mount, onReload) {
                 .slice(0, 72)
             : 'Aktion';
         if (detailBody instanceof HTMLElement) flashFusaFzDetailPlaceholder(detailBody, `${lab}: Funktion folgt noch.`);
+        return;
+      }
+      if (t.closest('[data-fusa-fz-detail-delete-placeholder]')) {
+        ev.preventDefault();
+        const fid = currentDetail && currentDetail.id != null ? String(currentDetail.id).trim() : '';
+        if (!fid) return;
+        void (async () => {
+          const ok = await confirmDelete({
+            title: 'Fahrzeug löschen?',
+            itemLabel: `Fahrzeug ${currentDetail?.nummer || fid}`,
+            message: 'Löscht das Fahrzeug dauerhaft. Verknüpfte Schäden und reine Fahrzeug-Aufträge werden mit entfernt.',
+          });
+          if (!ok) return;
+          try {
+            await apiFetch(`${API_ROUTES.fusa.fahrzeuge}/${encodeURIComponent(fid)}`, { method: 'DELETE' });
+            closeDetailModal();
+            if (typeof onReload === 'function') await onReload();
+          } catch (err) {
+            if (detailBody instanceof HTMLElement) flashFusaFzDetailPlaceholder(detailBody, formatApiErrorForUi(err));
+          }
+        })();
         return;
       }
       if (t.closest('[data-fusa-fz-foot-schaden]') || t.closest('[data-fusa-fz-schaden-melden-tab]')) {

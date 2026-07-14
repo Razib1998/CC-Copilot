@@ -83,5 +83,15 @@ export async function loadCcInternScripts() {
     });
   }
 
+  // `views/auftraege-detail-view.js` enthält noch alte globale Funktionen
+  // mit denselben Namen wie die Angebotsansicht. Nach der kompletten
+  // Legacy-Kette immer die zuvor gesicherten, serverfähigen Handler setzen.
+  const angebotHandlers = window.__CCINTERN_CANONICAL_ANGEBOTE_HANDLERS__;
+  if (angebotHandlers && typeof angebotHandlers === 'object') {
+    for (const [name, handler] of Object.entries(angebotHandlers)) {
+      if (typeof handler === 'function') window[name] = handler;
+    }
+  }
+
   _ccInternScriptsLoaded = true;
 }

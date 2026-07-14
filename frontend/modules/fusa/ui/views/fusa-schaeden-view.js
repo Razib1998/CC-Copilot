@@ -14,6 +14,7 @@ import { getFusaAppProject, ensureFusaProjectSelection } from '../../fusa-projec
 import { renderFusaSchadenDetailHtml } from './fusa-schaden-detail-view.js';
 import { schadenKpisFromRows } from '../../lib/fusa-schaden-ui-status.js';
 import { mapSchadenApiRowToViewModel } from '../../lib/fusa-schaden-view-model.js';
+import { confirmDelete } from '../../../shared/ui/delete-confirm-modal.js';
 
 /** Alt `WERKSTATT_MAILS` — für Vorschau & mailto. */
 const WERKSTATT_MAILS = {
@@ -384,9 +385,12 @@ export async function renderFusaSchaedenViewHtml() {
           </td>
           <td class="ckp-snapshot-ro-td"><span class="fusa-sch-bdg bdg b${esc(vm.abrechnungBadgeClass)}">${esc(vm.abrechnungLabel)}</span></td>
           <td class="ckp-snapshot-ro-td">${wvCell}</td>
-          <td class="ckp-snapshot-ro-td" style="white-space:nowrap;max-width:200px;" onclick="event.stopPropagation();">
-            <button type="button" class="btn" style="font-size:11px;padding:4px 10px;" data-fusa-schaden-open-detail="${esc(sid)}">Details</button>
-            <div style="margin-top:6px;">${schadenAktionenHtml(vm, canBearbeitenSchaden)}</div>
+          <td class="ckp-snapshot-ro-td" style="min-width:128px;">
+            <div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;max-width:142px;">
+              <button type="button" class="btn" style="width:100%;font-size:11px;padding:5px 9px;justify-content:center;" data-fusa-schaden-open-detail="${esc(sid)}">Details</button>
+              <button type="button" class="btn" style="width:100%;font-size:11px;padding:5px 9px;justify-content:center;background:var(--red-l,#FFEBEE);border-color:var(--red,#C62828);color:var(--red,#C62828);" data-fusa-sch-delete-placeholder="${esc(sid)}">🗑 Löschen</button>
+              <div>${schadenAktionenHtml(vm, canBearbeitenSchaden)}</div>
+            </div>
           </td>
         </tr>`;
           return anfrageRow ? [mainRow, anfrageRow] : [mainRow];
@@ -588,6 +592,7 @@ export async function renderFusaSchaedenViewHtml() {
 .fusa-sch-scope .fusa-sch-filter select:focus,.fusa-sch-scope .fusa-sch-filter input:focus{border-color:#4527A0;}
 .fusa-sch-scope .fusa-sch-filter .btn{font:inherit;font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;}
 .fusa-sch-scope .fusa-sch-filter .btn:hover{background:#f1f5f9;}
+.fusa-sch-scope .fusa-sch-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .fusa-sch-scope .fusa-sch-table{width:100%;min-width:1120px;table-layout:fixed;border-collapse:collapse;}
 .fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-th{text-align:left;vertical-align:middle;padding:10px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;line-height:1.15;white-space:nowrap;}
 .fusa-sch-scope .fusa-sch-table .ckp-snapshot-ro-td{vertical-align:top;padding:10px 10px;line-height:1.35;}
@@ -629,6 +634,40 @@ html[data-theme='dark'] .fusa-sch-scope .fusa-sch-kpi-card--erledigt{--fusa-sch-
 #fusa-sch-melden-modal[style*="flex"]{display:flex!important;}
 #fusa-sch-termin-modal[style*="flex"]{display:flex!important;}
 #fusa-sch-best-modal[style*="flex"]{display:flex!important;}
+@media (max-width: 900px){
+  .fusa-sch-scope .fusa-sch-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .fusa-sch-scope .fusa-sch-kpi-card{min-height:78px;padding:12px;}
+  .fusa-sch-scope .fusa-sch-kpi-value{font-size:22px;}
+  .fusa-sch-scope .fusa-sch-filter{display:grid!important;grid-template-columns:1fr;gap:10px!important;}
+  .fusa-sch-scope .fusa-sch-filter select,
+  .fusa-sch-scope .fusa-sch-filter input[type=search],
+  .fusa-sch-scope .fusa-sch-filter .btn{width:100%;min-width:0!important;max-width:none!important;box-sizing:border-box;height:40px;}
+  .fusa-sch-scope .fusa-sch-table-wrap{overflow-x:visible;}
+  .fusa-sch-scope .fusa-sch-table{display:block;width:100%;min-width:0!important;border-collapse:separate;}
+  .fusa-sch-scope .fusa-sch-table colgroup,
+  .fusa-sch-scope .fusa-sch-table thead{display:none;}
+  .fusa-sch-scope .fusa-sch-table tbody{display:block;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row]{display:block;margin:0 0 12px;padding:12px;border:1px solid var(--border,#DDE3E8);border-radius:12px;background:var(--card,#fff);box-shadow:0 1px 3px rgba(15,23,42,.06);cursor:pointer;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td{display:block;padding:8px 0!important;border:0!important;max-width:none!important;white-space:normal!important;font-size:12px;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td::before{display:block;margin-bottom:3px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;line-height:1.3;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(1)::before{content:'ID / Datum';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(2)::before{content:'Fahrzeug';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(3)::before{content:'Beschreibung';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(4)::before{content:'Schadentyp';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(5)::before{content:'Reparatur';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(6)::before{content:'Abrechnung';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(7)::before{content:'WV-Datum';}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(8){display:block;min-width:0!important;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(8)::before{content:'Aktion';display:block;margin-bottom:7px;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(8)>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-width:none!important;width:100%;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(8)>div>div{grid-column:1 / -1;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-sch-anfrage-for]{display:block;margin:-6px 0 12px;padding:10px 12px;border:1px solid #BFDBFE;border-radius:10px;background:#EEF4FF;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-sch-anfrage-for] td{display:block!important;padding:0!important;border:0!important;}
+}
+@media (max-width: 520px){
+  .fusa-sch-scope .fusa-sch-kpi-grid{grid-template-columns:1fr;}
+  .fusa-sch-scope .fusa-sch-table tr[data-fusa-schaden-row] td:nth-child(8)>div{grid-template-columns:1fr;}
+}
 </style>
 ${loadErr ? `<p class="ckp-api-error" role="alert">${esc(loadErr)}</p>` : ''}
 ${noProjMsg}
@@ -659,7 +698,7 @@ ${canCreateSchaden && pid ? `<div style="margin-bottom:16px;"><button type="butt
   </div>
 
   <!-- Tabelle -->
-  <div style="overflow-x:auto;">
+  <div class="fusa-sch-table-wrap">
   <table class="ckp-snapshot-ro-table fusa-sch-table">
     <colgroup>
       <col style="width:100px;" />
@@ -888,6 +927,27 @@ export function attachFusaSchaedenHandlers(root, reloadView) {
         CCState.set('fusaSchadenDetailId', sid);
         reload();
       }
+    });
+  });
+  scope.querySelectorAll('[data-fusa-sch-delete-placeholder]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const sid = String(/** @type {HTMLElement} */ (btn).getAttribute('data-fusa-sch-delete-placeholder') || '').trim();
+      if (!sid) return;
+      void (async () => {
+        const ok = await confirmDelete({
+          title: 'Schaden löschen?',
+          itemLabel: `Schaden ${sid}`,
+        });
+        if (!ok) return;
+        try {
+          await apiFetch(`${API_ROUTES.fusa.schaeden}/${encodeURIComponent(sid)}`, { method: 'DELETE' });
+          reload();
+        } catch (err) {
+          window.alert(formatApiErrorForUi(err));
+        }
+      })();
     });
   });
   scope.querySelectorAll('.fusa-schaden-list-row').forEach(row => {

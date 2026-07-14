@@ -115,6 +115,52 @@ function maAssertMaPayloadRoleAllowed(ma){
 // maKapPruefen: Definition in views/auftraege-detail-view.js (wird vor dieser Datei geladen).
 // Frühere Kopie hier überschrieb die Detail-Version und verwirrte Montage-Datum / Dedupe — nicht duplizieren.
 
+function maHeuteAnwesenheitMinuten(m, heute){
+  if (typeof MA_ANWESENHEIT === 'undefined' || !Array.isArray(MA_ANWESENHEIT) || !m) return 0;
+  return MA_ANWESENHEIT
+    .filter(function(a){ return a && a.maId === m.maId && a.datum === heute && a.typ !== 'kurzabwesenheit'; })
+    .reduce(function(sum, a){ return sum + maAnwesenheitDauerMinuten(a); }, 0);
+}
+
+function maFormatArbeitszeitMinuten(minuten){
+  var min = Math.max(0, Math.round(Number(minuten) || 0));
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  return h + 'h ' + String(m).padStart(2, '0') + 'm';
+}
+
+function maZeitTextMinuten(value){
+  var t = value != null ? String(value).trim() : '';
+  var m = t.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  var h = Number(m[1]);
+  var min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function maDauerMinutenAusStartEnd(start, end){
+  var s = maZeitTextMinuten(start);
+  var e = maZeitTextMinuten(end);
+  if (s == null || e == null) return 0;
+  var diff = e - s;
+  if (diff < 0) diff += 24 * 60;
+  return Math.max(0, diff);
+}
+
+function maAnwesenheitDauerMinuten(e){
+  var saved = Math.round(Number(e && e.dauer) || 0);
+  if (saved > 0) return saved;
+  return maDauerMinutenAusStartEnd(e && e.start, e && e.end);
+}
+
+function maFormatHeuteZeit(anwesenheitMin, geplantH){
+  var min = Math.round(Number(anwesenheitMin) || 0);
+  if (min > 0) return maFormatArbeitszeitMinuten(min);
+  var geplantMin = Math.round((Number(geplantH) || 0) * 60);
+  return geplantMin > 0 ? maFormatArbeitszeitMinuten(geplantMin) : '0h 00m';
+}
+
 // Vor der MA-Übersicht: INTERN_AUFGABEN aus AUFTRÄGE (Produktions-Pool) nachziehen — analog
 // mobMeineWorkflowAufgaben in `mitarbeiter-app-mob-inline.js` (Mitarbeiter-App räumt dabei auf).
 // Ohne diesen Schritt zeigen die Karten nur, was schon in INTERN_AUFGABEN liegt; der Kanban nutzt
@@ -159,10 +205,12 @@ function renderMitarbeiter(){
     var heute_aufg = maAufgabenHeute(m.maId);
     var gesamtH  = aufg.reduce(function(s,g){ return s+(g.dauer||0); }, 0);
     var heuteH   = heute_aufg.reduce(function(s,g){ return s+(g.dauer||0); }, 0);
+    var heuteAnwMin = maHeuteAnwesenheitMinuten(m, heute);
+    var heuteTxt = maFormatHeuteZeit(heuteAnwMin, heuteH);
     // Auslastung: geplante Stunden vs. Monatssoll
     var pct = m.soll > 0 ? Math.min(100, Math.round(gesamtH / m.soll * 100)) : 0;
     var barCol = pct >= 90 ? 'var(--red)' : pct >= 65 ? 'var(--amber)' : pct >= 20 ? m.col : 'var(--border)';
-    var statusDot = heuteH > 0
+    var statusDot = (heuteAnwMin > 0 || heuteH > 0)
       ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-left:5px;" title="Heute aktiv"></span>'
       : '';
 
@@ -180,7 +228,7 @@ function renderMitarbeiter(){
         +'</div>'
       +'</div>'
       +'<div class="ma-stats">'
-        +'<div><div class="ma-stat-n" style="color:'+(heuteH>0?'var(--green)':'var(--text3)')+'">'+heuteH+'h</div><div class="ma-stat-l">Heute</div></div>'
+        +'<div><div class="ma-stat-n" style="color:'+((heuteAnwMin > 0 || heuteH > 0)?'var(--green)':'var(--text3)')+'">'+heuteTxt+'</div><div class="ma-stat-l">Heute</div></div>'
         +'<div><div class="ma-stat-n">'+aufg.length+'</div><div class="ma-stat-l">Aufgaben</div></div>'
         +'<div><div class="ma-stat-n" style="color:'+barCol+'">'+pct+'%</div><div class="ma-stat-l">Auslastung</div></div>'
       +'</div>'
@@ -221,9 +269,10 @@ function maOpenSettings(){
       +'</td>'
       // Kürzel (Rolle: immer intern / API global_role INTERN — kein Dropdown)
       +'<td style="padding:9px 10px;text-align:center;">'
-        +'<input type="text" data-maid="'+m.maId+'" data-field="kuerzel" value="'+kuerzelVal+'" maxlength="3"'
-          +' style="'+iStyle+'font-size:12px;width:68px;text-align:center;text-transform:uppercase;color:var(--text);"'
-          +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.toUpperCase();this.style.borderColor=\'var(--border)\'">'
+        +'<input type="text" data-maid="'+m.maId+'" data-field="kuerzel" value="'+kuerzelVal+'" maxlength="32"'
+          +' aria-label="Frei wählbares Kürzel" title="Frei wählbar, maximal 32 Zeichen und innerhalb der Firma eindeutig"'
+          +' style="'+iStyle+'font-size:12px;width:116px;text-align:center;text-transform:uppercase;color:var(--text);"'
+          +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.trim().toUpperCase();this.style.borderColor=\'var(--border)\'">'
       +'</td>'
       // Soll-Stunden
       +'<td style="padding:9px 10px;text-align:center;">'
@@ -271,7 +320,7 @@ function maOpenSettings(){
           +'<thead>'
             +'<tr style="background:var(--gray-l);">'
               +'<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);">Mitarbeiter</th>'
-              +'<th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);">Kürzel</th>'
+              +'<th title="Frei wählbar, maximal 32 Zeichen und innerhalb der Firma eindeutig" style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);">Kürzel</th>'
               +'<th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--blue);border-bottom:1px solid var(--border);">Soll-Std./Monat</th>'
               +'<th style="padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--green);border-bottom:1px solid var(--border);">Urlaub/Jahr</th>'
               +'<th style="border-bottom:1px solid var(--border);width:36px;"></th>'
@@ -289,7 +338,7 @@ function maOpenSettings(){
       +'</div>'
       // Footer
       +'<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
-        +'<div style="font-size:11px;color:var(--text3);">🗑 = zum Entfernen markieren · ↩ = Rückgängig</div>'
+        +'<div style="font-size:11px;color:var(--text3);">Kürzel frei wählbar · innerhalb der Firma eindeutig</div>'
         +'<div style="display:flex;gap:8px;">'
           +'<button class="btn" onclick="maCloseSettings()">Abbrechen</button>'
           +'<button class="btn p" onclick="maSaveSettings()" style="min-width:130px;">💾 Speichern</button>'
@@ -346,8 +395,9 @@ function maAddNewRow(){
       +'</div>'
     +'</td>'
     +'<td style="padding:9px 10px;text-align:center;">'
-      +'<input type="text" data-tmpid="'+tmpId+'" data-field="kuerzel" placeholder="Kürzel *" maxlength="3"'
-        +' style="'+iStyle+'font-size:12px;width:68px;text-align:center;text-transform:uppercase;"'
+      +'<input type="text" data-tmpid="'+tmpId+'" data-field="kuerzel" placeholder="z. B. NM-1" maxlength="32" required'
+        +' aria-label="Frei wählbares Kürzel" title="Frei wählbar, maximal 32 Zeichen und innerhalb der Firma eindeutig"'
+        +' style="'+iStyle+'font-size:12px;width:116px;text-align:center;text-transform:uppercase;"'
         +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.toUpperCase();this.style.borderColor=\'var(--border)\'">'
     +'</td>'
     +'<td style="padding:9px 10px;text-align:center;">'
@@ -775,8 +825,7 @@ function maAnwesenheitHtml(m){
   var html = '';
   Object.keys(gruppen).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(mo){
     var eintr = gruppen[mo];
-    var monatMin = eintr.reduce(function(s,e){ return s+(e.dauer||0); },0);
-    var monatH   = (monatMin/60).toFixed(1);
+    var monatMin = eintr.reduce(function(s,e){ return s+maAnwesenheitDauerMinuten(e); },0);
     var soll     = m.soll || 160;
     var pct      = Math.min(100, Math.round(monatMin/60/soll*100));
     var barC     = pct>=90?'var(--green)':pct>=65?'var(--amber)':'var(--blue)';
@@ -790,17 +839,15 @@ function maAnwesenheitHtml(m){
         +'<div style="width:80px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">'
           +'<div style="height:100%;width:'+pct+'%;background:'+barC+';border-radius:3px;"></div>'
         +'</div>'
-        +'<span style="font-size:12px;font-weight:700;color:'+barC+';">'+monatH+'h / '+soll+'h</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+barC+';">'+maFormatArbeitszeitMinuten(monatMin)+' / '+soll+'h</span>'
       +'</div>'
     +'</div>';
 
     // Tageseinträge
     html += eintr.map(function(e){
       var isKurz  = e.typ === 'kurzabwesenheit';
-      var min     = Math.abs(e.dauer || 0);
-      var h       = Math.floor(min/60);
-      var m2      = min % 60;
-      var dauerTxt = (isKurz ? '−' : '') + h+'h '+(m2>0?m2+'min':'');
+      var min     = Math.abs(maAnwesenheitDauerMinuten(e));
+      var dauerTxt = (isKurz ? '-' : '') + maFormatArbeitszeitMinuten(min);
       var datDE   = e.datum ? e.datum.split('-').reverse().join('.') : '—';
       var isHeute = e.datum === heute;
       var bgC     = isKurz ? '#FFF3E0' : (isHeute ? 'var(--blue-l)' : 'var(--gray-l)');
@@ -923,4 +970,3 @@ function formatMinuten(min){
   var h=Math.floor(min/60), m=min%60;
   return h>0 ? h+'h '+String(m).padStart(2,'0')+'m' : m+'m';
 }
-

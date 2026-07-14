@@ -372,6 +372,21 @@ export function mapSnapshotEventToCalendarEvent(raw) {
     cockpitExt.cockpitCcInternTerminSparte = ccInternSparte;
   }
 
+  const calendarTerminId = toTrimmedString(r.calendarTerminId);
+  if (calendarTerminId) {
+    cockpitExt.cockpitCalendarTerminId = calendarTerminId;
+    const calendarTerminTyp = toTrimmedString(r.calendarTerminTyp);
+    const calendarTerminQuelle = toTrimmedString(r.calendarTerminQuelle);
+    const calendarTerminNotiz = toTrimmedString(r.calendarTerminNotiz);
+    if (calendarTerminTyp) cockpitExt.cockpitCalendarTerminTyp = calendarTerminTyp;
+    if (calendarTerminQuelle) cockpitExt.cockpitCalendarTerminQuelle = calendarTerminQuelle;
+    if (calendarTerminNotiz) cockpitExt.cockpitLokalNotiz = calendarTerminNotiz;
+    if (String(eventId).startsWith('ccw-cockpit-general-')) {
+      cockpitExt.cockpitLokalTypLabel = 'Allgemeiner Termin';
+      cockpitExt.cockpitCalendarServerManaged = true;
+    }
+  }
+
   if (quelleSystem === 'fusa' && bekRoh) {
     const nb = normalizeBeklebungsterminStatus(bekRoh);
     if (nb === 'geplant' || nb === 'bestaetigt' || nb === 'verschoben') {

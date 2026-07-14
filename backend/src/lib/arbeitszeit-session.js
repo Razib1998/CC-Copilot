@@ -49,7 +49,8 @@ export function netDurationMinutes(session, now = new Date()) {
   if (Number.isNaN(started.getTime())) return 0;
   const grossSec = Math.max(0, Math.floor((now.getTime() - started.getTime()) / 1000));
   const pauseSec = effectivePauseSeconds(session, now);
-  return Math.floor(Math.max(0, grossSec - pauseSec) / 60);
+  const netSec = Math.max(0, grossSec - pauseSec);
+  return netSec > 0 ? Math.ceil(netSec / 60) : 0;
 }
 
 /**

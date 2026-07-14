@@ -131,6 +131,12 @@ const MERGE_OPTIONAL_AUFTRAG_KEYS = /** @type {const} */ ([
   'auftragId',
   'projektName',
   'auftragsnummer',
+  'calendarTerminId',
+  'calendarTerminTyp',
+  'calendarTerminQuelle',
+  'calendarTerminNotiz',
+  'calendarTerminGanztag',
+  'calendarTerminStandalone',
 ]);
 
 /**
@@ -379,6 +385,24 @@ export function buildValidatedCalendarEventsFromStateSnapshot(opts) {
       const src = aid ? auftraege.find(x => x && String(x.id) === aid) : null;
       let outRow = src ? enrichKernelRowForFusaBeklebungKalender(row, /** @type {Record<string, unknown>} */ (src), projectTitle) : row;
       const srcRec = src && typeof src === 'object' ? /** @type {Record<string, unknown>} */ (src) : null;
+      const calendarTerminId = srcRec?.calendarTerminId != null ? String(srcRec.calendarTerminId).trim() : '';
+      if (calendarTerminId) {
+        const standalone = srcRec?.calendarTerminStandalone === true;
+        const sourceAuftragId = srcRec?.auftragId != null ? String(srcRec.auftragId).trim() : '';
+        outRow = /** @type {typeof row} */ (
+          /** @type {unknown} */ ({
+            ...(typeof outRow === 'object' && outRow ? /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (outRow)) : {}),
+            id: standalone ? `ccw-cockpit-general-${calendarTerminId}` : outRow.id,
+            eventId: standalone ? `ccw-cockpit-general-${calendarTerminId}` : outRow.id,
+            calendarTerminId,
+            calendarTerminTyp: srcRec?.calendarTerminTyp,
+            calendarTerminQuelle: srcRec?.calendarTerminQuelle,
+            calendarTerminNotiz: srcRec?.calendarTerminNotiz,
+            ganztag: srcRec?.calendarTerminGanztag === true,
+            ...(standalone ? { auftragId: null } : sourceAuftragId ? { auftragId: sourceAuftragId } : {}),
+          })
+        );
+      }
       const ccSp = srcRec?.calendarCcInternTerminSparte;
       if (ccSp === 'montage' || ccSp === 'lieferung') {
         const aid0 = kernelAuftragIdFromEventId(typeof outRow === 'object' && outRow && 'id' in outRow ? String(/** @type {any} */ (outRow).id) : '');
@@ -566,4 +590,3 @@ export function buildUnifiedCcwCalendarEventsFromAppState(options = {}) {
   });
 
 }
-

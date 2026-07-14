@@ -797,7 +797,7 @@ export function createAuftraegeRouter(store, options = {}) {
     }
   });
 
-  /** Storno: Status auf „storniert“ setzen (kein physisches DELETE). */
+  /** Physisches Löschen: entfernt den Auftrag und bereinigt FUSA-Verknüpfungen. */
   router.delete('/:auftragId', aufBearbeiten, async (req, res, next) => {
     try {
       const auftragId = String(req.params.auftragId || '').trim();
@@ -811,63 +811,17 @@ export function createAuftraegeRouter(store, options = {}) {
       if (existing.project_id == null || String(existing.project_id).trim() === '') {
         return jsonOut(res, 403, {
           error: 'FORBIDDEN',
-          message: 'Auftrag ohne Projektbezug kann nicht storniert werden.',
+          message: 'Auftrag ohne Projektbezug kann nicht gelöscht werden.',
         });
       }
-      const updated = await store.updateAuftragPatchWithBelegung(auftragId, { status: 'storniert' });
-      if (updated && typeof updated === 'object' && 'error' in updated) {
-        const code = updated.error;
-        const msg =
-          'message' in updated && typeof updated.message === 'string'
-            ? updated.message
-            : 'Storno fehlgeschlagen.';
-        if (code === 'BELEGUNG_KONFLIKT') {
-          return jsonOut(res, 409, {
-            error: 'BELEGUNG_KONFLIKT',
-            message: msg,
-            konflikt:
-              'konflikt' in updated && updated.konflikt && typeof updated.konflikt === 'object'
-                ? updated.konflikt
-                : undefined,
-          });
-        }
-        if (code === 'INVALID_STATUS') {
-          return jsonOut(res, 400, { error: 'VALIDATION_ERROR', message: msg });
-        }
-        return jsonOut(res, 400, { error: 'VALIDATION_ERROR', message: msg });
+      if (typeof store.deleteFusaAuftragHard !== 'function') {
+        return jsonOut(res, 500, { error: 'INTERNAL_ERROR', message: 'Löschen wird vom Store nicht unterstützt.' });
       }
-      if (!updated) {
-        return jsonOut(res, 500, {
-          error: 'INTERNAL_ERROR',
-          message: 'Auftrag konnte nicht storniert werden.',
-        });
+      const ok = await store.deleteFusaAuftragHard(auftragId);
+      if (!ok) {
+        return jsonOut(res, 500, { error: 'INTERNAL_ERROR', message: 'Auftrag konnte nicht gelöscht werden.' });
       }
-      try {
-        const patchedRow = await store.getAuftragById(auftragId);
-        if (patchedRow) {
-          const linked = await store.getCcInternAuftragByFusaAuftragId(
-            patchedRow.id,
-            patchedRow.fusa_kunde_id || undefined,
-          );
-          await syncFusaTerminAndLinkedCcIntern({
-            store,
-            fusaAuftrag: patchedRow,
-            linkedCcInternAuftrag: linked || null,
-            actorUserId: req.auth?.userId ?? null,
-          });
-        }
-      } catch {
-        /* Sync darf Storno nicht blockieren */
-      }
-      const final = await store.getAuftragById(auftragId);
-      if (!final) {
-        return jsonOut(res, 500, {
-          error: 'INTERNAL_ERROR',
-          message: 'Auftrag nach Storno nicht gefunden.',
-        });
-      }
-      const canViewDel = req.accessProfile?.canViewPricesAnywhere() ?? false;
-      return jsonOut(res, 200, { auftrag: mapAuftragResponse(final, canViewDel) });
+      return jsonOut(res, 200, { deleted: true, id: auftragId });
     } catch (e) {
       return next(e);
     }

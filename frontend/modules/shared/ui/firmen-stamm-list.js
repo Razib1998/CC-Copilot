@@ -198,11 +198,14 @@ export function buildFirmaDetailByListIdMap(normalizedList) {
 
 /**
  * @param {object[]} normalizedRows aus {@link buildNormalizedFirmenFromApi}
- * @param {{ emptyHint?: string }} [opts]
+ * @param {{ emptyHint?: string, showDeleteAction?: boolean }} [opts]
  * @returns {string}
  */
 export function renderFirmenStammListTableHtml(normalizedRows, opts = {}) {
   const emptyHint = opts.emptyHint != null && String(opts.emptyHint).trim() !== '' ? String(opts.emptyHint).trim() : 'Keine Firmen.';
+  const showDeleteAction = opts.showDeleteAction === true;
+  const actionHead = showDeleteAction ? '<th scope="col">Aktion</th>' : '';
+  const emptyColspan = showDeleteAction ? 6 : 5;
   const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
   if (rows.length === 0) {
     return `<table class="ckp-table ckp-firmen-table">
@@ -213,10 +216,11 @@ export function renderFirmenStammListTableHtml(normalizedRows, opts = {}) {
       <th scope="col">Intern/Extern</th>
       <th scope="col">Stadt</th>
       <th scope="col">Status</th>
+      ${actionHead}
     </tr>
   </thead>
   <tbody>
-    <tr><td colspan="5" class="ckp-snapshot-ro-empty-cell">${esc(emptyHint)}</td></tr>
+    <tr><td colspan="${emptyColspan}" class="ckp-snapshot-ro-empty-cell">${esc(emptyHint)}</td></tr>
   </tbody>
 </table>`;
   }
@@ -234,6 +238,7 @@ export function renderFirmenStammListTableHtml(normalizedRows, opts = {}) {
   <td>${esc(c.internExtern || '—')}</td>
   <td>${esc(c.stadt || '—')}</td>
   <td>${esc(st)}</td>
+  ${showDeleteAction ? `<td><button type="button" class="btn" data-ccw-kunden-delete-placeholder="${esc(id)}" style="font-size:11px;padding:4px 10px;background:var(--red-l,#FFEBEE);border-color:var(--red,#C62828);color:var(--red,#C62828);white-space:nowrap;">🗑 Löschen</button></td>` : ''}
 </tr>`;
     })
     .join('');
@@ -245,6 +250,7 @@ export function renderFirmenStammListTableHtml(normalizedRows, opts = {}) {
       <th scope="col">Intern/Extern</th>
       <th scope="col">Stadt</th>
       <th scope="col">Status</th>
+      ${actionHead}
     </tr>
   </thead>
   <tbody>${body}</tbody>
@@ -253,7 +259,7 @@ export function renderFirmenStammListTableHtml(normalizedRows, opts = {}) {
 
 /**
  * @param {object[]} normalizedRows
- * @param {{ sectionTitle?: string, emptyHint?: string }} [opts]
+ * @param {{ sectionTitle?: string, emptyHint?: string, showDeleteAction?: boolean }} [opts]
  */
 export function renderFirmenStammListSectionHtml(normalizedRows, opts = {}) {
   const title =
@@ -263,7 +269,7 @@ export function renderFirmenStammListSectionHtml(normalizedRows, opts = {}) {
   return `<section class="ckp-snapshot-ro-section">
   <h3 class="ckp-snapshot-ro-section-title">${esc(title)}</h3>
   <div class="ckp-snapshot-ro-wrap ckp-table-wrap">
-    ${renderFirmenStammListTableHtml(normalizedRows, { emptyHint: opts.emptyHint })}
+    ${renderFirmenStammListTableHtml(normalizedRows, { emptyHint: opts.emptyHint, showDeleteAction: opts.showDeleteAction === true })}
   </div>
 </section>`;
 }

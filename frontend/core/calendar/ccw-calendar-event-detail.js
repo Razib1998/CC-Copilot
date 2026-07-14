@@ -489,7 +489,7 @@ let activeOverlayEl = null;
 let activeEscapeHandler = null;
 
 /**
- * Lokale allgemeine Termine: Bearbeiten/Löschen (Cockpit-Kalender registriert Handler beim Mount).
+ * Allgemeine servergeführte Termine: Bearbeiten/Löschen (Cockpit-Kalender registriert Handler beim Mount).
  * @typedef {{ onSave: (p: { eventId: string; titel: string; startIso: string; endeIso: string; notiz: string }) => void; onDelete: (eventId: string) => void }} CockpitLocalGeneralEditHandlers
  */
 
@@ -567,7 +567,7 @@ export function renderCalendarEventGeneralEdit(event) {
       <button type="button" data-ccw-cal-detail-close class="ccw-cal-detail-close" aria-label="Schließen"
         style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid var(--border,#e5e7eb);background:var(--card,#fff);font-size:13px;cursor:pointer;font-family:system-ui,sans-serif;">Schließen</button>
     </div>
-    <p style="margin:0 0 12px;font-size:12px;color:var(--muted,#64748b);">Lokal im Browser gespeichert — kein Auftrag/Projekt.</p>
+    <p style="margin:0 0 12px;font-size:12px;color:var(--muted,#64748b);">Zentral auf dem Server gespeichert — sichtbar im Kalender und Dashboard.</p>
     <form data-ccw-cal-general-edit-form style="display:flex;flex-direction:column;gap:10px;">
       <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted,#64748b);">Titel
         <input name="titel" type="text" required autocomplete="off" value="${titelAttr}"

@@ -1122,7 +1122,7 @@ function mobUpdateNachrichtenBadge(){
   var mobBadge = document.getElementById('mob-fragen-badge');
   if(mobBadge){
     mobBadge.textContent = n > 99 ? '99+' : String(n);
-    mobBadge.style.display = n > 0 ? '' : 'none';
+    mobBadge.style.display = '';
   }
 }
 
@@ -1176,49 +1176,121 @@ function mobScrollDetailZuKommunikation(){
   }, 420);
 }
 
-/**
- * Header-Glocke: ungelesene Auftrags-Kommentare öffnen → Auftrag-Detail, Scroll zur Kommunikation.
- * Fallback: offene Fragen-Block / Tab Aufgaben.
- */
+/** Alle Auftrags-Chats, an denen der angemeldete Mitarbeiter beteiligt ist. */
+function mobNachrichtenKonversationen(){
+  if(typeof AUFTRAEGE === 'undefined' || !Array.isArray(AUFTRAEGE)) return [];
+  if(typeof MOB_MA_ID === 'undefined' || !MOB_MA_ID) return [];
+  var my = String(MOB_MA_ID).trim();
+  var rows = [];
+  AUFTRAEGE.forEach(function(a){
+    if(!a || a.archiv || !mobAuftragHatMaBeteiligung(a, my)) return;
+    var kommentare = Array.isArray(a.kommentare) ? a.kommentare.filter(Boolean) : [];
+    if(!kommentare.length) return;
+    var latest = kommentare[0];
+    var unread = 0;
+    kommentare.forEach(function(k){
+      if(mobKommentarIstUngelesenFuerMa(k, my)) unread++;
+      var kt = String(k.ts || k.zeit || '');
+      var lt = String(latest && (latest.ts || latest.zeit) || '');
+      if(kt > lt) latest = k;
+    });
+    rows.push({
+      id: String(a.id || ''),
+      auftrag: a,
+      kommentare: kommentare,
+      latest: latest || {},
+      unread: unread,
+      latestTs: String(latest && (latest.ts || latest.zeit) || ''),
+    });
+  });
+  rows.sort(function(a,b){
+    if((b.unread > 0) !== (a.unread > 0)) return b.unread > 0 ? 1 : -1;
+    return String(b.latestTs || '').localeCompare(String(a.latestTs || ''));
+  });
+  return rows;
+}
+
+function mobNachrichtenModalSchliessen(){
+  var ov = document.getElementById('mob-nachrichten-modal');
+  if(ov) ov.remove();
+}
+
+function mobNachrichtenZeitText(raw){
+  if(!raw) return '';
+  var d = new Date(raw);
+  if(Number.isNaN(d.getTime())) return String(raw);
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear()
+    +' · '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+/** Mobile Glocken-Modal: eine Karte pro verfügbarem Auftrags-Chat. */
+function mobNachrichtenModalRender(){
+  mobNachrichtenModalSchliessen();
+  var rows = mobNachrichtenKonversationen();
+  var unreadTotal = rows.reduce(function(sum,row){ return sum + Number(row.unread || 0); }, 0);
+  var cards = rows.map(function(row){
+    var a = row.auftrag || {};
+    var k = row.latest || {};
+    var kunde = mobDetEsc(a.kunde || a.kundenname || 'Unbekannter Kunde');
+    var au = mobDetEsc(a.auftragsnummer || a.id || 'Auftrag');
+    var text = mobDetEsc(k.text || 'Kommunikation öffnen');
+    var idJs = mobEscJsSingleQuoted(row.id);
+    return '<button class="cc-mob-notif-card '+(row.unread?'is-unread':'is-seen')+'" type="button" onclick="mobNachrichtenChatOeffnen(\''+idJs+'\')" '
+      +'style="width:100%;display:block;text-align:left;border:1px solid '+(row.unread?'#9EC7F5':'#D9E1EA')+';background:#FFFFFF;border-radius:14px;padding:13px 14px;margin:0 0 9px;cursor:pointer;color:#111827;box-shadow:0 1px 2px rgba(15,23,42,.03);">'
+        +'<div style="display:flex;align-items:center;gap:7px;"><div class="cc-mob-notif-card-title" style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;">'+kunde+' · '+au+'</div>'
+        +'<span class="cc-mob-notif-state">'+(row.unread?'Neu · '+row.unread:'Gelesen')+'</span></div>'
+        +'<div class="cc-mob-notif-card-message" style="font-size:13px;color:#60758A;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+text+'</div>'
+        +'<div class="cc-mob-notif-card-action" style="font-size:11px;color:#007AFF;font-weight:700;margin-top:7px;">'+row.kommentare.length+' Nachricht(en) · Kommunikation öffnen →</div>'
+      +'</button>';
+  }).join('');
+  var ov = document.createElement('div');
+  ov.id = 'mob-nachrichten-modal';
+  ov.onclick = function(ev){ if(ev.target === ov) mobNachrichtenModalSchliessen(); };
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10020;background:rgba(15,23,42,.42);display:flex;align-items:flex-start;justify-content:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top));';
+  ov.innerHTML =
+    '<div class="cc-mob-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="mob-nachrichten-title" style="width:min(390px,100%);max-height:calc(100vh - 32px);background:#FFFFFF;color:#111827;border:1px solid #D7E0EA;border-radius:18px;overflow:hidden;box-shadow:0 18px 55px rgba(15,23,42,.24);display:flex;flex-direction:column;">'
+      +'<div class="cc-mob-notif-header" style="min-height:68px;padding:16px 18px;position:relative;flex-shrink:0;background:#FFFFFF;border-bottom:1px solid #D7E0EA;display:flex;align-items:center;justify-content:space-between;gap:12px;">'
+        +'<div id="mob-nachrichten-title" style="font-size:18px;font-weight:850;color:#111827;white-space:nowrap;">🔔 Kommunikation</div>'
+        +'<button type="button" onclick="mobNachrichtenModalSchliessen()" aria-label="Schließen" style="border:1px solid #E2E8F0;border-radius:10px;background:#FFFFFF;color:#526A7A;font-size:12px;font-weight:750;padding:9px 11px;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.04);">Schließen</button>'
+      +'</div>'
+      +'<div class="cc-mob-notif-section" style="padding:13px;background:#EFF7FF;border-bottom:1px solid #D7E0EA;flex-shrink:0;">'
+        +'<div style="font-size:13px;font-weight:800;color:#526A7A;">💬 Kommunikation in Aufträgen'+(unreadTotal?' · '+unreadTotal+' ungelesen':'')+'</div>'
+      +'</div>'
+      +'<div class="cc-mob-notif-list" style="padding:12px;background:#EFF7FF;overflow:auto;min-height:0;">'
+        +(cards || '<div style="padding:28px 15px;text-align:center;background:#FFFFFF;border:1px solid #D9E1EA;border-radius:14px;"><div style="font-size:25px;margin-bottom:8px;">💬</div><div style="font-size:14px;font-weight:800;color:#111827;">Keine Kommunikation vorhanden</div><div style="font-size:12px;color:#7B8FA2;margin-top:5px;">Nachrichten aus zugewiesenen Aufträgen erscheinen hier.</div></div>')
+      +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+
+function mobNachrichtenChatOeffnen(auId){
+  var id = auId == null ? '' : String(auId).trim();
+  if(!id) return;
+  mobNachrichtenModalSchliessen();
+  if(typeof mobTab === 'function') mobTab('home');
+  if(typeof mobOpenAuftragDetail === 'function') mobOpenAuftragDetail(id, { focusKommunikation: true });
+}
+
+/** Header-Glocke: Daten aktualisieren und immer den Chat-Auswahldialog öffnen. */
 function mobGlockeNachrichtenOeffnen(){
   if(typeof MOB_MA_ID === 'undefined' || !MOB_MA_ID){
     if(typeof showToast === 'function') showToast('Bitte zuerst Mitarbeiter wählen');
     return;
   }
-  var n = typeof mobCountUngeleseneNachrichten === 'function' ? mobCountUngeleseneNachrichten() : 0;
-  var auId = typeof mobAuftragIdMitUngelesenenKommentarenPrioritaet === 'function' ? mobAuftragIdMitUngelesenenKommentarenPrioritaet() : null;
-  if(n > 0 && auId){
-    if(typeof mobTab === 'function') mobTab('home');
-    if(typeof mobOpenAuftragDetail === 'function'){
-      mobOpenAuftragDetail(auId, { focusKommunikation: true });
-    }
+  if(typeof mobReloadAuftraegeThen === 'function'){
+    mobReloadAuftraegeThen(function(){ mobNachrichtenModalRender(); });
     return;
   }
-  if(typeof countOffeneFragen === 'function' && countOffeneFragen() > 0){
-    if(typeof mobTab === 'function') mobTab('home');
-    setTimeout(function(){
-      var el = document.getElementById('mob-offene-fragen-block');
-      if(el && el.style.display !== 'none'){
-        try {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (e1) {
-          el.scrollIntoView(true);
-        }
-      } else if(typeof showToast === 'function'){
-        showToast('Offene Fragen — bitte Karte oben antippen');
-      }
-    }, 80);
-    return;
-  }
-  if(typeof mobTab === 'function') mobTab('aufgaben');
-  if(typeof mobRenderAlle === 'function') mobRenderAlle();
-  if(typeof showToast === 'function') showToast('Keine ungelesenen Nachrichten');
+  mobNachrichtenModalRender();
 }
 
 try {
   window.mobUpdateNachrichtenBadge = mobUpdateNachrichtenBadge;
   window.mobCountUngeleseneNachrichten = mobCountUngeleseneNachrichten;
   window.mobGlockeNachrichtenOeffnen = mobGlockeNachrichtenOeffnen;
+  window.mobNachrichtenModalRender = mobNachrichtenModalRender;
+  window.mobNachrichtenModalSchliessen = mobNachrichtenModalSchliessen;
+  window.mobNachrichtenChatOeffnen = mobNachrichtenChatOeffnen;
 } catch (eMobBadgeExp) {}
 
 /** Basisliste Home/Aufgaben: INTERN für diesen MA (inkl. Schritt-Fallback für Zeilen ohne maId). */
@@ -2138,20 +2210,10 @@ function mobSetMA(maId){
   if(avEl){ avEl.textContent=ma.av; avEl.style.background=ma.col+'55'; }
   var datEl=document.getElementById('mob-datum');
   if(datEl) mobDatum();
-  mobZeitRestore();
-  if(!MOB_START){
-    clearInterval(MOB_TIMER); MOB_TIMER = null;
-    var mobUh = document.getElementById('mob-uhr');
-    if(mobUh) mobUh.textContent='00:00:00';
-    var mobSta = document.getElementById('mob-start-btn');
-    var mobPau = document.getElementById('mob-pause-btn');
-    var mobInf = document.getElementById('mob-zeit-info');
-    if(mobSta){ mobSta.textContent='▶ Start'; mobSta.style.background='#34C759'; }
-    if(mobPau) mobPau.style.display='none';
-    if(mobInf) mobInf.style.display='none';
-    mobZeitApplyButtonLayout();
-  }
   mobRenderHome();
+  mobZeitRestore(function(){
+    mobZeitSyncUiFromState();
+  });
   if(MOB_AKTIV_TAB==='aufgaben') mobRenderAlle();
 }
 
@@ -2185,6 +2247,399 @@ function mobWechselMA(){
       }
     });
   }, 100);
+}
+
+function mobOpenProfile(){
+  var picker=document.getElementById('mob-ma-picker');
+  if(picker) picker.style.display='none';
+  mobTab('profile');
+  mobProfileRefreshAnwesenheit(function(){
+    if(MOB_AKTIV_TAB === 'profile') mobRenderProfile();
+  });
+}
+window.mobOpenProfile = mobOpenProfile;
+
+function mobProfileFormatMinuten(min){
+  var n = Math.max(0, Math.round(Number(min) || 0));
+  var h = Math.floor(n / 60);
+  var m = n % 60;
+  return h + 'h ' + String(m).padStart(2, '0') + 'm';
+}
+
+function mobProfileFormatMinutenUhr(min){
+  var n = Math.max(0, Math.round(Number(min) || 0));
+  var h = Math.floor(n / 60);
+  var m = n % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' h';
+}
+
+function mobProfileLocalDateKey(date){
+  var d = date instanceof Date ? date : new Date(date);
+  if(!(d instanceof Date) || !Number.isFinite(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function mobProfileLocalMonthKey(date){
+  var d = date instanceof Date ? date : new Date(date);
+  if(!(d instanceof Date) || !Number.isFinite(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function mobProfileZeitTextMinuten(value){
+  var t = value != null ? String(value).trim() : '';
+  var m = t.match(/^(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  var h = Number(m[1]);
+  var min = Number(m[2]);
+  if(!Number.isFinite(h) || !Number.isFinite(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function mobProfileDauerAusStartEnd(start, end){
+  var s = mobProfileZeitTextMinuten(start);
+  var e = mobProfileZeitTextMinuten(end);
+  if(s == null || e == null) return 0;
+  var diff = e - s;
+  if(diff < 0) diff += 24 * 60;
+  return Math.max(0, diff);
+}
+
+function mobProfileAnwesenheitMinuten(row){
+  var saved = Math.round(Number(row && row.dauer) || 0);
+  if(saved > 0) return saved;
+  return mobProfileDauerAusStartEnd(row && row.start, row && row.end);
+}
+
+function mobProfileMaIdSet(){
+  var ids = {};
+  function add(v){
+    if(v == null) return;
+    var s = String(v).trim();
+    if(s) ids[s] = true;
+  }
+  add(MOB_MA_ID);
+  if(typeof window !== 'undefined') add(window.CURRENT_USER_ID);
+  var ma = (typeof maByID === 'function' && MOB_MA_ID) ? maByID(MOB_MA_ID) : null;
+  if(ma){
+    add(ma.id);
+    add(ma.maId);
+    add(ma.user_id);
+    add(ma.mitarbeiter_id);
+    add(ma.k);
+    add(ma.av);
+  }
+  return ids;
+}
+
+function mobProfileAnwesenheitRows(){
+  if(typeof MA_ANWESENHEIT === 'undefined' || !Array.isArray(MA_ANWESENHEIT) || !MOB_MA_ID) return [];
+  var ids = mobProfileMaIdSet();
+  var ma = (typeof maByID === 'function' && MOB_MA_ID) ? maByID(MOB_MA_ID) : null;
+  var name = ma && ma.n != null ? String(ma.n).trim().toLowerCase() : '';
+  return MA_ANWESENHEIT.filter(function(a){
+    if(!a || a.typ === 'kurzabwesenheit') return false;
+    var rowId = a.maId != null ? String(a.maId).trim() : '';
+    if(rowId && ids[rowId]) return true;
+    var rowName = a.ma != null ? String(a.ma).trim().toLowerCase() : '';
+    return !!(name && rowName && rowName === name);
+  });
+}
+
+function mobProfileRefreshAnwesenheit(done){
+  if(typeof loadAnwesenheit === 'function'){
+    loadAnwesenheit(function(){
+      if(typeof done === 'function') done();
+    });
+    return;
+  }
+  if(typeof done === 'function') done();
+}
+
+function mobProfileHeuteMinuten(){
+  var rows = mobProfileAnwesenheitRows();
+  if(!Array.isArray(rows)) return 0;
+  var heute = mobProfileLocalDateKey(new Date());
+  return rows
+    .filter(function(a){ return a.datum === heute; })
+    .reduce(function(sum, a){ return sum + mobProfileAnwesenheitMinuten(a); }, 0);
+}
+
+function mobProfileMonatMinuten(){
+  var rows = mobProfileAnwesenheitRows();
+  if(!Array.isArray(rows)) return 0;
+  var monat = mobProfileLocalMonthKey(new Date());
+  return rows
+    .filter(function(a){ return String(a.datum || '').slice(0, 7) === monat; })
+    .reduce(function(sum, a){ return sum + mobProfileAnwesenheitMinuten(a); }, 0);
+}
+
+function mobProfileLetzterArbeitstag(){
+  var rows = mobProfileAnwesenheitRows();
+  if(!Array.isArray(rows) || !rows.length) return { datum: '', minuten: 0 };
+  var heute = mobProfileLocalDateKey(new Date());
+  var byDate = {};
+  rows.forEach(function(a){
+    var d = String(a && a.datum || '');
+    if(!d || d >= heute) return;
+    if(!byDate[d]) byDate[d] = 0;
+    byDate[d] += mobProfileAnwesenheitMinuten(a);
+  });
+  var daten = Object.keys(byDate).sort();
+  if(!daten.length) return { datum: '', minuten: 0 };
+  var last = daten[daten.length - 1];
+  return { datum: last, minuten: byDate[last] || 0 };
+}
+
+function mobProfileAction(action){
+  if(action === 'switch'){
+    if(mobIsRealMaAppSession()){
+      if(typeof showToast === 'function') showToast('Profil ist mit deinem Login verbunden');
+      return;
+    }
+    mobWechselMA();
+    return;
+  }
+  if(action === 'tasks'){ mobTab('aufgaben'); return; }
+  if(action === 'time'){
+    mobProfileRefreshAnwesenheit(function(){
+      mobRenderProfileArbeitszeiten();
+    });
+    return;
+  }
+  if(action === 'absence'){ mobTab('urlaub'); return; }
+  if(action === 'photos'){ mobTab('fotos'); return; }
+  if(action === 'settings' || action === 'help' || action === 'docs' || action === 'access'){
+    if(typeof showToast === 'function') showToast('Bereich wird vorbereitet');
+    return;
+  }
+  if(action === 'logout'){
+    if(typeof window !== 'undefined' && typeof window.ccClearSession === 'function') window.ccClearSession();
+    try { sessionStorage.removeItem('mob_ma_id'); } catch(e) {}
+    MOB_MA_ID = null;
+    if(typeof mobAbmelden === 'function') mobAbmelden();
+    if(typeof window !== 'undefined') window.location.reload();
+  }
+}
+window.mobProfileAction = mobProfileAction;
+
+function mobProfileRow(icon, title, sub, action, danger){
+  return '<button type="button" onclick="mobProfileAction(\''+action+'\')" '
+    +'style="width:100%;border:none;background:transparent;padding:0;cursor:pointer;text-align:left;display:block;">'
+      +'<div style="display:grid;grid-template-columns:44px minmax(0,1fr) 22px;align-items:center;column-gap:12px;min-height:68px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.08);">'
+        +'<div style="width:40px;height:40px;border-radius:12px;background:'+(danger?'rgba(255,59,48,.12)':'rgba(47,128,237,.16)')+';display:flex;align-items:center;justify-content:center;font-size:18px;">'+icon+'</div>'
+        +'<div style="min-width:0;display:flex;flex-direction:column;justify-content:center;">'
+          +'<div style="font-size:14px;line-height:1.2;font-weight:850;color:'+(danger?'#FF9A93':'#F8FBFF')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+title+'</div>'
+          +(sub?'<div style="font-size:11px;line-height:1.3;color:#8F9BB3;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</div>':'')
+        +'</div>'
+        +'<div style="justify-self:end;font-size:24px;line-height:1;color:'+(danger?'#FF9A93':'#6EA8FF')+';">›</div>'
+      +'</div>'
+    +'</button>';
+}
+
+function mobProfileLast12Months(){
+  var out = [];
+  var base = new Date();
+  base.setDate(1);
+  for(var i = 0; i < 12; i++){
+    var d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+    var key = mobProfileLocalMonthKey(d);
+    out.push({
+      key: key,
+      label: d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+      shortLabel: d.toLocaleDateString('de-DE', { month: 'short' }),
+      minuten: 0,
+      tage: 0,
+    });
+  }
+  return out;
+}
+
+function mobProfileMonatsUebersicht(){
+  var months = mobProfileLast12Months();
+  var byKey = {};
+  months.forEach(function(m){ byKey[m.key] = m; });
+  var daysByMonth = {};
+  mobProfileAnwesenheitRows().forEach(function(row){
+    var d = String(row && row.datum || '');
+    var key = d.slice(0, 7);
+    if(!byKey[key]) return;
+    byKey[key].minuten += mobProfileAnwesenheitMinuten(row);
+    if(d){
+      if(!daysByMonth[key]) daysByMonth[key] = {};
+      daysByMonth[key][d] = true;
+    }
+  });
+  months.forEach(function(m){
+    m.tage = daysByMonth[m.key] ? Object.keys(daysByMonth[m.key]).length : 0;
+  });
+  return months;
+}
+
+function mobProfileDatumDE(datum){
+  var parts = String(datum || '').split('-');
+  if(parts.length !== 3) return datum || '';
+  return parts[2] + '.' + parts[1] + '.' + parts[0];
+}
+
+function mobProfileMonthDetailData(monthKey){
+  var byDate = {};
+  mobProfileAnwesenheitRows().forEach(function(row){
+    var d = String(row && row.datum || '');
+    if(d.slice(0, 7) !== monthKey) return;
+    if(!byDate[d]) byDate[d] = { datum: d, minuten: 0 };
+    byDate[d].minuten += mobProfileAnwesenheitMinuten(row);
+  });
+  return Object.keys(byDate).sort().map(function(d){ return byDate[d]; });
+}
+
+function mobCloseProfileMonthModal(){
+  var ov = document.getElementById('mob-profile-month-modal');
+  if(ov) ov.remove();
+}
+window.mobCloseProfileMonthModal = mobCloseProfileMonthModal;
+
+function mobOpenProfileMonthModal(monthKey){
+  var months = mobProfileMonatsUebersicht();
+  var month = months.filter(function(m){ return m.key === monthKey; })[0];
+  if(!month) return;
+  mobCloseProfileMonthModal();
+  var days = mobProfileMonthDetailData(monthKey);
+  var rowsHtml = days.map(function(day){
+    return '<div style="display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
+        +'<div style="width:30px;height:30px;border-radius:10px;background:rgba(52,199,89,.14);color:#34C759;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;">✓</div>'
+        +'<div style="min-width:0;">'
+          +'<div style="font-size:15px;font-weight:900;color:#F8FBFF;white-space:nowrap;">'+mobProfileDatumDE(day.datum)+'</div>'
+          +'<div style="font-size:11px;color:#8F9BB3;margin-top:3px;">Arbeitszeit gespeichert</div>'
+        +'</div>'
+        +'<div style="font-size:15px;font-weight:900;color:#BDECC8;white-space:nowrap;">'+mobProfileFormatMinuten(day.minuten)+'</div>'
+      +'</div>';
+  }).join('');
+  var ov = document.createElement('div');
+  ov.id = 'mob-profile-month-modal';
+  ov.onclick = function(ev){ if(ev.target === ov) mobCloseProfileMonthModal(); };
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,15,.68);display:flex;align-items:center;justify-content:center;padding:18px;';
+  ov.innerHTML =
+    '<div style="width:min(390px,100%);max-height:min(680px,86vh);background:#0E1729;color:#F8FBFF;border:1px solid rgba(255,255,255,.10);border-radius:22px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.46);display:flex;flex-direction:column;">'
+      +'<div style="padding:18px 18px 12px;position:relative;flex-shrink:0;background:linear-gradient(135deg,#155CC0 0%,#0A244E 100%);">'
+        +'<button type="button" onclick="mobCloseProfileMonthModal()" style="position:absolute;right:14px;top:14px;width:38px;height:38px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:22px;font-weight:800;cursor:pointer;">×</button>'
+        +'<div style="font-size:12px;font-weight:800;color:#BCD2F5;text-transform:uppercase;letter-spacing:.04em;">Arbeitszeiten</div>'
+        +'<div style="font-size:26px;font-weight:950;color:#fff;text-transform:capitalize;margin-top:4px;line-height:1.05;">'+month.label+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">'
+          +'<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px;">'
+            +'<div style="font-size:18px;font-weight:950;color:#BDECC8;white-space:nowrap;">'+mobProfileFormatMinuten(month.minuten)+'</div>'
+            +'<div style="font-size:10px;color:#CFE0FF;margin-top:3px;">Summe</div>'
+          +'</div>'
+          +'<div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px;">'
+            +'<div style="font-size:18px;font-weight:950;color:#fff;white-space:nowrap;">'+month.tage+'</div>'
+            +'<div style="font-size:10px;color:#CFE0FF;margin-top:3px;">Arbeitstag'+(month.tage===1?'':'e')+'</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:14px 16px;overflow:auto;min-height:0;">'
+        +(rowsHtml ? '<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:0 14px;overflow:hidden;">'+rowsHtml+'</div>' : '<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px 14px;text-align:center;color:#8F9BB3;font-size:14px;">Keine Arbeitszeiten in diesem Monat</div>')
+      +'</div>'
+      +'<div style="padding:0 16px 16px;flex-shrink:0;">'
+        +'<button type="button" onclick="mobCloseProfileMonthModal()" style="width:100%;height:48px;border:none;border-radius:14px;background:#1B2A44;color:#F8FBFF;font-size:15px;font-weight:900;cursor:pointer;">Schließen</button>'
+      +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+window.mobOpenProfileMonthModal = mobOpenProfileMonthModal;
+
+function mobRenderProfileArbeitszeiten(){
+  var el=document.getElementById('mob-profile-content'); if(!el) return;
+  var months = mobProfileMonatsUebersicht();
+  var total = months.reduce(function(sum, m){ return sum + m.minuten; }, 0);
+  var maxMin = months.reduce(function(max, m){ return Math.max(max, m.minuten); }, 0);
+  var current = months[0] || { minuten: 0, label: '' };
+  var rowsHtml = months.map(function(m){
+    var pct = maxMin > 0 && m.minuten > 0 ? Math.max(3, Math.round((m.minuten / maxMin) * 100)) : 0;
+    return '<button type="button" onclick="mobOpenProfileMonthModal(\''+m.key+'\')" style="width:100%;border:1px solid rgba(255,255,255,.08);background:#0E1729;border-radius:16px;padding:14px;margin:0 0 10px;display:block;text-align:left;cursor:pointer;">'
+      +'<div style="display:grid;grid-template-columns:minmax(0,1fr) auto 18px;gap:10px;align-items:start;">'
+        +'<div style="min-width:0;">'
+          +'<div style="font-size:15px;font-weight:900;color:#F8FBFF;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+m.label+'</div>'
+          +'<div style="height:7px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:10px;">'
+            +'<div style="height:100%;width:'+pct+'%;background:#34C759;border-radius:999px;"></div>'
+          +'</div>'
+          +'<div style="font-size:11px;color:#8F9BB3;margin-top:7px;">'+m.tage+' Arbeitstag'+(m.tage===1?'':'e')+'</div>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:900;color:#BDECC8;white-space:nowrap;padding-top:1px;">'+mobProfileFormatMinuten(m.minuten)+'</div>'
+        +'<div style="font-size:22px;line-height:1;color:#6EA8FF;">›</div>'
+      +'</div>'
+    +'</button>';
+  }).join('');
+  el.innerHTML =
+    '<div style="padding:14px 0 10px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+        +'<button type="button" onclick="mobRenderProfile()" style="width:38px;height:38px;border:none;border-radius:12px;background:#13223B;color:#6EA8FF;font-size:24px;line-height:1;cursor:pointer;">‹</button>'
+        +'<div style="min-width:0;">'
+          +'<div style="font-size:20px;font-weight:900;color:#F8FBFF;">Arbeitszeiten</div>'
+          +'<div style="font-size:11px;color:#8F9BB3;">Monatliche Summe der letzten 12 Monate</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
+        +'<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:900;color:#34C759;">'+mobProfileFormatMinuten(current.minuten)+'</div><div style="font-size:10px;color:#8F9BB3;margin-top:4px;text-transform:capitalize;">'+current.label+'</div></div>'
+        +'<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:900;color:#6EA8FF;">'+mobProfileFormatMinuten(total)+'</div><div style="font-size:10px;color:#8F9BB3;margin-top:4px;">12 Monate</div></div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;">'
+        +(rowsHtml || '<div style="padding:18px;text-align:center;color:#8F9BB3;font-size:13px;">Noch keine Arbeitszeiten vorhanden</div>')
+      +'</div>'
+    +'</div>';
+}
+window.mobRenderProfileArbeitszeiten = mobRenderProfileArbeitszeiten;
+
+function mobRenderProfile(){
+  var el=document.getElementById('mob-profile-content'); if(!el) return;
+  var ma = (typeof maByID === 'function' && MOB_MA_ID) ? maByID(MOB_MA_ID) : null;
+  ma = ma || { n:'Mitarbeiter', av:'?', r:'Mitarbeiter', col:'#1565C0', soll:160, urlaub:28 };
+  var aufgaben = typeof mobMeineWorkflowAufgaben === 'function' && MOB_MA_ID ? mobMeineWorkflowAufgaben(MOB_MA_ID) : [];
+  var offen = aufgaben.filter(function(g){ return g && g.status === 'offen'; }).length;
+  var aktiv = aufgaben.filter(function(g){ return g && g.status === 'in_arbeit'; }).length;
+  var heuteMin = mobProfileHeuteMinuten();
+  var monatMin = mobProfileMonatMinuten();
+  var letzterTag = mobProfileLetzterArbeitstag();
+  var letzterTagText = letzterTag.datum ? mobProfileFormatMinuten(letzterTag.minuten) : '0h 00m';
+  var monatName = new Date().toLocaleDateString('de-DE', { month: 'long' });
+  var soll = ma.soll != null ? Number(ma.soll) : 160;
+  var urlaub = ma.urlaub != null ? Number(ma.urlaub) : 28;
+  var real = mobIsRealMaAppSession();
+  var userName = (typeof window !== 'undefined' && window.CURRENT_USER_NAME) ? String(window.CURRENT_USER_NAME) : ma.n;
+  var initials = ma.av || String(userName || ma.n || '?').slice(0,2).toUpperCase();
+  el.innerHTML =
+    '<div style="padding:14px 0 10px;">'
+      +'<div style="background:linear-gradient(135deg,#155CC0 0%,#0A244E 100%);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);">'
+        +'<div style="width:62px;height:62px;border-radius:50%;background:'+(ma.col||'#1565C0')+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:900;border:3px solid rgba(255,255,255,.25);flex-shrink:0;">'+initials+'</div>'
+        +'<div style="min-width:0;flex:1;">'
+          +'<div style="font-size:22px;font-weight:900;color:#fff;line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+userName+'</div>'
+          +'<div style="font-size:12px;color:#BCD2F5;margin-top:5px;">'+(ma.r||'Mitarbeiter')+' · '+(real?'App-Zugang':'Testmodus')+'</div>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">'
+            +'<span style="font-size:11px;font-weight:800;color:#BDECC8;background:rgba(52,199,89,.16);border:1px solid rgba(52,199,89,.25);border-radius:999px;padding:4px 8px;">'+letzterTagText+' letzter Tag</span>'
+            +'<span style="font-size:11px;font-weight:800;color:#CFE0FF;background:rgba(0,122,255,.16);border:1px solid rgba(0,122,255,.25);border-radius:999px;padding:4px 8px;">'+aufgaben.length+' Aufgaben</span>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;">'
+        +'<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 6px;text-align:center;min-width:0;"><div style="font-size:17px;line-height:1.1;font-weight:900;color:#34C759;white-space:nowrap;">'+mobProfileFormatMinuten(monatMin)+'</div><div style="font-size:10px;color:#8F9BB3;margin-top:4px;text-transform:capitalize;">'+monatName+'</div></div>'
+        +'<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 6px;text-align:center;min-width:0;"><div style="font-size:17px;line-height:1.1;font-weight:900;color:#FF9500;">'+aktiv+'</div><div style="font-size:10px;color:#8F9BB3;margin-top:4px;">In Arbeit</div></div>'
+        +'<div style="background:#121C31;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 6px;text-align:center;min-width:0;"><div style="font-size:17px;line-height:1.1;font-weight:900;color:#6EA8FF;white-space:nowrap;">'+soll+'h</div><div style="font-size:10px;color:#8F9BB3;margin-top:4px;">Soll</div></div>'
+      +'</div>'
+      +'<div style="margin-top:14px;background:#0E1729;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:2px 12px;overflow:hidden;">'
+        +mobProfileRow('👤','Personaldaten',(ma.n||userName)+' · '+(ma.r||'Mitarbeiter'),'switch',false)
+        +mobProfileRow('⏱','Arbeitszeiten','Monat '+mobProfileFormatMinuten(monatMin)+' · heute '+mobProfileFormatMinuten(heuteMin),'time',false)
+        +mobProfileRow('📋','Aufgaben',offen+' offen · '+aktiv+' in Arbeit','tasks',false)
+        +mobProfileRow('🌴','Abwesenheiten',urlaub+' Urlaubstage · Anträge verwalten','absence',false)
+        +mobProfileRow('📷','Fotos & Dokumente','Auftragsfotos und Nachweise','photos',false)
+      +'</div>'
+      +'<div style="margin-top:10px;background:#0E1729;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:2px 12px;overflow:hidden;">'
+        +mobProfileRow('🔑','Zugangsdaten','Login und Gerätezugriff','access',false)
+        +mobProfileRow('⚙','Einstellungen','App-Ansicht und Benachrichtigungen','settings',false)
+        +mobProfileRow('ℹ','Hilfe & Feedback','Problem melden oder Rückfrage senden','help',false)
+      +'</div>'
+      +'<div style="margin-top:10px;background:#0E1729;border:1px solid rgba(255,59,48,.16);border-radius:16px;padding:2px 12px;overflow:hidden;">'
+        +mobProfileRow('↩','Abmelden','Aktuelle App-Sitzung beenden','logout',true)
+      +'</div>'
+      +'<div style="text-align:center;color:#647189;font-size:11px;padding:14px 0 4px;">CC Intern Mitarbeiter-App · 2026</div>'
+    +'</div>';
 }
 
 function mobAbmelden(){
@@ -2241,6 +2696,42 @@ function mobZeitApplyButtonLayout(){
       }
     }
   }
+}
+
+function mobZeitSyncUiFromState(){
+  var btn=document.getElementById('mob-start-btn');
+  var pBtn=document.getElementById('mob-pause-btn');
+  var info=document.getElementById('mob-zeit-info');
+  var uhr=document.getElementById('mob-uhr');
+  if(MOB_START){
+    if(btn){
+      if(MOB_PAUSED){
+        btn.textContent='▶ Weiter';
+        btn.style.background='#34C759';
+      } else {
+        btn.textContent='⏹ Stop';
+        btn.style.background='#FF3B30';
+      }
+    }
+    if(pBtn) pBtn.style.display='';
+    if(info){
+      info.style.display='block';
+      if(MOB_PAUSED && MOB_PAUSE_START){
+        info.textContent='Pausiert seit '+MOB_PAUSE_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      } else {
+        info.textContent='Läuft seit '+MOB_START.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      }
+    }
+    mobZeitApplyButtonLayout();
+    mobZeitTick();
+    return;
+  }
+  clearInterval(MOB_TIMER); MOB_TIMER = null;
+  if(uhr) uhr.textContent='00:00:00';
+  if(btn){ btn.textContent='▶ Start'; btn.style.background='#34C759'; }
+  if(pBtn) pBtn.style.display='none';
+  if(info) info.style.display='none';
+  mobZeitApplyButtonLayout();
 }
 
 // ── Zeiterfassung Start/Stop ─────────────────────
@@ -2325,8 +2816,7 @@ function mobApplySessionFromServer(session){
     }
   }
   mobZeitPersistState();
-  mobZeitApplyButtonLayout();
-  mobZeitTick();
+  mobZeitSyncUiFromState();
 }
 
 /** @param {boolean} [clearStorage] */
@@ -2458,7 +2948,7 @@ function mobZeitStop(){
   }
   var endTime = new Date();
   var sek = Math.floor((endTime-MOB_START)/1000)-mobZeitEffektivePauseSekunden(endTime);
-  var min = Math.floor(sek/60);
+  var min = sek > 0 ? Math.ceil(sek/60) : 0;
   var ma  = maByID(MOB_MA_ID)||{n:MOB_MA_ID};
   var heute = endTime.toISOString().split('T')[0];
   var anwEntry = {
@@ -2519,15 +3009,18 @@ function mobZeitRestore(done){
       console.info('[ARBEITSZEIT_RESTORE]', session);
       if(session) mobApplySessionFromServer(session);
       else mobZeitClearLocalState(true);
+      mobZeitSyncUiFromState();
       if(typeof done === 'function') done();
     }).catch(function(e){
       console.warn('[ARBEITSZEIT_RESTORE]', e);
       mobZeitRestoreFromSessionStorage();
+      mobZeitSyncUiFromState();
       if(typeof done === 'function') done();
     });
     return;
   }
   mobZeitRestoreFromSessionStorage();
+  mobZeitSyncUiFromState();
   if(typeof done === 'function') done();
 }
 
@@ -2920,6 +3413,7 @@ function mobRenderHome(){
     html += '<div style="background:#fff;border-radius:16px;padding:20px;text-align:center;color:#8E8E93;font-size:14px;">Keine offenen Aufgaben 🎉</div>';
   }
   el.innerHTML = html;
+  mobZeitSyncUiFromState();
   if(typeof mobUpdateNachrichtenBadge === 'function') mobUpdateNachrichtenBadge();
 }
 
@@ -5041,7 +5535,7 @@ function mobTab(tab){
   if(zbTab) zbTab.style.display = homeShow ? '' : 'none';
 
   // Tab-Divs
-  ['aufgaben','fotos','lager','urlaub'].forEach(function(t){
+  ['aufgaben','fotos','lager','urlaub','profile'].forEach(function(t){
     var td=document.getElementById('mob-tab-'+t);
     if(td) td.style.display=(t===tab)?'':'none';
   });
@@ -5051,6 +5545,7 @@ function mobTab(tab){
   if(tab==='fotos')    mobRenderFotos();
   if(tab==='lager')    mobRenderLager();
   if(tab==='urlaub')   mobRenderUrlaub();
+  if(tab==='profile')  mobRenderProfile();
   if(typeof mobUpdateNachrichtenBadge === 'function') mobUpdateNachrichtenBadge();
 }
 
@@ -5507,6 +6002,7 @@ function mobRenderUrlaub(){
             +'<div style="font-size:13px;font-weight:700;color:#1C1C1E;">'+a.typ+'</div>'
             +'<div style="font-size:11px;color:#8E8E93;margin-top:2px;">'+wann+'</div>'
             +(a.notiz?'<div style="font-size:11px;color:#8E8E93;font-style:italic;">'+a.notiz+'</div>':'')
+            +(a.krankschein&&a.krankschein.name?'<div style="font-size:11px;color:#007AFF;font-weight:700;margin-top:4px;">📎 '+a.krankschein.name+'</div>':'')
           +'</div>'
           +'<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;'
             +'background:'+st.c+'18;color:'+st.c+';">'+st.l+'</span>'
@@ -5526,9 +6022,12 @@ function mobUrlTypChanged(){
   var typ = document.getElementById('mob-url-typ').value;
   var istStd  = typ === 'Überstunden';
   var istKurz = typ === 'Kurzabwesenheit';
+  var istKrank = typ === 'Krank';
   document.getElementById('mob-url-datum-block').style.display = (istStd||istKurz) ? 'none' : 'grid';
   document.getElementById('mob-url-std-block').style.display   = istStd  ? 'block' : 'none';
   document.getElementById('mob-url-kurz-block').style.display  = istKurz ? 'block' : 'none';
+  var krankBlock = document.getElementById('mob-url-krank-block');
+  if(krankBlock) krankBlock.style.display = istKrank ? 'block' : 'none';
   // Button-Text anpassen
   var btn = document.getElementById('mob-url-send-btn');
   if(btn) btn.textContent = istKurz ? '✓ Eintragen' : 'Antrag absenden';
@@ -5538,6 +6037,53 @@ function mobUrlTypChanged(){
     var kd = document.getElementById('mob-url-kurz-datum');
     if(kd && !kd.value) kd.value = today;
   }
+}
+
+function mobKrankFileChanged(input){
+  var nameEl = document.getElementById('mob-url-krank-file-name');
+  var file = input && input.files && input.files[0] ? input.files[0] : null;
+  if(!file){
+    if(nameEl) nameEl.textContent = 'JPG, PNG, WEBP oder PDF';
+    return;
+  }
+  var okType = /^image\//i.test(String(file.type || '')) || file.type === 'application/pdf' || /\.pdf$/i.test(String(file.name || ''));
+  if(!okType){
+    input.value = '';
+    if(nameEl) nameEl.textContent = 'JPG, PNG, WEBP oder PDF';
+    if(typeof showToast === 'function') showToast('⚠ Bitte Bild oder PDF auswählen');
+    return;
+  }
+  if(file.size > 8 * 1024 * 1024){
+    input.value = '';
+    if(nameEl) nameEl.textContent = 'Maximal 8 MB';
+    if(typeof showToast === 'function') showToast('⚠ Krankschein maximal 8 MB');
+    return;
+  }
+  if(nameEl) nameEl.textContent = file.name;
+}
+window.mobKrankFileChanged = mobKrankFileChanged;
+
+function mobReadKrankUpload(){
+  var input = document.getElementById('mob-url-krank-file');
+  var file = input && input.files && input.files[0] ? input.files[0] : null;
+  if(!file) return Promise.resolve(null);
+  var okType = /^image\//i.test(String(file.type || '')) || file.type === 'application/pdf' || /\.pdf$/i.test(String(file.name || ''));
+  if(!okType) return Promise.reject(new Error('Bitte Bild oder PDF auswählen'));
+  if(file.size > 8 * 1024 * 1024) return Promise.reject(new Error('Krankschein maximal 8 MB'));
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      resolve({
+        name: file.name || 'krankschein',
+        type: file.type || (/\.pdf$/i.test(String(file.name || '')) ? 'application/pdf' : 'application/octet-stream'),
+        size: file.size || 0,
+        dataUrl: ev && ev.target ? String(ev.target.result || '') : '',
+        uploadedAt: new Date().toISOString(),
+      });
+    };
+    reader.onerror = function(){ reject(new Error('Krankschein konnte nicht gelesen werden')); };
+    reader.readAsDataURL(file);
+  });
 }
 
 function mobKurzStdAendern(delta){
@@ -5554,7 +6100,7 @@ function mobUrlStdAendern(delta){
   inp.value = val;
 }
 
-function mobUrlaubSenden(){
+async function mobUrlaubSenden(){
   var typ   = document.getElementById('mob-url-typ').value;
   var notiz = document.getElementById('mob-url-notiz').value;
   var ma    = maByID(MOB_MA_ID)||{n:MOB_MA_ID};
@@ -5574,6 +6120,8 @@ function mobUrlaubSenden(){
     document.getElementById('mob-url-std').value='1';
     document.getElementById('mob-url-kurz-std').value='0.5';
     var kd = document.getElementById('mob-url-kurz-datum'); if(kd) kd.value='';
+    var krankInput = document.getElementById('mob-url-krank-file'); if(krankInput) krankInput.value='';
+    var krankName = document.getElementById('mob-url-krank-file-name'); if(krankName) krankName.textContent='JPG, PNG, WEBP oder PDF';
     if(typeof renderUrlaubAntraege==='function') renderUrlaubAntraege();
     mobRenderUrlaub();
     mobRenderHome();
@@ -5664,17 +6212,36 @@ function mobUrlaubSenden(){
     var bis = document.getElementById('mob-url-bis').value;
     if(!von||!bis){ showToast('⚠ Bitte Datum auswählen'); return; }
     if(von>bis){ showToast('⚠ Von muss vor Bis liegen'); return; }
+    var krankUpload = null;
+    var krankFile = null;
+    if(typ === 'Krank'){
+      try {
+        var krankInputForSubmit = document.getElementById('mob-url-krank-file');
+        krankFile = krankInputForSubmit && krankInputForSubmit.files && krankInputForSubmit.files[0] ? krankInputForSubmit.files[0] : null;
+        krankUpload = await mobReadKrankUpload();
+      } catch(e) {
+        showToast('⚠ '+(e && e.message ? e.message : 'Krankschein ungültig'));
+        return;
+      }
+    }
+    var recNotiz = notiz;
+    if(typ === 'Krank' && krankUpload && krankUpload.name){
+      recNotiz = (recNotiz ? recNotiz + ' · ' : '') + 'Krankschein: ' + krankUpload.name;
+    }
     var recStd = {
       id:id, maId:maUrlaubKey, ma:ma.n,
-      typ:typ, von:von, bis:bis, notiz:notiz,
+      typ:typ, von:von, bis:bis, notiz:recNotiz,
       status:'offen', erstellt:new Date().toISOString()
     };
+    if(typ === 'Krank' && krankUpload) recStd.krankscheinLocal = krankUpload;
+    if(typ === 'Krank' && krankFile) recStd.__krankscheinFile = krankFile;
     URLAUB_ANTRAEGE.push(recStd);
     if (api && typeof api.postUrlaubAntragFromUi === 'function') {
       console.warn('[MA_URLAUB_REQUEST]', { method: 'POST', path: '/api/v1/urlaub', body: recStd });
       api.postUrlaubAntragFromUi(recStd, showToast).then(function (u) {
         console.warn('[MA_URLAUB_RESPONSE]', { ok: true, id: u && u.id ? u.id : null, status: u && u.status ? u.status : null });
         if (u) Object.assign(recStd, u);
+        delete recStd.__krankscheinFile;
         saveUrlaub();
         showToast('✓ Antrag gesendet · '+typ+' · '+von+' – '+bis);
         mobUrlaubFinishUi();
@@ -5685,7 +6252,9 @@ function mobUrlaubSenden(){
           body: e && e.body !== undefined ? e.body : null,
         });
         console.error('[mob] Urlaub API', e);
-        showToast('⚠ Antrag konnte nicht gespeichert werden.');
+        delete recStd.__krankscheinFile;
+        var msg = e && e.message ? String(e.message) : 'Antrag konnte nicht gespeichert werden.';
+        showToast('⚠ '+msg);
         mobUrlaubFinishUi();
       });
       return;

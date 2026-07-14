@@ -2640,6 +2640,57 @@ async function buildSqliteStore() {
       persist();
       return this.getFirmaById(fid);
     },
+    deleteFirmaIfUnused(firmaId) {
+      const fid = String(firmaId || '').trim();
+      if (!fid) return { ok: false, code: 'VALIDATION_ERROR', message: 'Ungültige Firmen-ID.' };
+      const row = this.getFirmaById(fid);
+      if (!row) return { ok: false, code: 'NOT_FOUND', message: 'Firma nicht gefunden.' };
+      const checks = [
+        ['Aufträge', 'SELECT COUNT(*) AS n FROM auftraege WHERE fusa_kunde_id = ?'],
+        ['FUSA-Angebote', 'SELECT COUNT(*) AS n FROM fusa_angebote WHERE fusa_kunde_id = ?'],
+        ['FUSA-Rechnungen', 'SELECT COUNT(*) AS n FROM fusa_rechnungen WHERE kunde_id = ?'],
+        ['CC-Intern-Anfragen', 'SELECT COUNT(*) AS n FROM ccintern_anfragen WHERE kunde_id = ?'],
+        ['CC-Intern-Angebote', 'SELECT COUNT(*) AS n FROM ccintern_angebote WHERE kunde_id = ?'],
+        ['CRM-Aktivitäten', 'SELECT COUNT(*) AS n FROM crm_aktivitaeten WHERE kunde_id = ?'],
+        ['CRM-Wiedervorlagen', 'SELECT COUNT(*) AS n FROM crm_wiedervorlage WHERE kunde_id = ?'],
+        ['Benutzer/Firmenzugang', 'SELECT COUNT(*) AS n FROM users WHERE company_id = ?'],
+        ['Projekte', 'SELECT COUNT(*) AS n FROM projects WHERE kunden_id = ?'],
+      ];
+      const blockers = [];
+      for (const [label, sql] of checks) {
+        try {
+          const r = stmtGet(db, sql, [fid]);
+          const n = Number(r?.n || 0);
+          if (n > 0) blockers.push(`${label}: ${n}`);
+        } catch {
+          /* ältere DB ohne Tabelle/Spalte ignorieren */
+        }
+      }
+      if (blockers.length > 0) {
+        return {
+          ok: false,
+          code: 'REFERENCED',
+          message: `Kunde kann nicht gelöscht werden, weil er noch verwendet wird (${blockers.join(', ')}).`,
+          blockers,
+        };
+      }
+      try {
+        db.run('BEGIN IMMEDIATE');
+        try { stmtRun(db, 'DELETE FROM fusa_kunden_extra WHERE firma_id = ?', [fid]); } catch {}
+        try { stmtRun(db, 'DELETE FROM ccintern_kunden_extra WHERE firma_id = ?', [fid]); } catch {}
+        stmtRun(db, 'DELETE FROM firmen WHERE id = ?', [fid]);
+        db.run('COMMIT');
+      } catch (e) {
+        try { db.run('ROLLBACK'); } catch {}
+        return {
+          ok: false,
+          code: 'DELETE_FAILED',
+          message: e instanceof Error ? e.message : 'Kunde konnte nicht gelöscht werden.',
+        };
+      }
+      persist();
+      return { ok: true };
+    },
     listCockpitInvites() {
       return stmtAll(
         db,
@@ -3448,6 +3499,96 @@ async function buildSqliteStore() {
         [fahrzeugId],
       );
     },
+    deleteFahrzeugCascade(fahrzeugId) {
+      const fid = typeof fahrzeugId === 'string' ? fahrzeugId.trim() : '';
+      if (!fid) return { ok: false, code: 'VALIDATION_ERROR', message: 'Ungültige Fahrzeug-ID.' };
+      const row = this.getFahrzeugById(fid);
+      if (!row) return { ok: false, code: 'NOT_FOUND', message: 'Fahrzeug nicht gefunden.' };
+      const auftragRows = stmtAll(
+        db,
+        "SELECT id, fusa_fahrzeug_ids FROM auftraege WHERE fusa_fahrzeug_ids IS NOT NULL AND TRIM(fusa_fahrzeug_ids) NOT IN ('', '[]')",
+        [],
+      );
+      const affectedByAuftrag = new Map();
+      for (const r of auftragRows) {
+        try {
+          const arr = JSON.parse(String(r.fusa_fahrzeug_ids || '[]'));
+          if (!Array.isArray(arr)) continue;
+          const ids = arr.map((x) => String(x).trim()).filter(Boolean);
+          if (!ids.includes(fid)) continue;
+          const remaining = ids.filter((x, idx) => x !== fid && ids.indexOf(x) === idx);
+          affectedByAuftrag.set(String(r.id), { id: String(r.id), remaining });
+        } catch {
+          /* Ignore invalid legacy JSON; the Belegung rows are still cleaned below. */
+        }
+      }
+      const belegungRows = stmtAll(
+        db,
+        `SELECT auftrag_id, fahrzeug_id
+         FROM fusa_belegungen
+         WHERE auftrag_id IN (SELECT DISTINCT auftrag_id FROM fusa_belegungen WHERE fahrzeug_id = ?)`,
+        [fid],
+      );
+      const belegungByAuftrag = new Map();
+      for (const b of belegungRows) {
+        const aid = String(b.auftrag_id || '').trim();
+        const bid = String(b.fahrzeug_id || '').trim();
+        if (!aid || !bid) continue;
+        if (!belegungByAuftrag.has(aid)) belegungByAuftrag.set(aid, []);
+        belegungByAuftrag.get(aid).push(bid);
+      }
+      for (const [aid, idsRaw] of belegungByAuftrag.entries()) {
+        const ids = idsRaw.filter((x, idx) => x && idsRaw.indexOf(x) === idx);
+        if (!ids.includes(fid)) continue;
+        affectedByAuftrag.set(aid, { id: aid, remaining: ids.filter((x) => x !== fid) });
+      }
+      const affectedAuftraege = Array.from(affectedByAuftrag.values());
+      const schadenRows = stmtAll(db, 'SELECT id FROM schaeden WHERE fahrzeug_id = ?', [fid]);
+      let deletedAuftraege = 0;
+      let updatedAuftraege = 0;
+      let deletedSchaeden = schadenRows.length;
+      try {
+        db.run('BEGIN IMMEDIATE');
+        for (const a of affectedAuftraege) {
+          if (a.remaining.length === 0) {
+            try { stmtRun(db, 'DELETE FROM fusa_belegungen WHERE auftrag_id = ?', [a.id]); } catch {}
+            try { stmtRun(db, 'DELETE FROM fusa_dokumente WHERE auftrag_id = ?', [a.id]); } catch {}
+            try { stmtRun(db, 'UPDATE fusa_rechnungen SET auftrag_id = NULL WHERE auftrag_id = ?', [a.id]); } catch {}
+            try { stmtRun(db, 'UPDATE fusa_termine SET auftrag_id = NULL WHERE auftrag_id = ?', [a.id]); } catch {}
+            try { stmtRun(db, 'UPDATE kalender_termine SET fusa_auftrag_id = NULL WHERE fusa_auftrag_id = ?', [a.id]); } catch {}
+            try { stmtRun(db, 'UPDATE ccintern_auftraege SET fusa_auftrag_id = NULL WHERE fusa_auftrag_id = ?', [a.id]); } catch {}
+            stmtRun(db, 'DELETE FROM auftraege WHERE id = ?', [a.id]);
+            deletedAuftraege += 1;
+          } else {
+            stmtRun(db, 'UPDATE auftraege SET fusa_fahrzeug_ids = ? WHERE id = ?', [JSON.stringify(a.remaining), a.id]);
+            stmtRun(db, 'DELETE FROM fusa_belegungen WHERE auftrag_id = ? AND fahrzeug_id = ?', [a.id, fid]);
+            updatedAuftraege += 1;
+          }
+        }
+        for (const s of schadenRows) {
+          const sid = String(s.id || '').trim();
+          if (!sid) continue;
+          try { stmtRun(db, 'DELETE FROM repair_appointment_tokens WHERE schaden_id = ?', [sid]); } catch {}
+          try { stmtRun(db, 'DELETE FROM schaden_history WHERE schaden_id = ?', [sid]); } catch {}
+          try { stmtRun(db, 'DELETE FROM schaden_fotos WHERE schaden_id = ?', [sid]); } catch {}
+        }
+        stmtRun(db, 'DELETE FROM schaeden WHERE fahrzeug_id = ?', [fid]);
+        try { stmtRun(db, 'DELETE FROM fusa_belegungen WHERE fahrzeug_id = ?', [fid]); } catch {}
+        try { stmtRun(db, 'UPDATE fusa_dokumente SET fahrzeug_id = NULL WHERE fahrzeug_id = ?', [fid]); } catch {}
+        try { stmtRun(db, 'UPDATE fusa_termine SET fahrzeug_id = NULL WHERE fahrzeug_id = ?', [fid]); } catch {}
+        stmtRun(db, 'DELETE FROM fahrzeuge WHERE id = ?', [fid]);
+        db.run('COMMIT');
+      } catch (e) {
+        try { db.run('ROLLBACK'); } catch {}
+        return {
+          ok: false,
+          code: 'DELETE_FAILED',
+          message: e instanceof Error ? e.message : 'Fahrzeug konnte nicht gelöscht werden.',
+        };
+      }
+      persist();
+      return { ok: true, deletedAuftraege, updatedAuftraege, deletedSchaeden };
+    },
     listSchaedenForUser(_userId) {
       return stmtAll(
         db,
@@ -3772,6 +3913,28 @@ async function buildSqliteStore() {
          WHERE a.id = ? LIMIT 1`,
         [auftragId],
       );
+    },
+    deleteFusaAuftragHard(auftragId) {
+      const aid = typeof auftragId === 'string' ? auftragId.trim() : '';
+      if (!aid) return false;
+      const row = this.getAuftragById(aid);
+      if (!row) return false;
+      try {
+        db.run('BEGIN IMMEDIATE');
+        try { stmtRun(db, 'DELETE FROM fusa_belegungen WHERE auftrag_id = ?', [aid]); } catch {}
+        try { stmtRun(db, 'DELETE FROM fusa_dokumente WHERE auftrag_id = ?', [aid]); } catch {}
+        try { stmtRun(db, 'UPDATE fusa_rechnungen SET auftrag_id = NULL WHERE auftrag_id = ?', [aid]); } catch {}
+        try { stmtRun(db, 'UPDATE fusa_termine SET auftrag_id = NULL WHERE auftrag_id = ?', [aid]); } catch {}
+        try { stmtRun(db, 'UPDATE kalender_termine SET fusa_auftrag_id = NULL WHERE fusa_auftrag_id = ?', [aid]); } catch {}
+        try { stmtRun(db, 'UPDATE ccintern_auftraege SET fusa_auftrag_id = NULL WHERE fusa_auftrag_id = ?', [aid]); } catch {}
+        stmtRun(db, 'DELETE FROM auftraege WHERE id = ?', [aid]);
+        db.run('COMMIT');
+      } catch {
+        try { db.run('ROLLBACK'); } catch {}
+        return false;
+      }
+      persist();
+      return true;
     },
     /**
      * PATCH: Auftrag aktualisieren; bei Änderung von termin / termin_ende / fusa_fahrzeug_ids

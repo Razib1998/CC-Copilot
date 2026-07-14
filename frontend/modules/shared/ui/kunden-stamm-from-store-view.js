@@ -4,6 +4,8 @@
  * Detailzeile: GET /api/v1/stammdaten/kunden/:id (zentral) + Lesepanel; Listenzeile nur Fallback-ID.
  */
 import { loadMyRights, myRight } from '../../../core/access/cc-my-rights.js';
+import { API_ROUTES } from '../../../core/api/api-routes.js';
+import { apiFetch, formatApiErrorForUi } from '../../../core/auth/cc-auth-session.js';
 import {
   ensureFirmenStammLoaded,
   getFirmenStammRows,
@@ -18,6 +20,7 @@ import {
 } from '../forms/kunde-form.js';
 import { fetchKundenStammDetail } from '../lib/kunden-stamm-detail-api.js';
 import { renderKundenStammDetailReadonlyHtml } from './kunden-stamm-detail-panel.js';
+import { confirmDelete } from './delete-confirm-modal.js';
 
 function esc(s) {
   if (s == null || s === '') return '';
@@ -35,6 +38,7 @@ function esc(s) {
  *   hintText: string,
  *   statusMsgDataAttr?: string | null,
  *   kundenDetailVariant?: 'cockpit'|'fusa'|'ccintern',
+ *   showDeleteButton?: boolean,
  * }} opts
  * @returns {Promise<string>}
  */
@@ -44,6 +48,7 @@ export async function renderKundenStammFromStoreHtml(opts) {
     rootExtraClass = '',
     hintText,
     statusMsgDataAttr = null,
+    showDeleteButton = false,
   } = opts;
 
   await ensureFirmenStammLoaded();
@@ -95,7 +100,7 @@ export async function renderKundenStammFromStoreHtml(opts) {
       <div data-ccw-kunden-edit-body></div>
     </div>
   </dialog>
-  ${renderFirmenStammListSectionHtml(firmenNorm, { sectionTitle: 'Firmen', emptyHint: 'Keine Firmen.' })}
+  ${renderFirmenStammListSectionHtml(firmenNorm, { sectionTitle: 'Firmen', emptyHint: 'Keine Firmen.', showDeleteAction: showDeleteButton === true })}
   ${statusLine}
 </div>`;
 }
@@ -110,6 +115,7 @@ export async function renderKundenStammFromStoreHtml(opts) {
  *   kundenDetailVariant?: 'cockpit'|'fusa'|'ccintern',
  *   statusMsgDataAttr?: string | null,
  *   savedToastText?: string | null,
+ *   showDeleteButton?: boolean,
  * }} opts
  */
 export function attachKundenStammFromStoreHandlers(mount, onReload, opts) {
@@ -120,6 +126,7 @@ export function attachKundenStammFromStoreHandlers(mount, onReload, opts) {
     kundenDetailVariant = 'cockpit',
     statusMsgDataAttr = null,
     savedToastText = null,
+    showDeleteButton = false,
   } = opts;
   if (!(mount instanceof HTMLElement)) return;
   const root = Array.from(mount.querySelectorAll('[data-ccw-ro]')).find(
@@ -235,6 +242,29 @@ export function attachKundenStammFromStoreHandlers(mount, onReload, opts) {
     if (t.closest('[data-ccw-kunden-neu]')) {
       ev.preventDefault();
       void openStammDialog(null, 'neu');
+      return;
+    }
+
+    const deletePlaceholder = t.closest('[data-ccw-kunden-delete-placeholder]');
+    if (showDeleteButton && deletePlaceholder) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const kid = String(deletePlaceholder.getAttribute('data-ccw-kunden-delete-placeholder') || '').trim();
+      if (!kid) return;
+      void (async () => {
+        const ok = await confirmDelete({
+          title: 'Kunde löschen?',
+          itemLabel: `Kunde ${kid}`,
+        });
+        if (!ok) return;
+        try {
+          await apiFetch(`${API_ROUTES.cockpit.firmen}/${encodeURIComponent(kid)}`, { method: 'DELETE' });
+          setMsg('Kunde gelöscht.');
+          if (typeof onReload === 'function') await onReload();
+        } catch (e) {
+          setMsg(formatApiErrorForUi(e));
+        }
+      })();
       return;
     }
 

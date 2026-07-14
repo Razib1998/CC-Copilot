@@ -129,7 +129,68 @@ function kalenderApiRowToCalendarAuftragLike(row, projectId) {
     origin: quelleRaw === 'fusa' ? 'fusa' : 'ccintern',
     ...(auftragUuid ? { auftragId: auftragUuid } : {}),
     fusa_auftrag_id: row.fusa_auftrag_id != null ? String(row.fusa_auftrag_id).trim() : null,
+    calendarTerminId: id,
+    calendarTerminTyp: typRaw || 'allgemein',
+    calendarTerminQuelle: quelleRaw || 'manuell',
+    calendarTerminNotiz: row.notiz != null ? String(row.notiz) : '',
+    calendarTerminGanztag: row.ganztag === true,
+    calendarTerminStandalone: !auftragUuid && !(row.fusa_auftrag_id != null && String(row.fusa_auftrag_id).trim() !== ''),
   };
+}
+
+/**
+ * Servergeführter allgemeiner Kalendertermin. Alle Schreiboperationen benutzen dieselbe
+ * Stammdaten-Route wie der Kalender-Feed; localStorage ist keine Fachdatenquelle.
+ *
+ * @param {{ titel: string, start: string, ende: string, notiz?: string }} payload
+ */
+export async function createCockpitGeneralCalendarTermin(payload) {
+  const data = await apiFetch(API_ROUTES.stammdaten.kalender, {
+    method: 'POST',
+    body: {
+      titel: String(payload.titel || '').trim(),
+      start: String(payload.start || '').trim(),
+      ende: String(payload.ende || '').trim(),
+      notiz: payload.notiz != null && String(payload.notiz).trim() !== '' ? String(payload.notiz).trim() : null,
+      ganztag: false,
+      typ: 'allgemein',
+      quelle: 'manuell',
+      mitarbeiter_ids: [],
+    },
+  });
+  return data && typeof data === 'object' ? data.termin ?? null : null;
+}
+
+/**
+ * @param {{ id: string, titel: string, start: string, ende: string, notiz?: string }} payload
+ */
+export async function updateCockpitGeneralCalendarTermin(payload) {
+  const id = String(payload.id || '').trim();
+  if (!id) throw new Error('Termin-ID fehlt.');
+  const data = await apiFetch(`${API_ROUTES.stammdaten.kalender}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: {
+      titel: String(payload.titel || '').trim(),
+      start: String(payload.start || '').trim(),
+      ende: String(payload.ende || '').trim(),
+      notiz: payload.notiz != null && String(payload.notiz).trim() !== '' ? String(payload.notiz).trim() : null,
+      ganztag: false,
+      typ: 'allgemein',
+      quelle: 'manuell',
+      mitarbeiter_ids: [],
+    },
+  });
+  return data && typeof data === 'object' ? data.termin ?? null : null;
+}
+
+/** @param {string} id */
+export async function deleteCockpitGeneralCalendarTermin(id) {
+  const terminId = String(id || '').trim();
+  if (!terminId) throw new Error('Termin-ID fehlt.');
+  await apiFetch(`${API_ROUTES.stammdaten.kalender}/${encodeURIComponent(terminId)}`, {
+    method: 'DELETE',
+  });
+  return true;
 }
 
 export async function getCalendarFeedFromApi(requestedProjectId) {

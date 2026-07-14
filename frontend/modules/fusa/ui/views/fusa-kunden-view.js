@@ -13,6 +13,7 @@ export async function renderFusaKundenViewHtml() {
     hintText:
       'Eine zentrale Datenbasis (firmen). Detail: GET /api/v1/stammdaten/kunden/:id — Stammdaten + Lesepanel; FUSA-Zusatz (Segment/Hinweis) in Maske.',
     statusMsgDataAttr: 'data-ccw-fusa-kunden-msg',
+    showDeleteButton: true,
   });
 }
 
@@ -28,5 +29,6 @@ export function attachFusaKundenHandlers(mount, onReload) {
     kundenDetailVariant: 'fusa',
     statusMsgDataAttr: 'data-ccw-fusa-kunden-msg',
     savedToastText: 'Gespeichert.',
+    showDeleteButton: true,
   });
 }

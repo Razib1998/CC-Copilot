@@ -4,8 +4,16 @@
 import { apiFetch, formatApiErrorForUi, syncCockpitAccessibleProjectsCache } from '../../../../core/auth/cc-auth-session.js';
 import { buildValidatedCalendarEventsFromStateSnapshot } from '../../../../core/calendar/ccw-calendar-unified-map.js';
 import { cockpitKalenderRasterListenTitel } from '../../../../core/calendar/ccw-calendar-event-mapper.js';
-import { isEventStartOnBerlinToday } from '../../../../core/calendar/ccw-calendar-event-filter.js';
+import {
+  addBerlinCalendarDays,
+  berlinTodayYmd,
+  berlinYmdOfEventStart,
+} from '../../../../core/calendar/ccw-calendar-event-filter.js';
 import { openCalendarEventDetail } from '../../../../core/calendar/ccw-calendar-event-detail.js';
+import {
+  CCW_APP_SHELL_PLACEHOLDER_PROJECT,
+  getCalendarFeedFromApi,
+} from '../../../../core/data/dev-calendar-read-model.js';
 import { canonicalInvitationStatus } from './cockpit-einladungen-view.js';
 
 /** @typedef {import('../../../../core/calendar/ccw-calendar-event-foundation.js').CalendarEvent} CalendarEvent */
@@ -29,6 +37,16 @@ const _DASH_DE_TODAY_LABEL_FMT = new Intl.DateTimeFormat('de-DE', {
   month: 'long',
   year: 'numeric',
 });
+
+const _DASH_DE_DAY_GROUP_FMT = new Intl.DateTimeFormat('de-DE', {
+  timeZone: 'Europe/Berlin',
+  weekday: 'long',
+  day: '2-digit',
+  month: '2-digit',
+});
+
+const DASHBOARD_UPCOMING_DAYS = 7;
+const DASHBOARD_UPCOMING_LIMIT = 30;
 
 function esc(s) {
   if (s == null || s === '') return '';
@@ -75,6 +93,58 @@ function berlinTodayLabel() {
   return _DASH_DE_TODAY_LABEL_FMT.format(new Date());
 }
 
+/**
+ * Heute + folgende sechs Kalendertage in Europe/Berlin, chronologisch.
+ * @param {CalendarEvent[]} events
+ * @param {string} [todayYmd]
+ * @param {number} [days]
+ */
+export function selectDashboardUpcomingCalendarEvents(
+  events,
+  todayYmd = berlinTodayYmd(),
+  days = DASHBOARD_UPCOMING_DAYS,
+) {
+  const safeDays = Number.isInteger(days) && days > 0 ? days : DASHBOARD_UPCOMING_DAYS;
+  const lastYmd = addBerlinCalendarDays(todayYmd, safeDays - 1);
+  return (Array.isArray(events) ? events : [])
+    .filter(ev => {
+      const ymd = berlinYmdOfEventStart(ev);
+      return ymd != null && ymd >= todayYmd && ymd <= lastYmd;
+    })
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+}
+
+function dashboardDateFromYmd(ymd) {
+  const [y, m, d] = String(ymd).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
+}
+
+function dashboardDayGroupLabel(ymd, todayYmd) {
+  if (ymd === todayYmd) return 'Heute';
+  if (ymd === addBerlinCalendarDays(todayYmd, 1)) return 'Morgen';
+  return _DASH_DE_DAY_GROUP_FMT.format(dashboardDateFromYmd(ymd));
+}
+
+function dashboardTerminTypMeta(ev) {
+  const ex = ev && typeof ev === 'object' ? /** @type {Record<string, unknown>} */ (ev) : {};
+  const serverTyp = String(ex.cockpitCalendarTerminTyp || '').trim().toLowerCase();
+  if (serverTyp === 'beklebung' || String(ex.cockpitFusaBeklebungsterminRoh || '').trim() !== '') {
+    return { label: 'Beklebung', color: 'green' };
+  }
+  const typ = String(ev?.typ || 'sonstiges').trim().toLowerCase();
+  const map = {
+    auftrag: { label: 'Auftrag', color: 'blue' },
+    montage: { label: 'Montage', color: 'green' },
+    schaden: { label: 'Schaden', color: 'red' },
+    lieferung: { label: 'Lieferung', color: 'orange' },
+    projekt: { label: 'Projekt', color: 'purple' },
+    intern: { label: 'Allgemein', color: 'teal' },
+    urlaub: { label: 'Urlaub', color: 'purple' },
+    sonstiges: { label: 'Allgemein', color: 'teal' },
+  };
+  return map[typ] || { label: typ || 'Termin', color: 'blue' };
+}
+
 /** Max. Projekte für Einladungs-Aggregation — vermeidet Minuten-Latenz bei vielen Projekten (vorher strikt sequentiell). */
 const DASHBOARD_INVITES_PROJECT_CAP = 40;
 
@@ -114,9 +184,9 @@ export async function renderCockpitDashboardViewHtml() {
   /** @type {object[]} */
   let projects = [];
   /** @type {object[]} */
-  let topAuftraegeRaw = [];
-  /** @type {object[]} */
   let apiUsers = [];
+  /** @type {{ projects: object[], auftraege: object[] } | null} */
+  let calendarFeed = null;
   try {
     const pr = await apiFetch('/projects');
     projects = Array.isArray(pr.projects) ? pr.projects : [];
@@ -124,35 +194,14 @@ export async function renderCockpitDashboardViewHtml() {
   } catch (e) {
     fetchErr = formatApiErrorForUi(e);
   }
-  try {
-    const ar = await apiFetch('/auftraege');
-    topAuftraegeRaw = Array.isArray(ar.auftraege) ? ar.auftraege : [];
-  } catch (e) {
-    if (!fetchErr) fetchErr = formatApiErrorForUi(e);
-  }
+  calendarFeed = await getCalendarFeedFromApi(CCW_APP_SHELL_PLACEHOLDER_PROJECT);
+  if (!calendarFeed && !fetchErr) fetchErr = 'Kalendertermine konnten nicht geladen werden.';
   try {
     const ur = await apiFetch('/users');
     apiUsers = Array.isArray(ur?.data?.users ?? ur?.users) ? (ur?.data?.users ?? ur?.users ?? []) : [];
   } catch (e) {
     if (!fetchErr) fetchErr = formatApiErrorForUi(e);
   }
-
-  const topAuftraege = topAuftraegeRaw.map(a => {
-    if (!a || typeof a !== 'object' || a.id == null) return null;
-    const title = a.title != null && String(a.title).trim() !== '' ? String(a.title).trim() : String(a.id);
-    const pid = a.project_id != null ? String(a.project_id) : '';
-    return {
-      id: a.id,
-      name: title,
-      title,
-      projektId: pid,
-      projectId: pid,
-      status: a.status ?? null,
-      termin: a.termin ?? null,
-      terminEnde: a.termin ?? null,
-    };
-  });
-  const topAuftraegeClean = /** @type {object[]} */ (topAuftraege.filter(Boolean));
 
   const snapshotUsers = apiUsers;
   const snapshotInvitations = await loadDashboardInvitesAggregated();
@@ -161,49 +210,81 @@ export async function renderCockpitDashboardViewHtml() {
   ).length;
 
   /** @type {CalendarEvent[]} */
-  let todayEvents = [];
+  let upcomingEvents = [];
+  const dashboardTodayYmd = berlinTodayYmd();
+  const dashboardLastYmd = addBerlinCalendarDays(dashboardTodayYmd, DASHBOARD_UPCOMING_DAYS - 1);
   try {
     const allCal = buildValidatedCalendarEventsFromStateSnapshot({
-      projects,
-      auftraege: topAuftraegeClean,
+      projects: calendarFeed?.projects ?? [],
+      auftraege: calendarFeed?.auftraege ?? [],
     });
-    todayEvents = allCal.filter(isEventStartOnBerlinToday);
-    for (const ev of todayEvents) {
+    upcomingEvents = selectDashboardUpcomingCalendarEvents(allCal, dashboardTodayYmd);
+    for (const ev of upcomingEvents) {
       if (ev && ev.eventId) dashboardCalDetailById.set(String(ev.eventId), ev);
     }
   } catch {
-    todayEvents = [];
+    upcomingEvents = [];
   }
 
-  const kpiTermine = todayEvents.length;
+  const kpiTermine = upcomingEvents.length;
   const kpiUser = snapshotUsers.length;
 
   const dashLink = (key, label) =>
     `<button type="button" class="ckp-dash-all" data-nav-key="${esc(key)}">${esc(label)}</button>`;
 
+  const visibleUpcoming = upcomingEvents.slice(0, DASHBOARD_UPCOMING_LIMIT);
+  const upcomingByDay = new Map();
+  for (const ev of visibleUpcoming) {
+    const ymd = berlinYmdOfEventStart(ev);
+    if (!ymd) continue;
+    if (!upcomingByDay.has(ymd)) upcomingByDay.set(ymd, []);
+    upcomingByDay.get(ymd).push(ev);
+  }
   const terminRows =
-    todayEvents.length === 0
-      ? `<p class="ckp-dash-empty">Keine Daten vorhanden</p>`
-      : `<ul class="ckp-dash-list ckp-dash-list--termin" role="list">
-${todayEvents
-  .slice(0, 12)
+    upcomingEvents.length === 0
+      ? `<div class="ckp-dash-termine-empty">
+  <span class="ckp-dash-termine-empty__icon" aria-hidden="true">📅</span>
+  <p class="ckp-dash-termine-empty__title">Keine Termine in den nächsten 7 Tagen</p>
+  <p class="ckp-dash-termine-empty__text">Neue Termine können direkt im Kalender angelegt werden.</p>
+</div>`
+      : `${[...upcomingByDay.entries()]
+          .map(([ymd, dayEvents]) => {
+            const dayLabel = dashboardDayGroupLabel(ymd, dashboardTodayYmd);
+            const dateShort = _DASH_DE_DAY_GROUP_FMT.format(dashboardDateFromYmd(ymd)).replace(/^\S+\s*/, '');
+            return `<section class="ckp-dash-termin-day" aria-label="${esc(dayLabel)}">
+  <div class="ckp-dash-termin-day__head">
+    <span class="ckp-dash-termin-day__label">${esc(dayLabel)}</span>
+    <span class="ckp-dash-termin-day__date">${esc(dateShort)}</span>
+    <span class="ckp-dash-termin-day__count">${esc(String(dayEvents.length))}</span>
+  </div>
+  <ul class="ckp-dash-list ckp-dash-list--termin" role="list">
+${dayEvents
   .map(ev => {
     const id = ev.eventId ? String(ev.eventId) : '';
-    const t = formatDeTimeIfPresent(ev.start);
-    const timeLabel = t || '—';
+    const timeLabel = ev.ganztag === true ? 'Ganztägig' : formatDeTimeIfPresent(ev.start) || '—';
     const titleRaw = cockpitKalenderRasterListenTitel(ev);
     const title = titleRaw !== '' ? titleRaw : '—';
     const interactive = id !== '';
-    const barColors = ['orange', 'blue', 'green'];
-    const barColor = barColors[todayEvents.indexOf(ev) % barColors.length];
+    const typeMeta = dashboardTerminTypMeta(ev);
     return `<li class="ckp-dash-termin-row${interactive ? ' ckp-dash-termin-row--action' : ''}"${interactive ? ' tabindex="0" role="button"' : ''} data-event-id="${esc(id)}">
-  <span class="ckp-dash-termin-bar ckp-dash-termin-bar--${barColor}" aria-hidden="true"></span>
+  <span class="ckp-dash-termin-bar ckp-dash-termin-bar--${esc(typeMeta.color)}" aria-hidden="true"></span>
   <span class="ckp-dash-termin-time">${esc(timeLabel)}</span>
-  <span class="ckp-dash-termin-info"><span class="ckp-dash-termin-title">${esc(title)}</span></span>
+  <span class="ckp-dash-termin-info">
+    <span class="ckp-dash-termin-title">${esc(title)}</span>
+    <span class="ckp-dash-termin-type ckp-dash-termin-type--${esc(typeMeta.color)}">${esc(typeMeta.label)}</span>
+  </span>
+  <span class="ckp-dash-termin-chevron" aria-hidden="true">›</span>
 </li>`;
   })
   .join('\n')}
-</ul>`;
+  </ul>
+</section>`;
+          })
+          .join('')}${
+          upcomingEvents.length > DASHBOARD_UPCOMING_LIMIT
+            ? `<p class="ckp-dash-termin-overflow">Weitere ${esc(String(upcomingEvents.length - DASHBOARD_UPCOMING_LIMIT))} Termine im Kalender.</p>`
+            : ''
+        }`;
 
   const avatarColors = ['blue', 'purple', 'green', 'orange', 'red'];
 
@@ -272,7 +353,7 @@ ${snapshotInvitations
     <button type="button" class="ckp-dash-kpi-card ckp-dash-kpi-card--nav" data-nav-key="kalender">
       <span class="ckp-dash-kpi-icon ckp-dash-kpi-icon--green" aria-hidden="true">📅</span>
       <span class="ckp-dash-kpi-value">${kpiTermine}</span>
-      <span class="ckp-dash-kpi-label">Termine heute</span>
+      <span class="ckp-dash-kpi-label">Termine nächste 7 Tage</span>
     </button>
     <button type="button" class="ckp-dash-kpi-card ckp-dash-kpi-card--nav" data-nav-key="users" data-ccw-user-filter-status="aktiv">
       <span class="ckp-dash-kpi-icon ckp-dash-kpi-icon--purple" aria-hidden="true">👥</span>
@@ -284,7 +365,10 @@ ${snapshotInvitations
   <div class="ckp-dash-grid" aria-label="Dashboard-Bereiche">
     <section class="ckp-dash-panel ckp-dash-panel--termine" aria-labelledby="ckp-dash-term">
       <div class="ckp-dash-panel__head">
-        <h3 class="ckp-dash-panel__title" id="ckp-dash-term">Termine heute</h3>
+        <div>
+          <h3 class="ckp-dash-panel__title" id="ckp-dash-term">Nächste Termine</h3>
+          <p class="ckp-dash-panel__subtitle">Heute bis ${esc(_DASH_DE_DAY_GROUP_FMT.format(dashboardDateFromYmd(dashboardLastYmd)))}</p>
+        </div>
         ${dashLink('kalender', 'Zum Kalender')}
       </div>
       <div class="ckp-dash-panel__body ckp-dash-panel__body--termine">${terminRows}</div>

@@ -109,7 +109,7 @@ window.CCIntern.templates.getShellHTML = function() {
         <button id="cc-notif-btn" onclick="ccNotifToggle()" title="Kommunikation &amp; Benachrichtigungen"
           style="position:relative;width:34px;height:34px;border-radius:50%;border:none;background:var(--gray-l);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;">
           🔔
-          <span id="cc-notif-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;border:2px solid #fff;"></span>
+          <span id="cc-notif-badge" style="position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;border:2px solid #fff;">0</span>
         </button>
         <!-- Dropdown -->
         <div id="cc-notif-dropdown" style="display:none;position:absolute;top:42px;right:0;width:340px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:9999;overflow:hidden;border:1px solid var(--border);">
@@ -552,10 +552,10 @@ window.CCIntern.templates.getShellHTML = function() {
               <button type="button" onclick="if(typeof mobGlockeNachrichtenOeffnen==='function')mobGlockeNachrichtenOeffnen();" title="Nachrichten &amp; Kommunikation"
                 style="position:relative;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;">
                 🔔
-                <span id="mob-fragen-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#FF3B30;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;border:2px solid #0D47A1;"></span>
+                <span id="mob-fragen-badge" style="position:absolute;top:-2px;right:-2px;background:#FF3B30;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;border:2px solid #0D47A1;">0</span>
               </button>
               <!-- Avatar -->
-              <div id="mob-avatar" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;border:2px solid rgba(255,255,255,.3);" onclick="mobWechselMA()">–</div>
+              <div id="mob-avatar" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;border:2px solid rgba(255,255,255,.3);" onclick="mobOpenProfile()">–</div>
             </div>
           </div>
           <!-- MA-Picker Dropdown -->
@@ -638,6 +638,19 @@ window.CCIntern.templates.getShellHTML = function() {
               </div>
             </div>
 
+            <!-- Krankschein: nur bei Krank -->
+            <div id="mob-url-krank-block" style="display:none;margin-bottom:12px;">
+              <label style="font-size:12px;font-weight:600;color:#3C3C43;display:block;margin-bottom:5px;">Krankschein</label>
+              <label style="display:flex;align-items:center;gap:10px;border:1.5px dashed #7AA7FF;border-radius:12px;background:#F2F7FF;padding:12px;cursor:pointer;">
+                <span style="width:38px;height:38px;border-radius:10px;background:#007AFF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📎</span>
+                <span style="min-width:0;flex:1;">
+                  <span style="display:block;font-size:13px;font-weight:800;color:#1C1C1E;">Bild oder PDF hochladen</span>
+                  <span id="mob-url-krank-file-name" style="display:block;font-size:11px;color:#8E8E93;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">JPG, PNG, WEBP oder PDF</span>
+                </span>
+                <input type="file" id="mob-url-krank-file" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="mobKrankFileChanged(this)">
+              </label>
+            </div>
+
             <!-- Stunden: nur bei Überstunden -->
             <div id="mob-url-std-block" style="display:none;margin-bottom:12px;">
               <label style="font-size:12px;font-weight:600;color:#3C3C43;display:block;margin-bottom:5px;">Überstunden (h)</label>
@@ -690,6 +703,11 @@ window.CCIntern.templates.getShellHTML = function() {
           </div>
           <div style="font-size:10px;font-weight:700;color:#8E8E93;letter-spacing:.07em;margin-bottom:8px;">MEIN RESTURLAUB</div>
           <div id="mob-urlaub-info" style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);"></div>
+        </div>
+
+        <!-- ── Tab: Profil ── -->
+        <div id="mob-tab-profile" style="display:none;padding:0 14px 18px;">
+          <div id="mob-profile-content"></div>
         </div>
 
       </div><!-- /mob-scroll -->

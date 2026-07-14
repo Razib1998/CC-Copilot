@@ -35,6 +35,9 @@ function renderUrlaubAntraege(){
           var erstellt=a.erstellt?new Date(a.erstellt).toLocaleDateString('de-DE'):'—';
           var stCol=a.status==='genehmigt'?'var(--green)':a.status==='abgelehnt'?'var(--red)':'var(--amber)';
           var stLbl=a.status==='genehmigt'?'Genehmigt':a.status==='abgelehnt'?'Abgelehnt':'Offen';
+          var docBtn = a.krankschein
+            ? '<button class="btn" style="font-size:11px;padding:3px 8px;color:var(--blue);" onclick="urlaubOpenKrankschein(\''+a.id+'\')">📎 Dokument</button>'
+            : '';
           return '<tr>'
             +'<td><div style="display:flex;align-items:center;gap:8px;">'
               +'<div style="width:26px;height:26px;border-radius:50%;background:'+m.col+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">'+m.av+'</div>'+m.n
@@ -46,6 +49,7 @@ function renderUrlaubAntraege(){
             +'<td>'+erstellt+'</td>'
             +'<td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+stCol+'18;color:'+stCol+';">'+stLbl+'</span></td>'
             +'<td style="display:flex;gap:4px;">'
+              +docBtn
               +(a.status==='offen'
                 ?'<button class="btn g" style="font-size:11px;padding:3px 8px;" onclick="urlaubEntscheiden(\''+a.id+'\',\'genehmigt\')">✓</button>'
                 +'<button class="btn" style="font-size:11px;padding:3px 8px;color:var(--red);" onclick="urlaubEntscheiden(\''+a.id+'\',\'abgelehnt\')">✗</button>'
@@ -77,6 +81,70 @@ function renderUrlaubAntraege(){
     }).join('');
   }
 }
+
+function urlaubOpenKrankschein(id){
+  var a = URLAUB_ANTRAEGE.find(function(x){ return x.id === id; });
+  if(!a || !a.krankschein){
+    if(typeof showToast === 'function') showToast('⚠ Kein Dokument vorhanden');
+    return;
+  }
+  var api = window.CCIntern && window.CCIntern.cockpitApi;
+  if(api && typeof api.fetchUrlaubKrankscheinBlob === 'function'){
+    api.fetchUrlaubKrankscheinBlob(id).then(function(blob){
+      var url = URL.createObjectURL(blob);
+      urlaubShowKrankscheinPreview(url, a.krankschein.name || 'Krankschein', blob.type || a.krankschein.mime || '');
+    }).catch(function(e){
+      console.error('[urlaub] Krankschein öffnen', e);
+      if(typeof showToast === 'function') showToast('⚠ Dokument konnte nicht geöffnet werden');
+    });
+    return;
+  }
+  var src = a.krankschein.url || a.krankschein.dataUrl || '';
+  if(!src){
+    if(typeof showToast === 'function') showToast('⚠ Dokument nicht verfügbar');
+    return;
+  }
+  urlaubShowKrankscheinPreview(src, a.krankschein.name || 'Krankschein', a.krankschein.type || a.krankschein.mime || '');
+}
+window.urlaubOpenKrankschein = urlaubOpenKrankschein;
+
+function urlaubCloseKrankscheinPreview(){
+  var ov = document.getElementById('urlaub-krankschein-preview');
+  if(!ov) return;
+  var blobUrl = ov.getAttribute('data-blob-url') || '';
+  ov.remove();
+  if(blobUrl.indexOf('blob:') === 0){
+    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 500);
+  }
+}
+window.urlaubCloseKrankscheinPreview = urlaubCloseKrankscheinPreview;
+
+function urlaubShowKrankscheinPreview(src, name, mime){
+  if(!src) return;
+  urlaubCloseKrankscheinPreview();
+  var isPdf = /pdf/i.test(String(mime || '')) || /\.pdf$/i.test(String(name || '')) || String(src).indexOf('application/pdf') === 5;
+  var content = isPdf
+    ? '<iframe src="'+src+'" title="Krankschein" style="width:100%;height:100%;border:0;background:#fff;"></iframe>'
+    : '<img src="'+src+'" alt="Krankschein" style="max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;">';
+  var ov = document.createElement('div');
+  ov.id = 'urlaub-krankschein-preview';
+  ov.setAttribute('data-blob-url', src);
+  ov.onclick = function(ev){ if(ev.target === ov) urlaubCloseKrankscheinPreview(); };
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,12,24,.72);display:flex;align-items:center;justify-content:center;padding:18px;';
+  ov.innerHTML =
+    '<div style="width:min(920px,96vw);height:min(760px,90vh);background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;">'
+      +'<div style="height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid #E5E7EB;background:#F8FAFC;">'
+        +'<div style="min-width:0;font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📎 '+(name || 'Krankschein')+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+          +'<a href="'+src+'" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#007AFF;text-decoration:none;padding:7px 10px;border:1px solid #D8E6FF;border-radius:9px;background:#fff;">In neuem Tab</a>'
+          +'<button type="button" onclick="urlaubCloseKrankscheinPreview()" style="width:34px;height:34px;border:none;border-radius:9px;background:#E5E7EB;color:#374151;font-size:20px;font-weight:900;cursor:pointer;">×</button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="flex:1;min-height:0;background:#111827;display:flex;align-items:center;justify-content:center;">'+content+'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+window.urlaubShowKrankscheinPreview = urlaubShowKrankscheinPreview;
 
 /**
  * Liest die Desktop-Neuantrag-Felder (#urlaub-neu-*) und speichert über postUrlaubAntragFromUi.
@@ -161,4 +229,3 @@ function urlaubEntscheiden(id, status){
     showToast((status==='genehmigt'?'✓ Genehmigt: ':'✗ Abgelehnt: ')+a.ma+' · '+a.typ);
   }
 }
-

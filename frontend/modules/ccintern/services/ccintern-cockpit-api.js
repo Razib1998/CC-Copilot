@@ -2825,8 +2825,11 @@ function newPlaceholderMitarbeiterEmail() {
   return 'ccintern.ma.' + String(Date.now()) + '.' + String(Math.random()).slice(2, 8) + '@cc-cockpit.local';
 }
 
-/** Einheitliche Fehlermeldung bei ungültigem oder doppeltem Kürzel (UI + API). */
-export const MITARBEITER_KUERZEL_FEHLER = 'Kürzel bereits vergeben oder ungültig.';
+/** Einheitliche Fehlermeldungen für das frei wählbare, firmenweit eindeutige Kürzel. */
+export const MITARBEITER_KUERZEL_FEHLER = 'Kürzel fehlt, ist zu lang oder bereits vergeben.';
+export const MITARBEITER_KUERZEL_FORMAT_FEHLER =
+  'Kürzel ist erforderlich und darf höchstens 32 Zeichen lang sein.';
+export const MITARBEITER_KUERZEL_DOPPELT_FEHLER = 'Dieses Kürzel wird bereits verwendet.';
 
 /**
  * @param {unknown} raw
@@ -2836,7 +2839,9 @@ export function normalizeMitarbeiterKuerzelForSave(raw) {
   var s = raw == null ? '' : String(raw).trim();
   if (!s) return { ok: false, norm: '' };
   var norm = s.toUpperCase();
-  if (!/^[A-ZÄÖÜ]{2,5}$/.test(norm)) return { ok: false, norm };
+  // Das Kürzel ist eine frei wählbare interne Kennung. Keine Beschränkung auf
+  // 2–5 Buchstaben: auch Ziffern, Bindestriche und längere Kürzel sind erlaubt.
+  if (norm.length > 32) return { ok: false, norm };
   return { ok: true, norm };
 }
 
@@ -2855,7 +2860,7 @@ export function mitarbeiterKuerzelRawAusMa(ma) {
 }
 
 /**
- * Format 2–5 Buchstaben + Eindeutigkeit innerhalb der Liste (kein DB-Check).
+ * Pflichtfeld (max. 32 Zeichen) + Eindeutigkeit innerhalb der Liste (kein DB-Check).
  * @param {unknown[]|null|undefined} list
  * @param {{ validUserIds?: Set<string>, skipOrphanNotInUsers?: boolean }|null} [opts]
  * @returns {{ ok: boolean, message: string }}
@@ -2875,8 +2880,8 @@ export function validateMitarbeiterKuerzelListe(list, opts) {
     }
     var raw = mitarbeiterKuerzelRawAusMa(ma);
     var chk = normalizeMitarbeiterKuerzelForSave(raw);
-    if (!chk.ok) return { ok: false, message: MITARBEITER_KUERZEL_FEHLER };
-    if (seen[chk.norm]) return { ok: false, message: MITARBEITER_KUERZEL_FEHLER };
+    if (!chk.ok) return { ok: false, message: MITARBEITER_KUERZEL_FORMAT_FEHLER };
+    if (seen[chk.norm]) return { ok: false, message: MITARBEITER_KUERZEL_DOPPELT_FEHLER };
     seen[chk.norm] = true;
   }
   return { ok: true, message: '' };
@@ -2899,7 +2904,7 @@ export function validateMitarbeiterKuerzelGegenApiStamm(list, apiMitarbeiterRows
     var sid = serverUserIdForMa(ma);
     if (skip && vSet && sid && !vSet.has(sid)) continue;
     var chk = normalizeMitarbeiterKuerzelForSave(mitarbeiterKuerzelRawAusMa(ma));
-    if (!chk.ok) return { ok: false, message: MITARBEITER_KUERZEL_FEHLER };
+    if (!chk.ok) return { ok: false, message: MITARBEITER_KUERZEL_FORMAT_FEHLER };
     var norm = chk.norm;
     var j;
     var r;
@@ -2913,7 +2918,7 @@ export function validateMitarbeiterKuerzelGegenApiStamm(list, apiMitarbeiterRows
       rid = r.user_id != null ? String(r.user_id).trim() : '';
       if (!rid) continue;
       if (sid && rid === sid) continue;
-      return { ok: false, message: MITARBEITER_KUERZEL_FEHLER };
+      return { ok: false, message: MITARBEITER_KUERZEL_DOPPELT_FEHLER };
     }
   }
   return { ok: true, message: '' };
@@ -3512,6 +3517,7 @@ export function urlaubApiRowToUiRecord(row) {
     stunden,
     artLabel: typLabel === 'Kurzabwesenheit' ? 'Kurzabwesenheit' : undefined,
     notiz: be,
+    krankschein: row.krankschein && typeof row.krankschein === 'object' ? row.krankschein : undefined,
     status: String(row.status || 'offen'),
     erstellt: row.erstellt_am != null ? String(row.erstellt_am) : new Date().toISOString(),
   };
@@ -3653,9 +3659,41 @@ export async function postUrlaubAntragFromUi(a, showToast) {
   const data = await apiFetch(API_V1_URLAUB, { method: 'POST', body });
   const row = data && /** @type {{ urlaub?: unknown }} */ (data).urlaub;
   if (!row || typeof row !== 'object') throw new Error('Urlaub POST: leere Antwort');
-  const u = urlaubApiRowToUiRecord(row);
+  let u = urlaubApiRowToUiRecord(row);
   if (!u && showToast) showToast('⚠ Urlaub: Antwort ungültig.');
+  const file = typeof File !== 'undefined' && a && a.__krankscheinFile instanceof File ? a.__krankscheinFile : null;
+  if (u && file && String(u.typ || '') === 'Krank' && u.id) {
+    try {
+      const uploaded = await uploadUrlaubKrankschein(u.id, file);
+      const next = uploaded && uploaded.urlaub ? urlaubApiRowToUiRecord(uploaded.urlaub) : null;
+      if (next) u = next;
+    } catch (e) {
+      console.error('[ccintern-cockpit-api] uploadUrlaubKrankschein', e);
+      if (showToast) showToast('⚠ Antrag gespeichert, aber Krankschein konnte nicht hochgeladen werden.');
+    }
+  }
   return u;
+}
+
+/**
+ * @param {unknown} urlaubId
+ * @param {File} file
+ */
+export async function uploadUrlaubKrankschein(urlaubId, file) {
+  const id = urlaubId != null ? String(urlaubId).trim() : '';
+  if (!id || !file) throw new Error('uploadUrlaubKrankschein: Urlaub-ID oder Datei fehlt.');
+  const fd = new FormData();
+  fd.append('file', file);
+  return apiFetchFormData(`${API_V1_URLAUB}/${encodeURIComponent(id)}/krankschein`, { method: 'POST', body: fd });
+}
+
+/**
+ * @param {unknown} urlaubId
+ */
+export async function fetchUrlaubKrankscheinBlob(urlaubId) {
+  const id = urlaubId != null ? String(urlaubId).trim() : '';
+  if (!id) throw new Error('fetchUrlaubKrankscheinBlob: Urlaub-ID fehlt.');
+  return apiFetchBlob(`${API_V1_URLAUB}/${encodeURIComponent(id)}/krankschein`);
 }
 
 /**

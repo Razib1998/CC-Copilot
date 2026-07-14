@@ -328,5 +328,45 @@ export function createFahrzeugeRouter(store) {
     }
   });
 
+  router.delete('/:fahrzeugId', fzBearbeiten, async (req, res, next) => {
+    try {
+      const fid = typeof req.params.fahrzeugId === 'string' ? req.params.fahrzeugId.trim() : '';
+      if (!fid) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Fahrzeug-ID.');
+      }
+      if (typeof store.deleteFahrzeugCascade !== 'function') {
+        return sendError(res, 500, 'INTERNAL_ERROR', 'Löschen wird vom Store nicht unterstützt.');
+      }
+      const result = await store.deleteFahrzeugCascade(fid);
+      if (!result || result.ok !== true) {
+        const code = result?.code || 'DELETE_FAILED';
+        const msg = result?.message || 'Fahrzeug konnte nicht gelöscht werden.';
+        if (code === 'NOT_FOUND') return sendError(res, 404, 'NOT_FOUND', msg);
+        if (code === 'VALIDATION_ERROR') return sendError(res, 400, 'VALIDATION_ERROR', msg);
+        return sendError(res, 500, 'INTERNAL_ERROR', msg);
+      }
+      await logAudit(store, {
+        user: req.auth,
+        modul: 'fusa',
+        action: 'DELETE',
+        resource_type: 'fahrzeug',
+        resource_id: fid,
+        project_id: null,
+        payload: null,
+      });
+      return sendSuccess(res, 200, {
+        deleted: true,
+        id: fid,
+        cascade: {
+          deleted_auftraege: Number(result.deletedAuftraege || 0),
+          updated_auftraege: Number(result.updatedAuftraege || 0),
+          deleted_schaeden: Number(result.deletedSchaeden || 0),
+        },
+      });
+    } catch (e) {
+      return next(e);
+    }
+  });
+
   return router;
 }

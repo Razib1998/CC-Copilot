@@ -34,6 +34,20 @@ function optionalNumber(raw) {
 }
 
 /**
+ * @param {unknown} raw
+ * @returns {{ ok: boolean, norm: string }}
+ */
+export function normalizeMitarbeiterKuerzel(raw) {
+  const s = requiredTrimmed(raw);
+  if (!s) return { ok: false, norm: '' };
+  const norm = s.toUpperCase();
+  // Frei wählbare interne Kennung; nur Leerwerte und technisch zu lange
+  // Werte ablehnen. Die Eindeutigkeit innerhalb der Firma prüft der Router.
+  if (norm.length > 32) return { ok: false, norm };
+  return { ok: true, norm };
+}
+
+/**
  * @param {object} row
  */
 function mapMitarbeiter(row) {
@@ -69,19 +83,8 @@ export function createMitarbeiterRouter(store, opts) {
   const mitErstellen = chainMiddleware(requireModule('ccintern'), requireRight('ccintern', 'mitarbeiter', 'erstellen'));
   const mitBearbeiten = chainMiddleware(requireModule('ccintern'), requireRight('ccintern', 'mitarbeiter', 'bearbeiten'));
 
-  const KUERZEL_FEHLER = 'Kürzel bereits vergeben oder ungültig.';
-
-  /**
-   * @param {unknown} raw
-   * @returns {{ ok: boolean, norm: string }}
-   */
-  function normalizeMitarbeiterKuerzel(raw) {
-    const s = requiredTrimmed(raw);
-    if (!s) return { ok: false, norm: '' };
-    const norm = s.toUpperCase();
-    if (!/^[A-ZÄÖÜ]{2,5}$/.test(norm)) return { ok: false, norm };
-    return { ok: true, norm };
-  }
+  const KUERZEL_FORMAT_FEHLER = 'Kürzel ist erforderlich und darf höchstens 32 Zeichen lang sein.';
+  const KUERZEL_DOPPELT_FEHLER = 'Dieses Kürzel wird bereits verwendet.';
 
   /**
    * @param {string} firmaId
@@ -182,12 +185,12 @@ export function createMitarbeiterRouter(store, opts) {
       }
       const posNormCheck = normalizeMitarbeiterKuerzel(req.body?.position);
       if (!posNormCheck.ok) {
-        return sendError(res, 400, 'VALIDATION_ERROR', KUERZEL_FEHLER);
+        return sendError(res, 400, 'VALIDATION_ERROR', KUERZEL_FORMAT_FEHLER);
       }
       const excludeForPos = dup ? String(dup.id) : '';
       const conflictPost = await findMitarbeiterPositionConflict(firmaId, posNormCheck.norm, excludeForPos);
       if (conflictPost) {
-        return sendError(res, 409, 'CONFLICT', KUERZEL_FEHLER);
+        return sendError(res, 409, 'CONFLICT', KUERZEL_DOPPELT_FEHLER);
       }
       if (dup) {
         const updated = await store.updateMitarbeiter(dup.id, firmaId, {
@@ -273,11 +276,11 @@ export function createMitarbeiterRouter(store, opts) {
       if (Object.prototype.hasOwnProperty.call(req.body, 'position')) {
         const posPut = normalizeMitarbeiterKuerzel(req.body?.position);
         if (!posPut.ok) {
-          return sendError(res, 400, 'VALIDATION_ERROR', KUERZEL_FEHLER);
+          return sendError(res, 400, 'VALIDATION_ERROR', KUERZEL_FORMAT_FEHLER);
         }
         const conflictPut = await findMitarbeiterPositionConflict(firmaId, posPut.norm, id);
         if (conflictPut) {
-          return sendError(res, 409, 'CONFLICT', KUERZEL_FEHLER);
+          return sendError(res, 409, 'CONFLICT', KUERZEL_DOPPELT_FEHLER);
         }
         patch.position = posPut.norm;
       }

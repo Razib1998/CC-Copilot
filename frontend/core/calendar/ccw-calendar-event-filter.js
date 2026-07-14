@@ -164,7 +164,7 @@ function stepBerlinCalendarDay(ymd, dir) {
  * @param {number} delta
  * @returns {string}
  */
-function addBerlinCalendarDays(ymd, delta) {
+export function addBerlinCalendarDays(ymd, delta) {
   let cur = ymd;
   const sign = delta >= 0 ? 1 : -1;
   for (let i = 0; i < Math.abs(delta); i++) {

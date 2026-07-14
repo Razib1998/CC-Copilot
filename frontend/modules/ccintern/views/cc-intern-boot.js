@@ -1046,21 +1046,72 @@ function ccNotifEscAttr(s) {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * @returns {number} Offene Fragen, sonst Gesamtzahl Kommentare (ohne neues Lese-Modell)
- */
-function ccNotifAnzahlKommunikation() {
-  var n = 0;
-  if (typeof countOffeneFragen === 'function') {
+function ccNotifAktuellerUserId() {
+  if (typeof window !== 'undefined' && window.CURRENT_USER_ID != null && String(window.CURRENT_USER_ID).trim()) {
+    return String(window.CURRENT_USER_ID).trim();
+  }
+  if (typeof CURRENT_USER_ID !== 'undefined' && CURRENT_USER_ID != null && String(CURRENT_USER_ID).trim()) {
+    return String(CURRENT_USER_ID).trim();
+  }
+  if (typeof ccKommentarAutorUuidFuerSpeichern === 'function') {
     try {
-      n = countOffeneFragen();
+      var resolved = ccKommentarAutorUuidFuerSpeichern();
+      if (resolved != null && String(resolved).trim()) return String(resolved).trim();
     } catch (e) { /* */ }
   }
-  if (n > 0) return n;
+  return '';
+}
+
+function ccNotifKommentarIstUngelesen(k, userId) {
+  if (!k || !userId) return false;
+  var uid = String(userId).trim();
+  var autorId = k.autorMaId != null ? String(k.autorMaId).trim() : '';
+  if (autorId && autorId === uid) return false;
+  if (Array.isArray(k.seenBy)) {
+    return !k.seenBy.some(function (seenId) {
+      return seenId != null && String(seenId).trim() === uid;
+    });
+  }
+  return true;
+}
+
+function ccNotifAuftragNachId(rawId) {
+  var wanted = rawId == null ? '' : String(rawId).trim();
+  if (!wanted || typeof AUFTRAEGE === 'undefined' || !Array.isArray(AUFTRAEGE)) return null;
+  return AUFTRAEGE.find(function (a) {
+    return a && [a.id, a.ccApiId, a.auftragsnummer].some(function (candidate) {
+      return candidate != null && String(candidate).trim() === wanted;
+    });
+  }) || null;
+}
+
+function ccNotifChatPushIstUngelesen(n, fallback) {
+  if (!n || !n.info) return !!fallback;
+  var userId = ccNotifAktuellerUserId();
+  if (!userId) return !!fallback;
+  var a = ccNotifAuftragNachId(n.info.id);
+  if (!a || !Array.isArray(a.kommentare)) return !!fallback;
+  var pushedText = n.info.text != null ? String(n.info.text).trim() : '';
+  var passend = a.kommentare.filter(function (k) {
+    if (!k) return false;
+    if (!pushedText) return true;
+    return String(k.text || '').trim().indexOf(pushedText) === 0;
+  });
+  var pool = passend.length ? passend : a.kommentare;
+  return pool.some(function (k) { return ccNotifKommentarIstUngelesen(k, userId); });
+}
+
+/** @returns {number} Ungelesene Auftrags-Kommentare für den angemeldeten Benutzer. */
+function ccNotifAnzahlKommunikation() {
+  var userId = ccNotifAktuellerUserId();
+  if (!userId) return 0;
+  var n = 0;
   if (typeof AUFTRAEGE === 'undefined' || !AUFTRAEGE || !AUFTRAEGE.length) return 0;
   AUFTRAEGE.forEach(function (a) {
-    var km = a.kommentare;
-    n += Array.isArray(km) ? km.length : 0;
+    var km = Array.isArray(a.kommentare) ? a.kommentare : [];
+    km.forEach(function (k) {
+      if (ccNotifKommentarIstUngelesen(k, userId)) n++;
+    });
   });
   return n;
 }
@@ -1073,23 +1124,30 @@ function ccNotifBuildKommFragenHtml() {
   if (typeof AUFTRAEGE === 'undefined' || !AUFTRAEGE || !AUFTRAEGE.length) return '';
   var offene = [];
   var totalKm = 0;
+  var auftraegeMitKommentaren = [];
   AUFTRAEGE.forEach(function (a) {
     var km = a.kommentare || [];
     totalKm += km.length;
+    if (km.length) {
+      var letzter = km[km.length - 1] || {};
+      auftraegeMitKommentaren.push({ a: a, k: letzter, anzahl: km.length });
+    }
     km.forEach(function (k) {
       if (k && k.istFrage && !k.beantwortet) offene.push({ a: a, k: k });
     });
   });
   if (!offene.length) {
     if (totalKm < 1) return '';
+    auftraegeMitKommentaren.sort(function (x, y) {
+      return String(y.k && (y.k.ts || y.k.zeit) || '').localeCompare(String(x.k && (x.k.ts || x.k.zeit) || ''));
+    });
     return (
-      '<div style="padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.45;">'
-      + '💬 <strong>' +
-      totalKm +
-      '</strong> Kommentar(e) in Aufträgen. '
-      + '<a href="javascript:void(0)" style="color:#007AFF;font-weight:600;cursor:pointer;" '
-      + 'onclick="(function(){if(typeof goPage===\'function\'){goPage(\'auftraege\',null,\'Aufträge\',\'Auftragsverwaltung\');}var d=document.getElementById(\'cc-notif-dropdown\');if(d){d.style.display=\'none\';}if(typeof CC_NOTIF_OPEN!==\'undefined\'){CC_NOTIF_OPEN=false;}})()">'
-      + 'Zur Auftragsübersicht →</a></div>'
+      '<div style="padding:10px 12px;background:#F0F7FF;border-bottom:1px solid var(--border);">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">💬 Kommunikation in Aufträgen</div>'
+      + auftraegeMitKommentaren.slice(0, 10).map(function (item) {
+          return ccNotifKommAuftragRowHtml(item.a, item.k, item.anzahl);
+        }).join('')
+      + '</div>'
     );
   }
   return (
@@ -1107,14 +1165,14 @@ function ccNotifBuildKommFragenHtml() {
             : (k.zeit || '');
           var dataAu = ccNotifEscAttr(a.id);
           return (
-            '<div role="button" tabindex="0" data-cc-au-id="' +
+            '<div class="cc-notif-conversation is-unread" role="button" tabindex="0" data-cc-au-id="' +
             dataAu +
-            '" onclick="ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'));}" style="padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;">'
-            + '<div style="font-size:12px;font-weight:600;">' +
+            '" onclick="ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'))" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'));}" style="padding:8px 10px;border-radius:8px;margin-bottom:6px;cursor:pointer;">'
+            + '<div style="display:flex;align-items:center;gap:7px;"><div style="font-size:12px;font-weight:600;min-width:0;flex:1;">' +
             ccNotifEscAttr(a.kunde || '') +
             ' · ' +
             ccNotifEscAttr(a.id) +
-            '</div>'
+            '</div><span class="cc-notif-state">Neu</span></div>'
             + '<div style="font-size:11px;color:var(--text2);margin-top:2px;">' +
             ccNotifEscAttr(k.text || '') +
             '</div>'
@@ -1132,27 +1190,93 @@ function ccNotifBuildKommFragenHtml() {
 }
 
 /**
+ * Fallback-Zeile für persistierte Auftragskommentare, wenn keine Server-Push-Nachricht vorhanden ist.
+ * @param {Record<string, unknown>} a
+ * @param {Record<string, unknown>} k
+ * @param {number} anzahl
+ */
+function ccNotifKommAuftragRowHtml(a, k, anzahl) {
+  var rawId = a && (a.id || a.ccApiId || a.auftragsnummer) ? String(a.id || a.ccApiId || a.auftragsnummer) : '';
+  if (!rawId) return '';
+  var dataAu = ccNotifEscAttr(rawId);
+  var auftragLabel = ccNotifEscAttr(a.auftragsnummer || a.id || 'Auftrag');
+  var kunde = ccNotifEscAttr(a.kunde || a.kundenname || '');
+  var text = ccNotifEscAttr(k && k.text ? k.text : 'Kommunikation öffnen');
+  var userId = ccNotifAktuellerUserId();
+  var unread = userId && Array.isArray(a.kommentare)
+    ? a.kommentare.filter(function (item) { return ccNotifKommentarIstUngelesen(item, userId); }).length
+    : 0;
+  var stateClass = unread > 0 ? ' is-unread' : ' is-seen';
+  var stateLabel = unread > 0 ? 'Neu · ' + unread : 'Gelesen';
+  return (
+    '<div class="cc-notif-conversation' + stateClass + '" role="button" tabindex="0" data-cc-au-id="' + dataAu + '" '
+    + 'onclick="ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'))" '
+    + 'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'));}" '
+    + 'style="padding:8px 10px;border-radius:8px;margin-bottom:6px;cursor:pointer;">'
+    + '<div style="display:flex;align-items:center;gap:7px;"><div style="font-size:12px;font-weight:600;min-width:0;flex:1;">' + kunde + (kunde ? ' · ' : '') + auftragLabel + '</div>'
+    + '<span class="cc-notif-state">' + stateLabel + '</span></div>'
+    + '<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + text + '</div>'
+    + '<div style="font-size:10px;color:#007AFF;font-weight:600;margin-top:3px;">' + Number(anzahl || 0) + ' Nachricht(en) · Kommunikation öffnen →</div>'
+    + '</div>'
+  );
+}
+
+/**
  * @param {string} auId
  */
-function ccNotifOpenAuftragKomm(auId) {
-  if (!auId) return;
+async function ccNotifOpenAuftragKomm(auId) {
+  var requestedId = auId == null ? '' : String(auId).trim();
+  if (!requestedId) return;
+  var dd = document.getElementById('cc-notif-dropdown');
+  if (dd) dd.style.display = 'none';
+  if (typeof CC_NOTIF_OPEN !== 'undefined') CC_NOTIF_OPEN = false;
+
+  function findAuftrag() {
+    if (typeof AUFTRAEGE === 'undefined' || !Array.isArray(AUFTRAEGE)) return null;
+    return AUFTRAEGE.find(function (a) {
+      if (!a) return false;
+      return [a.id, a.ccApiId, a.auftragsnummer].some(function (candidate) {
+        return candidate != null && String(candidate).trim() === requestedId;
+      });
+    }) || null;
+  }
+
+  var auftrag = findAuftrag();
+  if (!auftrag) {
+    var api = typeof window !== 'undefined' ? window.CCIntern && window.CCIntern.cockpitApi : null;
+    if (api && typeof api.reloadAuftraegeFromApiIntoMemory === 'function') {
+      try {
+        await api.reloadAuftraegeFromApiIntoMemory(null);
+        auftrag = findAuftrag();
+      } catch (reloadErr) {
+        if (typeof console !== 'undefined' && console.warn) console.warn('[NOTIF_KOMM_RELOAD]', reloadErr);
+      }
+    }
+  }
+  var openId = auftrag && auftrag.id != null ? String(auftrag.id) : requestedId;
   try {
     if (typeof goPage === 'function') goPage('auftraege', null, 'Aufträge', 'Auftragsverwaltung');
   } catch (e1) {
     /* optional */
   }
-  try {
-    if (typeof openAuftragDetail === 'function') openAuftragDetail(auId);
-  } catch (e2) {
-    /* optional */
-  }
-  setTimeout(function () {
-    var c = document.getElementById('chat-container-' + auId);
-    if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    var dd = document.getElementById('cc-notif-dropdown');
-    if (dd) dd.style.display = 'none';
-    if (typeof CC_NOTIF_OPEN !== 'undefined') CC_NOTIF_OPEN = false;
-  }, 450);
+
+  setTimeout(async function () {
+    try {
+      if (typeof openAuftragDetail === 'function') await Promise.resolve(openAuftragDetail(openId));
+    } catch (e2) {
+      if (typeof console !== 'undefined' && console.warn) console.warn('[NOTIF_KOMM_OPEN]', e2);
+    }
+    [80, 350, 800].forEach(function (delay) {
+      setTimeout(function () {
+        var c = document.getElementById('chat-container-' + openId);
+        if (!c && auftrag && auftrag.ccApiId) c = document.getElementById('chat-container-' + auftrag.ccApiId);
+        if (!c) return;
+        c.scrollIntoView({ behavior: delay === 80 ? 'auto' : 'smooth', block: 'center' });
+        var input = c.querySelector('.chat-input-field');
+        if (input && typeof input.focus === 'function') input.focus({ preventScroll: true });
+      }, delay);
+    });
+  }, 60);
 }
 
 /** Desktop-Glocke nur für CC-Intern-Desktop, nicht Mitarbeiter-App-only / Invite. */
@@ -1170,13 +1294,14 @@ function ccNotifBadgeUpdate() {
   var badge = document.getElementById('cc-notif-badge');
   if (!badge) return;
   var unread = CC_NOTIF_DATA.filter(function (n) {
-    return n.ts > CC_NOTIF_LAST_SEEN;
+    // Chat-Pushs werden über AUFTRAEGE.kommentare + seenBy gezählt, sonst doppelte Badge-Zahl.
+    return n.action !== 'chat' && n.ts > CC_NOTIF_LAST_SEEN;
   }).length;
   var commN = ccNotifAnzahlKommunikation();
   var total = unread + commN;
+  badge.textContent = total > 99 ? '99+' : String(total);
+  badge.style.display = '';
   if (total > 0) {
-    badge.textContent = total > 99 ? '99+' : String(total);
-    badge.style.display = '';
     var btn = document.getElementById('cc-notif-btn');
     if (btn) {
       btn.style.animation = 'cc-bell-shake 0.4s ease';
@@ -1184,8 +1309,6 @@ function ccNotifBadgeUpdate() {
         btn.style.animation = '';
       }, 500);
     }
-  } else {
-    badge.style.display = 'none';
   }
 }
 
@@ -1215,32 +1338,41 @@ function ccNotifRender() {
   var serverHtml = CC_NOTIF_DATA.slice(0, 30).map(function(n) {
     var ts    = n.ts ? n.ts.substring(0, 16).replace('T', ' ') : '';
     var isNew = n.ts > CC_NOTIF_LAST_SEEN;
-    var dotHtml = isNew
+    var rowUnread = n.action === 'chat' ? ccNotifChatPushIstUngelesen(n, isNew) : isNew;
+    var dotHtml = rowUnread
       ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:5px;"></div>'
-      : '<div style="width:6px;flex-shrink:0;"></div>';
+      : '<div style="width:6px;height:6px;border-radius:50%;background:#A8B4C0;flex-shrink:0;margin-top:5px;"></div>';
     var bodyHtml;
     if (n.action === 'chat' && n.info) {
       // Chat-Nachricht: eigenes Template
       var auId   = n.info.id || '';
-      var fz     = n.info.fz || auId;
-      var autor  = n.info.autor || '';
-      var text   = n.info.text || '';
-      var kunde  = n.info.kunde ? ' · ' + n.info.kunde : '';
+      var fz     = ccNotifEscAttr(n.info.fz || auId);
+      var autor  = ccNotifEscAttr(n.info.autor || '');
+      var text   = ccNotifEscAttr(n.info.text || '');
+      var kunde  = n.info.kunde ? ' · ' + ccNotifEscAttr(n.info.kunde) : '';
       bodyHtml = '<div style="font-size:12px;font-weight:600;color:var(--text);">💬 ' + fz + kunde + '</div>'
         + '<div style="font-size:11px;color:var(--text2);margin-top:1px;">' + autor + ' hat geschrieben: &ldquo;' + text + '&rdquo;</div>'
         + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">' + ts + '</div>';
     } else {
-      var lbl   = CC_NOTIF_LABELS[n.collection] || ('📌 ' + n.collection);
-      var info  = n.info ? (n.info.fz || n.info.id || '') : '';
-      var kunde = n.info && n.info.kunde ? ' · ' + n.info.kunde : '';
+      var lbl   = ccNotifEscAttr(CC_NOTIF_LABELS[n.collection] || ('📌 ' + n.collection));
+      var info  = ccNotifEscAttr(n.info ? (n.info.fz || n.info.id || '') : '');
+      var kunde = n.info && n.info.kunde ? ' · ' + ccNotifEscAttr(n.info.kunde) : '';
       bodyHtml = '<div style="font-size:12px;font-weight:600;color:var(--text);">' + lbl + (info ? ' — ' + info : '') + kunde + '</div>'
         + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">' + ts + '</div>';
     }
-    return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);'
-      + (isNew ? 'background:#F0F7FF;' : '')
-      + 'display:flex;gap:10px;align-items:flex-start;">'
+    var chatClickAttrs = '';
+    var chatRowStyle = '';
+    if (n.action === 'chat' && n.info && n.info.id) {
+      chatClickAttrs = ' role="button" tabindex="0" data-cc-au-id="' + ccNotifEscAttr(n.info.id) + '"'
+        + ' onclick="ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'))"'
+        + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ccNotifOpenAuftragKomm(this.getAttribute(\'data-cc-au-id\'));}"';
+      chatRowStyle = 'cursor:pointer;';
+    }
+    return '<div class="cc-notif-server-row ' + (rowUnread ? 'is-unread' : 'is-seen') + '"' + chatClickAttrs + ' style="padding:10px 14px;border-bottom:1px solid var(--border);'
+      + chatRowStyle + 'display:flex;gap:10px;align-items:flex-start;">'
       + dotHtml
       + '<div style="flex:1;min-width:0;">' + bodyHtml + '</div>'
+      + '<span class="cc-notif-state">' + (rowUnread ? 'Neu' : 'Gelesen') + '</span>'
     + '</div>';
   }).join('');
   list.innerHTML = commHtml + serverHtml;

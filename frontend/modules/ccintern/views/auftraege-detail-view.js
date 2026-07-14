@@ -5297,6 +5297,52 @@ function maAufgabenWoche(maId, montagDate){
 }
 
 // ── MA-Karte rendern ─────────────────────────────────────────
+function maHeuteAnwesenheitMinuten(m, heute){
+  if (typeof MA_ANWESENHEIT === 'undefined' || !Array.isArray(MA_ANWESENHEIT) || !m) return 0;
+  return MA_ANWESENHEIT
+    .filter(function(a){ return a && a.maId === m.maId && a.datum === heute && a.typ !== 'kurzabwesenheit'; })
+    .reduce(function(sum, a){ return sum + maAnwesenheitDauerMinuten(a); }, 0);
+}
+
+function maFormatArbeitszeitMinuten(minuten){
+  var min = Math.max(0, Math.round(Number(minuten) || 0));
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  return h + 'h ' + String(m).padStart(2, '0') + 'm';
+}
+
+function maZeitTextMinuten(value){
+  var t = value != null ? String(value).trim() : '';
+  var m = t.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  var h = Number(m[1]);
+  var min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function maDauerMinutenAusStartEnd(start, end){
+  var s = maZeitTextMinuten(start);
+  var e = maZeitTextMinuten(end);
+  if (s == null || e == null) return 0;
+  var diff = e - s;
+  if (diff < 0) diff += 24 * 60;
+  return Math.max(0, diff);
+}
+
+function maAnwesenheitDauerMinuten(e){
+  var saved = Math.round(Number(e && e.dauer) || 0);
+  if (saved > 0) return saved;
+  return maDauerMinutenAusStartEnd(e && e.start, e && e.end);
+}
+
+function maFormatHeuteZeit(anwesenheitMin, geplantH){
+  var min = Math.round(Number(anwesenheitMin) || 0);
+  if (min > 0) return maFormatArbeitszeitMinuten(min);
+  var geplantMin = Math.round((Number(geplantH) || 0) * 60);
+  return geplantMin > 0 ? maFormatArbeitszeitMinuten(geplantMin) : '0h 00m';
+}
+
 function renderMitarbeiter(){
   var grid = document.getElementById('maGrid'); if(!grid) return;
   var cnt = document.getElementById('maGridCount');
@@ -5308,10 +5354,12 @@ function renderMitarbeiter(){
     var heute_aufg = maAufgabenHeute(m.maId);
     var gesamtH  = aufg.reduce(function(s,g){ return s+(g.dauer||0); }, 0);
     var heuteH   = heute_aufg.reduce(function(s,g){ return s+(g.dauer||0); }, 0);
+    var heuteAnwMin = maHeuteAnwesenheitMinuten(m, heute);
+    var heuteTxt = maFormatHeuteZeit(heuteAnwMin, heuteH);
     // Auslastung: geplante Stunden vs. Monatssoll
     var pct = m.soll > 0 ? Math.min(100, Math.round(gesamtH / m.soll * 100)) : 0;
     var barCol = pct >= 90 ? 'var(--red)' : pct >= 65 ? 'var(--amber)' : pct >= 20 ? m.col : 'var(--border)';
-    var statusDot = heuteH > 0
+    var statusDot = (heuteAnwMin > 0 || heuteH > 0)
       ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-left:5px;" title="Heute aktiv"></span>'
       : '';
 
@@ -5329,7 +5377,7 @@ function renderMitarbeiter(){
         +'</div>'
       +'</div>'
       +'<div class="ma-stats">'
-        +'<div><div class="ma-stat-n" style="color:'+(heuteH>0?'var(--green)':'var(--text3)')+'">'+heuteH+'h</div><div class="ma-stat-l">Heute</div></div>'
+        +'<div><div class="ma-stat-n" style="color:'+((heuteAnwMin > 0 || heuteH > 0)?'var(--green)':'var(--text3)')+'">'+heuteTxt+'</div><div class="ma-stat-l">Heute</div></div>'
         +'<div><div class="ma-stat-n">'+aufg.length+'</div><div class="ma-stat-l">Aufgaben</div></div>'
         +'<div><div class="ma-stat-n" style="color:'+barCol+'">'+pct+'%</div><div class="ma-stat-l">Auslastung</div></div>'
       +'</div>'
@@ -5374,9 +5422,9 @@ function maOpenSettings(){
         +'</div>'
       +'</td>'
       +'<td style="padding:9px 10px;">'
-        +'<input type="text" data-maid="'+m.maId+'" data-field="k" value="'+String(m.k != null ? m.k : '')+'" maxlength="5"'
-          +' style="'+iStyle+'font-size:12px;font-weight:700;width:54px;text-align:center;text-transform:uppercase;letter-spacing:.04em;"'
-          +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.trim().toUpperCase();this.style.borderColor=\'var(--border)\'" title="2–5 Buchstaben, eindeutig">'
+        +'<input type="text" data-maid="'+m.maId+'" data-field="k" value="'+String(m.k != null ? m.k : '')+'" maxlength="32"'
+          +' style="'+iStyle+'font-size:12px;font-weight:700;width:116px;text-align:center;text-transform:uppercase;letter-spacing:.04em;"'
+          +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.trim().toUpperCase();this.style.borderColor=\'var(--border)\'" title="Frei wählbar, maximal 32 Zeichen und eindeutig">'
       +'</td>'
       // Rolle
       +'<td style="padding:9px 10px;">'
@@ -5508,9 +5556,9 @@ function maAddNewRow(){
       +'</div>'
     +'</td>'
     +'<td style="padding:9px 10px;">'
-      +'<input type="text" data-tmpid="'+tmpId+'" data-field="k" placeholder="XY" maxlength="5"'
-        +' style="'+iStyle+'font-size:12px;font-weight:700;width:54px;text-align:center;text-transform:uppercase;"'
-        +' title="2–5 Buchstaben, eindeutig"'
+      +'<input type="text" data-tmpid="'+tmpId+'" data-field="k" placeholder="z. B. NM-1" maxlength="32" required'
+        +' style="'+iStyle+'font-size:12px;font-weight:700;width:116px;text-align:center;text-transform:uppercase;"'
+        +' title="Frei wählbar, maximal 32 Zeichen und innerhalb der Firma eindeutig"'
         +' onfocus="this.style.borderColor=\'var(--blue)\'" onblur="this.value=this.value.trim().toUpperCase();this.style.borderColor=\'var(--border)\'">'
     +'</td>'
     +'<td style="padding:9px 10px;">'
@@ -5660,7 +5708,7 @@ async function maSaveSettings(){
           rku = midS.toUpperCase();
         }
       }
-      if (!rku || !/^[A-ZÄÖÜ]{2,5}$/.test(rku)) {
+      if (!rku || rku.length > 32) {
         if (toast) toast('⚠ ' + kuerzelFehlerMsg);
         return;
       }
@@ -5936,8 +5984,7 @@ function maAnwesenheitHtml(m){
   var html = '';
   Object.keys(gruppen).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(mo){
     var eintr = gruppen[mo];
-    var monatMin = eintr.reduce(function(s,e){ return s+(e.dauer||0); },0);
-    var monatH   = (monatMin/60).toFixed(1);
+    var monatMin = eintr.reduce(function(s,e){ return s+maAnwesenheitDauerMinuten(e); },0);
     var soll     = m.soll || 160;
     var pct      = Math.min(100, Math.round(monatMin/60/soll*100));
     var barC     = pct>=90?'var(--green)':pct>=65?'var(--amber)':'var(--blue)';
@@ -5951,17 +5998,15 @@ function maAnwesenheitHtml(m){
         +'<div style="width:80px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">'
           +'<div style="height:100%;width:'+pct+'%;background:'+barC+';border-radius:3px;"></div>'
         +'</div>'
-        +'<span style="font-size:12px;font-weight:700;color:'+barC+';">'+monatH+'h / '+soll+'h</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+barC+';">'+maFormatArbeitszeitMinuten(monatMin)+' / '+soll+'h</span>'
       +'</div>'
     +'</div>';
 
     // Tageseinträge
     html += eintr.map(function(e){
       var isKurz  = e.typ === 'kurzabwesenheit';
-      var min     = Math.abs(e.dauer || 0);
-      var h       = Math.floor(min/60);
-      var m2      = min % 60;
-      var dauerTxt = (isKurz ? '−' : '') + h+'h '+(m2>0?m2+'min':'');
+      var min     = Math.abs(maAnwesenheitDauerMinuten(e));
+      var dauerTxt = (isKurz ? '-' : '') + maFormatArbeitszeitMinuten(min);
       var datDE   = e.datum ? e.datum.split('-').reverse().join('.') : '—';
       var isHeute = e.datum === heute;
       var bgC     = isKurz ? '#FFF3E0' : (isHeute ? 'var(--blue-l)' : 'var(--gray-l)');
@@ -10317,6 +10362,9 @@ function renderUrlaubAntraege(){
           var erstellt=a.erstellt?new Date(a.erstellt).toLocaleDateString('de-DE'):'—';
           var stCol=a.status==='genehmigt'?'var(--green)':a.status==='abgelehnt'?'var(--red)':'var(--amber)';
           var stLbl=a.status==='genehmigt'?'Genehmigt':a.status==='abgelehnt'?'Abgelehnt':'Offen';
+          var docBtn = a.krankschein
+            ? '<button class="btn" style="font-size:11px;padding:3px 8px;color:var(--blue);" onclick="urlaubOpenKrankschein(\''+a.id+'\')">📎 Dokument</button>'
+            : '';
           return '<tr>'
             +'<td><div style="display:flex;align-items:center;gap:8px;">'
               +'<div style="width:26px;height:26px;border-radius:50%;background:'+m.col+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">'+m.av+'</div>'+m.n
@@ -10328,6 +10376,7 @@ function renderUrlaubAntraege(){
             +'<td>'+erstellt+'</td>'
             +'<td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+stCol+'18;color:'+stCol+';">'+stLbl+'</span></td>'
             +'<td style="display:flex;gap:4px;">'
+              +docBtn
               +(a.status==='offen'
                 ?'<button class="btn g" style="font-size:11px;padding:3px 8px;" onclick="urlaubEntscheiden(\''+a.id+'\',\'genehmigt\')">✓</button>'
                 +'<button class="btn" style="font-size:11px;padding:3px 8px;color:var(--red);" onclick="urlaubEntscheiden(\''+a.id+'\',\'abgelehnt\')">✗</button>'
@@ -10359,6 +10408,70 @@ function renderUrlaubAntraege(){
     }).join('');
   }
 }
+
+function urlaubOpenKrankschein(id){
+  var a = URLAUB_ANTRAEGE.find(function(x){ return x.id === id; });
+  if(!a || !a.krankschein){
+    if(typeof showToast === 'function') showToast('⚠ Kein Dokument vorhanden');
+    return;
+  }
+  var api = window.CCIntern && window.CCIntern.cockpitApi;
+  if(api && typeof api.fetchUrlaubKrankscheinBlob === 'function'){
+    api.fetchUrlaubKrankscheinBlob(id).then(function(blob){
+      var url = URL.createObjectURL(blob);
+      urlaubShowKrankscheinPreview(url, a.krankschein.name || 'Krankschein', blob.type || a.krankschein.mime || '');
+    }).catch(function(e){
+      console.error('[urlaub] Krankschein öffnen', e);
+      if(typeof showToast === 'function') showToast('⚠ Dokument konnte nicht geöffnet werden');
+    });
+    return;
+  }
+  var src = a.krankschein.url || a.krankschein.dataUrl || '';
+  if(!src){
+    if(typeof showToast === 'function') showToast('⚠ Dokument nicht verfügbar');
+    return;
+  }
+  urlaubShowKrankscheinPreview(src, a.krankschein.name || 'Krankschein', a.krankschein.type || a.krankschein.mime || '');
+}
+window.urlaubOpenKrankschein = urlaubOpenKrankschein;
+
+function urlaubCloseKrankscheinPreview(){
+  var ov = document.getElementById('urlaub-krankschein-preview');
+  if(!ov) return;
+  var blobUrl = ov.getAttribute('data-blob-url') || '';
+  ov.remove();
+  if(blobUrl.indexOf('blob:') === 0){
+    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 500);
+  }
+}
+window.urlaubCloseKrankscheinPreview = urlaubCloseKrankscheinPreview;
+
+function urlaubShowKrankscheinPreview(src, name, mime){
+  if(!src) return;
+  urlaubCloseKrankscheinPreview();
+  var isPdf = /pdf/i.test(String(mime || '')) || /\.pdf$/i.test(String(name || '')) || String(src).indexOf('application/pdf') === 5;
+  var content = isPdf
+    ? '<iframe src="'+src+'" title="Krankschein" style="width:100%;height:100%;border:0;background:#fff;"></iframe>'
+    : '<img src="'+src+'" alt="Krankschein" style="max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;">';
+  var ov = document.createElement('div');
+  ov.id = 'urlaub-krankschein-preview';
+  ov.setAttribute('data-blob-url', src);
+  ov.onclick = function(ev){ if(ev.target === ov) urlaubCloseKrankscheinPreview(); };
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,12,24,.72);display:flex;align-items:center;justify-content:center;padding:18px;';
+  ov.innerHTML =
+    '<div style="width:min(920px,96vw);height:min(760px,90vh);background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;">'
+      +'<div style="height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid #E5E7EB;background:#F8FAFC;">'
+        +'<div style="min-width:0;font-size:14px;font-weight:800;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📎 '+(name || 'Krankschein')+'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+          +'<a href="'+src+'" target="_blank" rel="noopener" style="font-size:12px;font-weight:800;color:#007AFF;text-decoration:none;padding:7px 10px;border:1px solid #D8E6FF;border-radius:9px;background:#fff;">In neuem Tab</a>'
+          +'<button type="button" onclick="urlaubCloseKrankscheinPreview()" style="width:34px;height:34px;border:none;border-radius:9px;background:#E5E7EB;color:#374151;font-size:20px;font-weight:900;cursor:pointer;">×</button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="flex:1;min-height:0;background:#111827;display:flex;align-items:center;justify-content:center;">'+content+'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+window.urlaubShowKrankscheinPreview = urlaubShowKrankscheinPreview;
 
 
 // ── Aufgaben für bestehende Aufträge nacherzeugen ────────────────

@@ -75,7 +75,7 @@ import {
 } from '../middleware/api-v1-project-context.js';
 import { sendError, sendSuccess } from '../lib/api-v1-envelope.js';
 import { logAudit } from '../lib/audit-log.js';
-import { messeflowCalderaMulter, writeUploadBufferSync, createMulterMemory } from '../lib/upload-storage.js';
+import { messeflowCalderaMulter, writeUploadBufferSync, createMulterMemory, resolveUploadAbsolute } from '../lib/upload-storage.js';
 import {
   writeCcInternServerDateiSync,
   resolveCcInternServerAbsolute,
@@ -562,7 +562,7 @@ function mapCcInternAuftrag(row) {
     prioritaet: row.prioritaet ?? null,
     lieferdatum: row.lieferdatum ?? null,
     montage_datum: row.montage_datum ?? null,
-    bemerkung: row.bemerkung ?? null,
+    bemerkung: cleanUrlaubBemerkungForUi(row.bemerkung),
     fusa_auftrag_id: row.fusa_auftrag_id ?? null,
     quelle: row.quelle ?? 'manuell',
     erstellt_am: row.erstellt_am,
@@ -831,7 +831,8 @@ function mapUrlaub(row) {
     tage: Number(row.tage),
     typ: row.typ,
     status: row.status,
-    bemerkung: row.bemerkung ?? null,
+    bemerkung: cleanUrlaubBemerkungForUi(row.bemerkung),
+    krankschein: parseUrlaubKrankscheinMeta(row.bemerkung),
     entschieden_von: row.entschieden_von ?? null,
     entschieden_am: row.entschieden_am ?? null,
     kalender_termin_id: row.kalender_termin_id ?? null,
@@ -840,6 +841,67 @@ function mapUrlaub(row) {
     erstellt_am: row.erstellt_am,
     aktualisiert_am: row.aktualisiert_am ?? row.erstellt_am,
   };
+}
+
+const URLAUB_KRANKSCHEIN_MARKER = '\n\n[CCINTERN_KRANKSCHEIN] ';
+const urlaubKrankscheinUpload = createMulterMemory({
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const mt = String(file.mimetype || '').toLowerCase().trim();
+    const name = String(file.originalname || '').toLowerCase();
+    if (mt.startsWith('image/') || mt === 'application/pdf' || name.endsWith('.pdf')) return cb(null, true);
+    const err = new Error('UNSUPPORTED_MEDIA_TYPE');
+    return cb(err, false);
+  },
+});
+
+/**
+ * @param {unknown} bemerkungRaw
+ */
+function parseUrlaubKrankscheinMeta(bemerkungRaw) {
+  const raw = String(bemerkungRaw || '');
+  const idx = raw.lastIndexOf(URLAUB_KRANKSCHEIN_MARKER);
+  if (idx < 0) return null;
+  const json = raw.slice(idx + URLAUB_KRANKSCHEIN_MARKER.length).trim();
+  if (!json) return null;
+  try {
+    const meta = JSON.parse(json);
+    if (!meta || typeof meta !== 'object') return null;
+    const pathStored = String(meta.path || '').trim();
+    const name = String(meta.name || '').trim();
+    if (!pathStored || !name) return null;
+    return {
+      name,
+      mime: String(meta.mime || 'application/octet-stream').trim(),
+      size: Number(meta.size || 0),
+      path: pathStored,
+      uploaded_at: String(meta.uploaded_at || ''),
+      url: String(meta.url || ''),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {unknown} bemerkungRaw
+ * @param {Record<string, unknown>} meta
+ */
+function appendUrlaubKrankscheinMeta(bemerkungRaw, meta) {
+  const raw = String(bemerkungRaw || '');
+  const base = raw.includes(URLAUB_KRANKSCHEIN_MARKER)
+    ? raw.slice(0, raw.lastIndexOf(URLAUB_KRANKSCHEIN_MARKER)).trimEnd()
+    : raw.trimEnd();
+  return `${base}${URLAUB_KRANKSCHEIN_MARKER}${JSON.stringify(meta)}`.trim();
+}
+
+/**
+ * @param {unknown} bemerkungRaw
+ */
+function cleanUrlaubBemerkungForUi(bemerkungRaw) {
+  const raw = String(bemerkungRaw || '');
+  const idx = raw.lastIndexOf(URLAUB_KRANKSCHEIN_MARKER);
+  return (idx >= 0 ? raw.slice(0, idx) : raw).trim();
 }
 
 /**
@@ -2224,6 +2286,40 @@ export function createApiV1Router(store) {
     }
   });
 
+  router.delete('/firmen/:id', ...apiAuthProfile, firmenErstellen, async (req, res) => {
+    try {
+      const kid = String(req.params.id || '').trim();
+      if (!kid) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Firmen-ID.');
+      }
+      if (typeof store.deleteFirmaIfUnused !== 'function') {
+        return sendError(res, 500, 'INTERNAL_ERROR', 'Löschen wird vom Store nicht unterstützt.');
+      }
+      const result = await store.deleteFirmaIfUnused(kid);
+      if (!result || result.ok !== true) {
+        const code = result?.code || 'DELETE_FAILED';
+        const msg = result?.message || 'Kunde konnte nicht gelöscht werden.';
+        if (code === 'NOT_FOUND') return sendError(res, 404, 'NOT_FOUND', msg);
+        if (code === 'REFERENCED') return sendError(res, 409, 'REFERENCED', msg);
+        if (code === 'VALIDATION_ERROR') return sendError(res, 400, 'VALIDATION_ERROR', msg);
+        return sendError(res, 500, 'INTERNAL_ERROR', msg);
+      }
+      await logAudit(store, {
+        user: req.auth,
+        modul: 'cockpit',
+        action: 'DELETE',
+        resource_type: 'firma',
+        resource_id: kid,
+        project_id: null,
+        payload: null,
+      });
+      return sendSuccess(res, 200, { deleted: true, id: kid });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return sendError(res, 500, 'INTERNAL_ERROR', msg);
+    }
+  });
+
   /**
    * `/api/v1/kunden` und `/api/v1/stammdaten/kunden`: liest/schreibt **firmen** (kein Zugriff auf die Legacy-Tabelle `kunden`).
    *
@@ -3435,6 +3531,114 @@ export function createApiV1Router(store) {
     }
   });
 
+  router.post(
+    '/urlaub/:id/krankschein',
+    ...apiAuthProfile,
+    ccinternUrlaubErstellen,
+    (req, res, next) => {
+      urlaubKrankscheinUpload.single('file')(req, res, (err) => {
+        if (!err) return next();
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('UNSUPPORTED_MEDIA_TYPE')) {
+          return sendError(res, 415, 'UNSUPPORTED_MEDIA_TYPE', 'Nur Bilddateien oder PDF.');
+        }
+        if (/** @type {{ code?: string }} */ (err).code === 'LIMIT_FILE_SIZE') {
+          return sendError(res, 413, 'PAYLOAD_TOO_LARGE', 'Datei zu groß (max. 15 MB).');
+        }
+        return next(err);
+      });
+    },
+    async (req, res, next) => {
+      try {
+        const firmaId = await resolveFirmaIdForRequest(req);
+        if (!firmaId) {
+          return sendError(res, 400, 'VALIDATION_ERROR', 'firma_id fehlt (oder User ohne company_id).');
+        }
+        const id = requiredTrimmed(req.params.id);
+        if (!id) return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Urlaub-ID.');
+        const cur = await store.getUrlaubById(id, firmaId);
+        if (!cur) return sendError(res, 404, 'NOT_FOUND', 'Urlaubsantrag nicht gefunden.');
+        if (String(cur.typ || '') !== 'krank') {
+          return sendError(res, 400, 'VALIDATION_ERROR', 'Krankschein kann nur bei Typ „krank“ hochgeladen werden.');
+        }
+        const buf = req.file?.buffer;
+        if (!buf || !Buffer.isBuffer(buf) || buf.length === 0) {
+          return sendError(res, 400, 'VALIDATION_ERROR', 'Multipart-Feld „file“ fehlt oder ist leer.');
+        }
+        const projectId = nullableTrimmed(req.headers['x-project-id']) || 'ccintern';
+        const originalName = String(req.file?.originalname || 'krankschein');
+        const mime = String(req.file?.mimetype || 'application/octet-stream').toLowerCase().trim();
+        const { relativePath } = writeUploadBufferSync({
+          moduleKey: 'urlaub-krankscheine',
+          projectId,
+          resourceKey: id,
+          buffer: buf,
+          originalName,
+        });
+        const meta = {
+          name: originalName,
+          mime,
+          size: Number(req.file?.size || buf.length || 0),
+          path: relativePath,
+          uploaded_at: new Date().toISOString(),
+          url: `/api/v1/urlaub/${encodeURIComponent(id)}/krankschein`,
+        };
+        const bemerkung = appendUrlaubKrankscheinMeta(cur.bemerkung, meta);
+        const row = await store.updateUrlaubAntrag(id, firmaId, {
+          mitarbeiter_id: cur.mitarbeiter_id,
+          von: cur.von,
+          bis: cur.bis,
+          tage: cur.tage,
+          typ: cur.typ,
+          status: cur.status,
+          bemerkung,
+          entschieden_von: cur.entschieden_von,
+          entschieden_am: cur.entschieden_am,
+          kalender_termin_id: cur.kalender_termin_id,
+          kalender_termin_ids: cur.kalender_termin_ids,
+        });
+        return sendSuccess(res, 201, { krankschein: meta, urlaub: mapUrlaub(row) });
+      } catch (e) {
+        return next(e);
+      }
+    },
+  );
+
+  router.get('/urlaub/:id/krankschein', ...apiAuthProfile, ccinternUrlaubSehen, async (req, res, next) => {
+    try {
+      const firmaId = await resolveFirmaIdForRequest(req);
+      if (!firmaId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'firma_id fehlt (oder User ohne company_id).');
+      }
+      const id = requiredTrimmed(req.params.id);
+      if (!id) return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültige Urlaub-ID.');
+      const cur = await store.getUrlaubById(id, firmaId);
+      if (!cur) return sendError(res, 404, 'NOT_FOUND', 'Urlaubsantrag nicht gefunden.');
+      const meta = parseUrlaubKrankscheinMeta(cur.bemerkung);
+      if (!meta) return sendError(res, 404, 'NOT_FOUND', 'Kein Krankschein vorhanden.');
+      const abs = resolveUploadAbsolute(String(meta.path || ''));
+      if (!abs) return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültiger Speicherpfad.');
+      try {
+        await fs.access(abs);
+      } catch {
+        return sendError(res, 404, 'NOT_FOUND', 'Datei nicht mehr auf dem Server vorhanden.');
+      }
+      res.setHeader('Content-Type', String(meta.mime || 'application/octet-stream'));
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(String(meta.name || 'krankschein'))}`);
+      const stream = fsSync.createReadStream(abs);
+      stream.on('error', () => {
+        try {
+          if (!res.headersSent) sendError(res, 500, 'INTERNAL_ERROR', 'Lesefehler.');
+        } catch {
+          /* ignore */
+        }
+      });
+      stream.pipe(res);
+    } catch (e) {
+      return next(e);
+    }
+  });
+
   router.put('/urlaub/:id', ...apiAuthProfile, ccinternUrlaubBearbeiten, async (req, res) => {
     try {
       const firmaId = await resolveFirmaIdForRequest(req);
@@ -3466,7 +3670,11 @@ export function createApiV1Router(store) {
       if (!erlaubteUrlaubStatus.has(status)) {
         return sendError(res, 400, 'VALIDATION_ERROR', 'Ungültiger status (offen/genehmigt/abgelehnt).');
       }
-      const bemerkung = nullableTrimmed(req.body?.bemerkung);
+      let bemerkung = nullableTrimmed(req.body?.bemerkung);
+      const existingKrankschein = parseUrlaubKrankscheinMeta(cur.bemerkung);
+      if (existingKrankschein && !parseUrlaubKrankscheinMeta(bemerkung)) {
+        bemerkung = appendUrlaubKrankscheinMeta(bemerkung, existingKrankschein);
+      }
       await deleteAllKalenderTermineForUrlaubAntrag(store, firmaId, cur);
       let kalenderTerminId = null;
       /** @type {string|null} */

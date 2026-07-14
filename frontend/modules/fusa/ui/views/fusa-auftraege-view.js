@@ -30,6 +30,7 @@ import {
 import CCState from "../../../../core/state/state.js";
 import { resolveAuftragKundenAnzeige } from "../../../shared/lib/firma-kunden-referenz.js";
 import { API_ROUTES } from "../../../../core/api/api-routes.js";
+import { confirmDelete } from "../../../shared/ui/delete-confirm-modal.js";
 
 /**
  * @param {unknown} v
@@ -2089,6 +2090,27 @@ export function attachFusaAuftraegeViewHandlers(mount, onReload) {
       ev.preventDefault();
       setFusaAufCurrentPage(root, getFusaAufCurrentPage(root) + 1);
       applyFusaAuftragRowFilters(root);
+      return;
+    }
+    const deletePlaceholder = t.closest && t.closest("[data-fusa-auf-delete-placeholder]");
+    if (deletePlaceholder instanceof HTMLElement) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const id = String(deletePlaceholder.getAttribute("data-fusa-auf-delete-placeholder") || "").trim();
+      if (!id) return;
+      void (async () => {
+        const ok = await confirmDelete({
+          title: "Auftrag löschen?",
+          itemLabel: `Auftrag ${id}`,
+        });
+        if (!ok) return;
+        try {
+          await apiFetch(`${API_ROUTES.fusa.auftraege}/${encodeURIComponent(id)}`, { method: "DELETE" });
+          if (typeof onReload === "function") await onReload();
+        } catch (e) {
+          window.alert(formatApiErrorForUi(e));
+        }
+      })();
       return;
     }
     if (

@@ -127,8 +127,8 @@ export async function renderFusaApiAuftraegeUmzugTableInnerHtml(auftraege, proje
   const list = Array.isArray(auftraege) ? auftraege : [];
   if (list.length === 0) {
     return `<table>
-        <thead><tr><th>Auftrag-Nr.</th><th>Kunde</th><th>Paket</th><th>Fahrzeug</th><th>Laufzeit</th><th>Abrechnung</th><th>Preis/Mon.</th><th>Status</th></tr></thead>
-        <tbody><tr><td colspan="8" style="padding:16px;text-align:center;color:var(--text2,#64748b);font-size:12px;">Keine Aufträge für die aktuelle Auswahl.</td></tr></tbody>
+        <thead><tr><th>Auftrag-Nr.</th><th>Kunde</th><th>Paket</th><th>Fahrzeug</th><th>Laufzeit</th><th>Abrechnung</th><th>Preis/Mon.</th><th>Status</th><th>Aktion</th></tr></thead>
+        <tbody><tr><td colspan="9" style="padding:16px;text-align:center;color:var(--text2,#64748b);font-size:12px;">Keine Aufträge für die aktuelle Auswahl.</td></tr></tbody>
       </table>`;
   }
 
@@ -216,12 +216,15 @@ export async function renderFusaApiAuftraegeUmzugTableInnerHtml(auftraege, proje
       <td><span class="bdg bb">${esc(abrLab(ex.abrechnungsart))}</span></td>
       <td style="font-weight:600;color:var(--green,#2E7D32)">${esc(preisCell)}</td>
       <td><span class="${bdgCls}">${esc(status)}</span></td>
+      <td>
+        <button type="button" class="btn" data-fusa-auf-delete-placeholder="${esc(id)}" style="font-size:11px;padding:4px 10px;background:var(--red-l,#FFEBEE);border-color:var(--red,#C62828);color:var(--red,#C62828);white-space:nowrap;">🗑 Löschen</button>
+      </td>
     </tr>`;
     }),
   );
 
   return `<table>
-      <thead><tr><th>Auftrag-Nr.</th><th>Kunde</th><th>Paket</th><th>Fahrzeug</th><th>Laufzeit</th><th>Abrechnung</th><th>Preis/Mon.</th><th>Status</th></tr></thead>
+      <thead><tr><th>Auftrag-Nr.</th><th>Kunde</th><th>Paket</th><th>Fahrzeug</th><th>Laufzeit</th><th>Abrechnung</th><th>Preis/Mon.</th><th>Status</th><th>Aktion</th></tr></thead>
       <tbody>${rowHtmls.join('')}</tbody>
     </table>`;
 }

@@ -72,6 +72,7 @@ function agBuildPayloadDescription(a) {
   return JSON.stringify({
     v: 1,
     kunde: a.kunde || '',
+    kundeId: a.kundeId || null,
     ap: a.ap || '',
     datum: a.datum || '',
     gueltig: a.gueltig || '',
@@ -103,6 +104,9 @@ function agApiRowToUi(row) {
   return {
     id: String(row.id || ''),
     kunde: extra.kunde || '',
+    kundeId: row.kunde_id != null && String(row.kunde_id).trim() !== ''
+      ? String(row.kunde_id).trim()
+      : (extra.kundeId != null ? String(extra.kundeId).trim() : ''),
     ap: extra.ap || '',
     betreff: row.titel != null ? String(row.titel) : '',
     datum: extra.datum || agFormatDeFromIso(row.created_at),
@@ -137,7 +141,9 @@ function agUiToApiBody(a) {
     beschreibung: agBuildPayloadDescription(a),
     status: a.status || 'entwurf',
     betrag_cent: Number.isFinite(betragCent) ? betragCent : 0,
-    kunde_id: null,
+    kunde_id: a.kundeId != null && String(a.kundeId).trim() !== ''
+      ? String(a.kundeId).trim()
+      : null,
   };
 }
 function agReloadListeFromApi() {
@@ -186,26 +192,43 @@ function agAcToggle(n){
 }
 
 // ── Kunden-Dropdown — zentrale Firmen-Quelle ─────────────────────────
-// 1. Versucht window.CCINTERN_KUNDEN / CCState.firmenStamm (bereits geladen)
-// 2. Fallback: API-Call /ccintern/kunden (einmalig, dann cached)
+// 1. Versucht Cockpit-Firmen / CCState.firmenStamm (bereits geladen)
+// 2. Fallback: zentrale Firmen-API, danach CC-Intern-Kunden-API
 var _agKundenCache = null;
+function _agNormalizeKunde(k) {
+  if (!k || typeof k !== 'object') return null;
+  // Legacy `CCINTERN_KUNDEN.id` ist nur eine UI-Kennung (`kd-ckp-*`). Für
+  // Relationen immer zuerst die echte Firmen-ID verwenden.
+  var rawId = k.firma_id != null ? k.firma_id : (k.firmaId != null ? k.firmaId : k.id);
+  var id = rawId != null ? String(rawId).trim() : '';
+  var rawName = k.name != null ? k.name : (k.firma_name != null ? k.firma_name : (k.firmenname != null ? k.firmenname : (k.bezeichnung || '')));
+  var name = rawName != null ? String(rawName).trim() : '';
+  return name ? { id: id, name: name } : null;
+}
 function _agFillSelectFromRows(sel, rows, currentValue) {
   sel.innerHTML = '<option value="">— wählen —</option>';
   rows.forEach(function (k) {
-    if (!k || typeof k !== 'object') return;
-    var name = (k.name || k.firmenname || k.firma_name || k.bezeichnung || '').trim();
-    if (!name) return;
+    var kunde = _agNormalizeKunde(k);
+    if (!kunde) return;
     var opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
+    opt.value = kunde.id || kunde.name;
+    opt.textContent = kunde.name;
+    opt.dataset.kundeName = kunde.name;
+    if (kunde.id) opt.dataset.kundeId = kunde.id;
     sel.appendChild(opt);
   });
-  if (currentValue != null) sel.value = currentValue;
+  if (currentValue != null && String(currentValue).trim() !== '') {
+    var wanted = String(currentValue).trim();
+    var match = Array.prototype.find.call(sel.options, function (opt) {
+      return opt.value === wanted || opt.dataset.kundeId === wanted || opt.dataset.kundeName === wanted;
+    });
+    if (match) sel.value = match.value;
+  }
 }
-function agFillKundenSelect(currentValue) {
+function agFillKundenSelect(currentValue, currentId) {
   var sel = document.getElementById('ag-kunde');
-  console.log('[agFillKundenSelect] aufgerufen, sel=', sel, 'COCKPIT_FIRMEN=', window.COCKPIT_FIRMEN, 'CCINTERN_KUNDEN=', window.CCINTERN_KUNDEN);
   if (!sel) return;
+  var selectedValue = currentId || currentValue;
 
   // 1. Aus COCKPIT_FIRMEN (synchron beim CC-Intern-Start befüllt, immer verfügbar)
   var rows = [];
@@ -216,21 +239,46 @@ function agFillKundenSelect(currentValue) {
     var ck = typeof window !== 'undefined' ? window.CCINTERN_KUNDEN : null;
     if (Array.isArray(ck) && ck.length) { rows = ck.slice(); }
   }
-  if (rows.length) { _agFillSelectFromRows(sel, rows, currentValue); return; }
+  // Die Cockpit-Bridge hydratisiert diesen Store direkt aus GET /api/v1/firmen.
+  // Damit funktioniert die Auswahl auch dann, wenn ein Legacy-Loader seine
+  // globalen Kundenarrays noch nicht gesetzt hat.
+  if (!rows.length && typeof window !== 'undefined' && window.CCState && typeof window.CCState.get === 'function') {
+    var fs = window.CCState.get('firmenStamm');
+    if (fs && Array.isArray(fs.rows) && fs.rows.length) { rows = fs.rows.slice(); }
+  }
+  if (rows.length) { _agFillSelectFromRows(sel, rows, selectedValue); return; }
 
   // 2. Cache vorhanden
-  if (_agKundenCache) { _agFillSelectFromRows(sel, _agKundenCache, currentValue); return; }
+  if (_agKundenCache) { _agFillSelectFromRows(sel, _agKundenCache, selectedValue); return; }
 
-  // 3. Fallback: API-Call
-  agApiFetch('/api/v1/ccintern/kunden')
+  // 3. Fallback: API-Call. `/firmen` ist dieselbe Quelle wie der Kundenstamm
+  // und wird bereits beim Cockpit-Mount verwendet.
+  sel.innerHTML = '<option value="">Kunden werden geladen…</option>';
+  agApiFetch('/api/v1/firmen')
     .then(function (data) {
       var d = agPickPayload(data);
-      var list = (d && Array.isArray(d.kunden)) ? d.kunden : [];
-      _agKundenCache = list.map(function(k){ return { name: k.firma_name || k.name || '' }; });
-      var s2 = document.getElementById('ag-kunde');
-      if (s2) _agFillSelectFromRows(s2, _agKundenCache, currentValue);
+      return d && Array.isArray(d.firmen) ? d.firmen : [];
     })
-    .catch(function (e) { console.warn('[agFillKundenSelect API]', e); });
+    .catch(function () {
+      return agApiFetch('/api/v1/ccintern/kunden').then(function (data) {
+        var d = agPickPayload(data);
+        return d && Array.isArray(d.kunden) ? d.kunden : [];
+      });
+    })
+    .then(function (list) {
+      _agKundenCache = list.map(_agNormalizeKunde).filter(Boolean);
+      var s2 = document.getElementById('ag-kunde');
+      if (!s2) return;
+      _agFillSelectFromRows(s2, _agKundenCache, selectedValue);
+      if (!_agKundenCache.length) {
+        s2.innerHTML = '<option value="">Keine Kunden vorhanden</option>';
+      }
+    })
+    .catch(function (e) {
+      var s3 = document.getElementById('ag-kunde');
+      if (s3) s3.innerHTML = '<option value="">Kunden konnten nicht geladen werden</option>';
+      console.warn('[agFillKundenSelect API]', e);
+    });
 }
 
 function agModalOpen(id){
@@ -255,7 +303,7 @@ function agModalOpen(id){
     const a=AG_DATEN.find(x=>x.id===id); if(!a) return;
     document.getElementById('agModalTitle').textContent=a.id;
     document.getElementById('agModalId').textContent=a.status==='vonAnfrage'?'Aus Schnell-Anfrage':'';
-    agFillKundenSelect(a.kunde);
+    agFillKundenSelect(a.kunde, a.kundeId);
     document.getElementById('ag-ap').value=a.ap||'';
     document.getElementById('ag-datum').value=agDateReverse(a.datum);
     document.getElementById('ag-gueltig').value=agDateReverse(a.gueltig);
@@ -476,13 +524,16 @@ function agCalcSumme(){
 }
 
 function agSave(status){
-  const kunde=document.getElementById('ag-kunde')?.value;
-  if(!kunde){showToast('⚠ Bitte Kunde wählen');return;}
+  const kundeSelect=document.getElementById('ag-kunde');
+  const kundeOption=kundeSelect && kundeSelect.selectedOptions ? kundeSelect.selectedOptions[0] : null;
+  const kundeId=kundeOption ? (kundeOption.dataset.kundeId || kundeOption.value || '') : '';
+  const kunde=kundeOption ? (kundeOption.dataset.kundeName || kundeOption.textContent || '').trim() : '';
+  if(!kundeId || !kunde){showToast('⚠ Bitte Kunde wählen');return;}
   if(!agPositionen.length){showToast('⚠ Mindestens 1 Position nötig');return;}
   const {netto}=agCalcSumme();
   const id=agAktivId||('AG-2026-0'+agNr++);
   const obj={
-    id, kunde,
+    id, kunde, kundeId,
     ap:document.getElementById('ag-ap')?.value||'',
     betreff:document.getElementById('ag-betreff')?.value||'',
     datum:agDateFormat(document.getElementById('ag-datum')?.value),
@@ -1025,4 +1076,32 @@ window.agLoeschen = function (id) {
   } else {
     go();
   }
+};
+
+// `auftraege-detail-view.js` enthält aus Legacy-Zeiten noch gleichnamige
+// Angebotsfunktionen und wird nach dieser Datei geladen. Die unverfälschten
+// Handler sichern, damit der Cockpit-Boot sie nach dem Laden aller Skripte
+// wiederherstellen kann.
+window.__CCINTERN_CANONICAL_ANGEBOTE_HANDLERS__ = {
+  agAcToggle: agAcToggle,
+  agModalOpen: agModalOpen,
+  agModalClose: agModalClose,
+  agCalcPos: agCalcPos,
+  agAddPos: agAddPos,
+  agCalcFlaeche: agCalcFlaeche,
+  agMassToggle: agMassToggle,
+  agFlaecheUebernehmen: agFlaecheUebernehmen,
+  agAddSchnell: agAddSchnell,
+  agDeletePos: agDeletePos,
+  agRenderPositionen: agRenderPositionen,
+  agCalcSumme: agCalcSumme,
+  agSave: agSave,
+  agTab: agTab,
+  renderAngebote: window.renderAngebote,
+  agOpenDetail: agOpenDetail,
+  agSetStatus: agSetStatus,
+  anfZuAngebot: anfZuAngebot,
+  tabAG: tabAG,
+  berechneAngebot: berechneAngebot,
+  agLoeschen: window.agLoeschen,
 };

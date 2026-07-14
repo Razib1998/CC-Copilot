@@ -27,6 +27,9 @@ import {
   getCalendarFeedFromApi,
   patchCockpitKalenderEventTimeInBackend,
   patchCockpitKalenderProjectDeadlineInBackend,
+  createCockpitGeneralCalendarTermin,
+  updateCockpitGeneralCalendarTermin,
+  deleteCockpitGeneralCalendarTermin,
 } from '../../../../core/data/dev-calendar-read-model.js';
 import {
   cockpitKalenderWeekDragPersistPlan,
@@ -47,21 +50,17 @@ import { detectKalenderKonflikte } from '../../../../core/calendar/ccw-calendar-
 let kalenderProjectsCache = /** @type {object[] | null} */ (null);
 
 /**
- * Fusion aus API-Feed + Client-Zeit-Overrides (keine lokalen allgemeinen Termine im Raster).
- * Invalidierung bei Feed-/Lokal-/Override-Änderung — nicht bei reinem Wochenwechsel.
+ * Fusion aus API-Feed + Client-Zeit-Overrides.
+ * Invalidierung bei Feed-/Override-Änderung — nicht bei reinem Wochenwechsel.
  *
  * @type {{
  *   projects: object[];
  *   auftraege: object[];
- *   generalFp: string;
  *   overridesFp: string;
  *   allValidated: CalendarEvent[];
  * } | null}
  */
 let kalenderFusionCache = null;
-
-/** Letzter Rohstring (localStorage) für allgemeine Termine — vermeidet JSON.parse bei jedem Render. */
-let kalenderLastLocalGeneralRaw = /** @type {string|null} */ (null);
 
 /** Filter-State (Modul-Scope, kein globaler Store). Standard: alle fünf Kategorien aktiv. */
 let kalenderFilterState = createDefaultKalenderFilterState();
@@ -85,9 +84,6 @@ let kalenderWeekDragListenersAbort = null;
 /** @type {AbortController|null} */
 let kalenderGeneralSlotListenersAbort = null;
 
-/** Lokale allgemeine Cockpit-Termine (localStorage; kein Backend). */
-const COCKPIT_LOCAL_GENERAL_STORAGE_KEY = 'ccw-cockpit-general-termine-v1';
-
 /**
  * @param {string} action create | update | delete | drag
  * @param {'ok'|'fail'} status
@@ -99,154 +95,8 @@ function cockpitKalenderGeneralDebug(action, status, extra) {
   console.debug('[ccw-kal][general]', { action, status, ...(extra && typeof extra === 'object' ? extra : {}) });
 }
 
-function migrateCockpitLocalGeneralTermineFromSessionStorageOnce() {
-  if (typeof sessionStorage === 'undefined' || typeof localStorage === 'undefined') return;
-  try {
-    const legacy = sessionStorage.getItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY);
-    if (!legacy || !String(legacy).trim()) return;
-    const cur = localStorage.getItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY);
-    if (!cur || !String(cur).trim()) {
-      localStorage.setItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY, legacy);
-    }
-    sessionStorage.removeItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-/**
- * @typedef {object} CockpitLocalGeneralTermin
- * @property {string} id
- * @property {'general'} type
- * @property {'cockpit'} sourceType
- * @property {string} titel — alternativ gespeichertes Feld `title` wird beim Laden übernommen
- * @property {string} startIso — alternativ numerische `start` (ms) wird in ISO umgewandelt
- * @property {string} endeIso — alternativ numerische `end` (ms) wird in ISO umgewandelt
- * @property {string} [notiz]
- */
-
-/** @type {CockpitLocalGeneralTermin[]} */
-let cockpitLocalGeneralTermine = [];
-
 /** Letzter API-Feed (z. B. für Drag/PATCH-Vergleiche; Kalender-Render lädt immer neu vom Server). */
 let cockpitKalenderFeedSnapshot = /** @type {{ projects: object[]; auftraege: object[] } | null} */ (null);
-
-function loadCockpitLocalGeneralTermineFromBrowser() {
-  if (typeof localStorage === 'undefined') return;
-  migrateCockpitLocalGeneralTermineFromSessionStorageOnce();
-  const raw = localStorage.getItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY) ?? '';
-  if (raw === kalenderLastLocalGeneralRaw) return;
-  try {
-    if (!raw.trim()) {
-      cockpitLocalGeneralTermine = [];
-    } else {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        cockpitLocalGeneralTermine = [];
-      } else {
-        /** @type {CockpitLocalGeneralTermin[]} */
-        const next = [];
-        for (const row of parsed) {
-          if (!row || typeof row !== 'object') continue;
-          const id = row.id != null ? String(row.id).trim() : '';
-          const titel =
-            row.titel != null && String(row.titel).trim() !== ''
-              ? String(row.titel).trim()
-              : row.title != null && String(row.title).trim() !== ''
-                ? String(row.title).trim()
-                : '';
-          let startIso = row.startIso != null ? String(row.startIso).trim() : '';
-          let endeIso = row.endeIso != null ? String(row.endeIso).trim() : '';
-          if (!startIso && typeof row.start === 'number' && Number.isFinite(row.start)) {
-            startIso = new Date(row.start).toISOString();
-          }
-          if (!endeIso && typeof row.end === 'number' && Number.isFinite(row.end)) {
-            endeIso = new Date(row.end).toISOString();
-          }
-          if (!id || !titel || !startIso || !endeIso) continue;
-          const ds = new Date(startIso).getTime();
-          const de = new Date(endeIso).getTime();
-          if (Number.isNaN(ds) || Number.isNaN(de) || de <= ds) continue;
-          const notiz = row.notiz != null ? String(row.notiz) : '';
-          next.push({
-            id,
-            type: 'general',
-            sourceType: 'cockpit',
-            titel,
-            startIso,
-            endeIso,
-            ...(notiz.trim() !== '' ? { notiz: notiz.trim() } : {}),
-          });
-        }
-        cockpitLocalGeneralTermine = next;
-      }
-    }
-  } catch {
-    cockpitLocalGeneralTermine = [];
-  } finally {
-    kalenderLastLocalGeneralRaw = raw;
-  }
-}
-
-/**
- * @returns {boolean}
- */
-function persistCockpitLocalGeneralTermineToBrowser() {
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    const payload = JSON.stringify(cockpitLocalGeneralTermine);
-    localStorage.setItem(COCKPIT_LOCAL_GENERAL_STORAGE_KEY, payload);
-    kalenderLastLocalGeneralRaw = payload;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Persistenz asynchron (blockiert Speichern-Klick / Paint nicht).
- * @param {() => void} [onFailure] z. B. Rollback + erneuter Render
- * @param {() => void} [onSuccess] z. B. Debug „ok“ erst nach erfolgreichem localStorage
- */
-function persistCockpitLocalGeneralTermineToBrowserAsync(onFailure, onSuccess) {
-  const run = () => {
-    if (persistCockpitLocalGeneralTermineToBrowser()) {
-      if (typeof onSuccess === 'function') onSuccess();
-      return;
-    }
-    if (typeof onFailure === 'function') onFailure();
-  };
-  if (typeof queueMicrotask === 'function') queueMicrotask(run);
-  else setTimeout(run, 0);
-}
-
-/**
- * @param {CockpitLocalGeneralTermin} t
- * @returns {object}
- */
-function buildRawCalendarEventFromLocalGeneral(t) {
-  return {
-    eventId: `ccw-cockpit-general-${t.id}`,
-    quelleSystem: 'cc_intern',
-    transportQuelle: 'snapshot',
-    projektId: null,
-    auftragId: null,
-    kundeId: null,
-    titel: t.titel,
-    typ: 'intern',
-    status: 'geplant',
-    start: t.startIso,
-    ende: t.endeIso,
-    ganztag: false,
-    mitarbeiterIds: [],
-    verantwortlichId: null,
-    objektTyp: null,
-    objektId: null,
-    fahrzeugId: null,
-    standort: null,
-    readOnly: true,
-  };
-}
 
 /**
  * @param {string} eventId
@@ -264,11 +114,6 @@ function cockpitGeneralLocalIdFromEventId(eventId) {
   const s = String(eventId || '');
   if (!s.startsWith('ccw-cockpit-general-')) return null;
   return s.slice('ccw-cockpit-general-'.length) || null;
-}
-
-function newCockpitGeneralTerminId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  return `g-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
 /**
@@ -324,7 +169,7 @@ function renderGeneralTerminDockHtml() {
   return `<div class="ccw-cockpit-kal-general-dock" data-ccw-kal-general-dock hidden>
   <div class="ccw-cockpit-kal-general-dock__panel" role="dialog" aria-modal="true" aria-labelledby="ccw-kal-gen-title" data-ccw-kal-general-panel>
     <h4 id="ccw-kal-gen-title" class="ccw-cockpit-kal-general-dock__title">Allgemeiner Termin</h4>
-    <p class="ccw-cockpit-kal-general-dock__hint">Lokal im Browser (localStorage), ohne Backend. Typ: allgemein.</p>
+    <p class="ccw-cockpit-kal-general-dock__hint">Wird zentral auf dem Server gespeichert und im Kalender sowie Dashboard angezeigt.</p>
     <form class="ccw-cockpit-kal-general-form" data-ccw-kal-general-form>
       <div class="ccw-cockpit-kal-general-form__row">
         <label for="ccw-kal-gen-titel">Titel</label>
@@ -354,7 +199,6 @@ function renderGeneralTerminDockHtml() {
 export function ccwInvalidateKalenderEventCache() {
   lastKalenderRenderPerf = null;
   kalenderFusionCache = null;
-  kalenderLastLocalGeneralRaw = null;
   kalenderProjectsCache = null;
   cockpitKalenderFeedSnapshot = null;
   kalenderFilterState = createDefaultKalenderFilterState();
@@ -458,56 +302,39 @@ export function attachCockpitKalenderRowDetailHandlers(root) {
   const sig = kalenderRowDetailListenersAbort.signal;
 
   registerCockpitLocalGeneralTerminEditHandlers({
-    onSave: ({ eventId, titel, startIso, endeIso, notiz }) => {
+    onSave: async ({ eventId, titel, startIso, endeIso, notiz }) => {
       const lid = cockpitGeneralLocalIdFromEventId(eventId);
       if (!lid) return;
-      const idx = cockpitLocalGeneralTermine.findIndex(t => t.id === lid);
-      if (idx < 0) return;
-      const prev = { ...cockpitLocalGeneralTermine[idx] };
-      const next = { ...prev, titel, startIso, endeIso };
-      if (notiz.trim() !== '') next.notiz = notiz.trim();
-      else delete next.notiz;
-      cockpitLocalGeneralTermine[idx] = next;
-      if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-      }
-      persistCockpitLocalGeneralTermineToBrowserAsync(
-        () => {
-        cockpitKalenderGeneralDebug('update', 'fail', { id: lid });
-        cockpitLocalGeneralTermine[idx] = prev;
+      try {
+        await updateCockpitGeneralCalendarTermin({
+          id: lid,
+          titel,
+          start: startIso,
+          ende: endeIso,
+          notiz,
+        });
+        cockpitKalenderGeneralDebug('update', 'ok', { id: lid, persistence: 'server' });
+        bustCockpitKalenderBackendTruthCache(eventId);
+      } catch (e) {
+        cockpitKalenderGeneralDebug('update', 'fail', { id: lid, persistence: 'server' });
         if (typeof globalThis !== 'undefined' && typeof globalThis.alert === 'function') {
-          globalThis.alert('Speichern fehlgeschlagen (Browser-Speicher voll oder blockiert?).');
+          globalThis.alert(`Termin konnte nicht gespeichert werden: ${e instanceof Error ? e.message : String(e)}`);
         }
-        if (typeof document !== 'undefined') {
-          document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-        }
-        },
-        () => cockpitKalenderGeneralDebug('update', 'ok', { id: lid }),
-      );
+      }
     },
-    onDelete: eventId => {
+    onDelete: async eventId => {
       const lid = cockpitGeneralLocalIdFromEventId(eventId);
       if (!lid) return;
-      const idx = cockpitLocalGeneralTermine.findIndex(t => t.id === lid);
-      if (idx < 0) return;
-      const removed = cockpitLocalGeneralTermine[idx];
-      cockpitLocalGeneralTermine.splice(idx, 1);
-      if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-      }
-      persistCockpitLocalGeneralTermineToBrowserAsync(
-        () => {
-        cockpitKalenderGeneralDebug('delete', 'fail', { id: lid });
-        cockpitLocalGeneralTermine.splice(idx, 0, removed);
+      try {
+        await deleteCockpitGeneralCalendarTermin(lid);
+        cockpitKalenderGeneralDebug('delete', 'ok', { id: lid, persistence: 'server' });
+        bustCockpitKalenderBackendTruthCache(eventId);
+      } catch (e) {
+        cockpitKalenderGeneralDebug('delete', 'fail', { id: lid, persistence: 'server' });
         if (typeof globalThis !== 'undefined' && typeof globalThis.alert === 'function') {
-          globalThis.alert('Löschen konnte nicht gespeichert werden (Browser-Speicher). Bitte Seite neu laden.');
+          globalThis.alert(`Termin konnte nicht gelöscht werden: ${e instanceof Error ? e.message : String(e)}`);
         }
-        if (typeof document !== 'undefined') {
-          document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-        }
-        },
-        () => cockpitKalenderGeneralDebug('delete', 'ok', { id: lid }),
-      );
+      }
     },
   });
 
@@ -519,14 +346,9 @@ export function attachCockpitKalenderRowDetailHandlers(root) {
     const cal = kalenderRowEventsById.get(id);
     if (!cal) return;
     if (isCockpitLocalGeneralEventId(id)) {
-      const lid = cockpitGeneralLocalIdFromEventId(id);
-      const loc = lid ? cockpitLocalGeneralTermine.find(t => t.id === lid) : null;
       /** @type {Record<string, unknown>} */
       const payload = { ...cal };
-      payload.cockpitLokalTypLabel = 'Allgemeiner Termin (lokal)';
-      if (loc && loc.notiz && String(loc.notiz).trim() !== '') {
-        payload.cockpitLokalNotiz = String(loc.notiz).trim();
-      }
+      payload.cockpitLokalTypLabel = 'Allgemeiner Termin';
       openCalendarEventDetail(/** @type {CalendarEvent} */ (payload));
       return;
     }
@@ -596,12 +418,6 @@ function esc(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-function buildCockpitKalenderGeneralFingerprint() {
-  return cockpitLocalGeneralTermine
-    .map(t => `${t.id}\t${t.startIso}\t${t.endeIso}\t${String(t.titel || '')}`)
-    .join('\n');
 }
 
 function buildCockpitKalenderOverridesFingerprint() {
@@ -1521,7 +1337,7 @@ function renderKalenderFooterHtml(konflikteSet) {
 
 function wrapKalenderSection(mainRowInnerHtml) {
   return `<section data-ccw-ro="cockpit-kalender" class="ccw-cockpit-kal20-section">
-    <p class="ccw-cockpit-kal20-intro">Termine im Raster: <strong>GET /api/v1/stammdaten/kalender</strong> (ohne Cache). Lokale allgemeine Termine werden nicht mehr eingemischt. Verschieben nur mit passendem Persistenzweg.</p>
+    <p class="ccw-cockpit-kal20-intro">Termine werden zentral über <strong>/api/v1/stammdaten/kalender</strong> geladen und gespeichert. Änderungen erscheinen auch im Dashboard.</p>
     <div id="ccw-cockpit-kal-dynamic" class="ccw-cockpit-kal-dynamic-root" data-ccw-kal-dynamic="1">
     ${mainRowInnerHtml}
     ${renderGeneralTerminDockHtml()}
@@ -1583,45 +1399,23 @@ async function commitCockpitKalenderTimeMove(ev, newStartMs, newEndMs) {
   if (isCockpitLocalGeneralEventId(String(ev.eventId))) {
     const lid = cockpitGeneralLocalIdFromEventId(String(ev.eventId));
     if (!lid) return;
-    const idx = cockpitLocalGeneralTermine.findIndex(t => t.id === lid);
-    if (idx < 0) return;
-    if (kalDragDbg && typeof console !== 'undefined' && console.debug) {
-      console.debug('[ccw-kal][drag]', 'commit_ok', {
-        source: 'local-general',
-        eventId: ev.eventId,
-        oldStart: ev.start,
-        oldEnde: ev.ende,
-        startIso,
-        endIso,
+    try {
+      const ex = /** @type {Record<string, unknown>} */ (ev);
+      await updateCockpitGeneralCalendarTermin({
+        id: lid,
+        titel: String(ev.titel || '').trim(),
+        start: startIso,
+        ende: endIso,
+        notiz: ex.cockpitLokalNotiz != null ? String(ex.cockpitLokalNotiz) : '',
       });
+      cockpitKalenderGeneralDebug('drag', 'ok', { eventId: ev.eventId, persistence: 'server', startIso, endIso });
+      bustCockpitKalenderBackendTruthCache(ev.eventId);
+    } catch (e) {
+      cockpitKalenderGeneralDebug('drag', 'fail', { eventId: ev.eventId, persistence: 'server' });
+      if (typeof globalThis !== 'undefined' && typeof globalThis.alert === 'function') {
+        globalThis.alert(`Verschieben konnte nicht gespeichert werden: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
-    const prevStart = cockpitLocalGeneralTermine[idx].startIso;
-    const prevEnde = cockpitLocalGeneralTermine[idx].endeIso;
-    cockpitLocalGeneralTermine[idx] = {
-      ...cockpitLocalGeneralTermine[idx],
-      startIso,
-      endeIso: endIso,
-    };
-    if (typeof document !== 'undefined') {
-      document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-    }
-    persistCockpitLocalGeneralTermineToBrowserAsync(
-      () => {
-        cockpitKalenderGeneralDebug('drag', 'fail', { eventId: ev.eventId });
-        cockpitLocalGeneralTermine[idx] = {
-          ...cockpitLocalGeneralTermine[idx],
-          startIso: prevStart,
-          endeIso: prevEnde,
-        };
-        if (typeof globalThis !== 'undefined' && typeof globalThis.alert === 'function') {
-          globalThis.alert('Verschieben konnte nicht gespeichert werden (Browser-Speicher).');
-        }
-        if (typeof document !== 'undefined') {
-          document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-        }
-      },
-      () => cockpitKalenderGeneralDebug('drag', 'ok', { eventId: ev.eventId, startIso, endIso }),
-    );
     return;
   }
 
@@ -1880,7 +1674,7 @@ export function attachCockpitKalenderGeneralSlotHandlers(root) {
 
   root.addEventListener(
     'submit',
-    sev => {
+    async sev => {
       if (!(sev.target instanceof HTMLFormElement)) return;
       if (!sev.target.matches('[data-ccw-kal-general-form]')) return;
       if (!sev.target.closest('[data-ccw-ro="cockpit-kalender"]')) return;
@@ -1904,37 +1698,30 @@ export function attachCockpitKalenderGeneralSlotHandlers(root) {
         cockpitKalenderGeneralDebug('create', 'fail', { reason: 'invalid_time' });
         return;
       }
-      const id = newCockpitGeneralTerminId();
-      /** @type {CockpitLocalGeneralTermin} */
-      const row = {
-        id,
-        type: 'general',
-        sourceType: 'cockpit',
-        titel,
-        startIso: new Date(startMs).toISOString(),
-        endeIso: new Date(endMs).toISOString(),
-      };
       const nz = els.notizEl && els.notizEl.value.trim() !== '' ? els.notizEl.value.trim() : '';
-      if (nz) row.notiz = nz;
-      cockpitLocalGeneralTermine.push(row);
-      closeDock();
-      if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-      }
-      persistCockpitLocalGeneralTermineToBrowserAsync(
-        () => {
-        cockpitKalenderGeneralDebug('create', 'fail', { id });
-        const i = cockpitLocalGeneralTermine.findIndex(t => t.id === id);
-        if (i >= 0) cockpitLocalGeneralTermine.splice(i, 1);
+      const submit = els.form.querySelector('button[type="submit"]');
+      if (submit instanceof HTMLButtonElement) submit.disabled = true;
+      try {
+        const created = await createCockpitGeneralCalendarTermin({
+          titel,
+          start: new Date(startMs).toISOString(),
+          ende: new Date(endMs).toISOString(),
+          notiz: nz,
+        });
+        cockpitKalenderGeneralDebug('create', 'ok', {
+          id: created && typeof created === 'object' ? created.id : null,
+          persistence: 'server',
+        });
+        closeDock();
+        bustCockpitKalenderBackendTruthCache(null);
+      } catch (e) {
+        cockpitKalenderGeneralDebug('create', 'fail', { persistence: 'server' });
         if (typeof globalThis !== 'undefined' && typeof globalThis.alert === 'function') {
-          globalThis.alert('Speichern fehlgeschlagen (Browser-Speicher). Der Termin wurde verworfen.');
+          globalThis.alert(`Termin konnte nicht gespeichert werden: ${e instanceof Error ? e.message : String(e)}`);
         }
-        if (typeof document !== 'undefined') {
-          document.dispatchEvent(new CustomEvent('ccw-kalender-rerender-request', { bubbles: true }));
-        }
-        },
-        () => cockpitKalenderGeneralDebug('create', 'ok', { id }),
-      );
+      } finally {
+        if (submit instanceof HTMLButtonElement) submit.disabled = false;
+      }
     },
     { signal: sig, capture: true },
   );
@@ -2006,7 +1793,6 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
 
   try {
   kalenderFusionCache = null;
-  loadCockpitLocalGeneralTermineFromBrowser();
   if (perf) perf.lap('01_session');
 
   /** @type {object[]} */
@@ -2016,6 +1802,9 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
 
   /** Immer Server-Stand vor dem Rendern — kein synchrones „Snapshot zuerst“ (sonst bleiben alte Termine sichtbar). */
   const feed = await getCalendarFeedFromApi(CCW_APP_SHELL_PLACEHOLDER_PROJECT);
+  if (!feed) {
+    throw new Error('Kalendertermine konnten nicht vom Server geladen werden. Bitte Verbindung und Berechtigung prüfen.');
+  }
   kalenderProjectsCache = feed && Array.isArray(feed.projects) ? feed.projects : [];
   projects = kalenderProjectsCache;
   auftraege = feed && Array.isArray(feed.auftraege) ? feed.auftraege : [];
@@ -2040,7 +1829,6 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
 
   if (perf) perf.lap('02_feed');
 
-  const generalFp = buildCockpitKalenderGeneralFingerprint();
   const overridesFp = buildCockpitKalenderOverridesFingerprint();
   let kalenderFusionHit = false;
 
@@ -2051,7 +1839,6 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
     kalenderFusionCache &&
     kalenderFusionCache.projects === projects &&
     kalenderFusionCache.auftraege === auftraege &&
-    kalenderFusionCache.generalFp === generalFp &&
     kalenderFusionCache.overridesFp === overridesFp
   ) {
     allValidated = kalenderFusionCache.allValidated;
@@ -2074,7 +1861,6 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
     kalenderFusionCache = {
       projects,
       auftraege,
-      generalFp,
       overridesFp,
       allValidated,
     };
@@ -2087,7 +1873,7 @@ async function buildCockpitKalenderViewBodyHtml(_user) {
       finalEventsLength: allValidated.length,
       gefilterteEventsLength: filterCalendarEvents(allValidated, kalenderFilterState).length,
       fusionCacheHit: kalenderFusionHit,
-      lokaleGeneralTermine: cockpitLocalGeneralTermine.length,
+      serverGeneralTermine: allValidated.filter(ev => isCockpitLocalGeneralEventId(String(ev.eventId))).length,
       ersteFinalTitel: allValidated.slice(0, 5).map((ev) => ev?.titel ?? null),
       kalenderViewMode: kalenderFilterState.viewMode,
       activeModule: root?.getAttribute('data-app-module') ?? null,

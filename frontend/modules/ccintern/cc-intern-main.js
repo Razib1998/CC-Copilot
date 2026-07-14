@@ -16,8 +16,29 @@ window.CCIntern = window.CCIntern || {};
  * @param {Object} firmenResponse  - GET /api/v1/firmen  → { success, data: { firmen: [...] } }
  */
 window.CCIntern.loadCockpitData = function(usersResponse, firmenResponse) {
-  const apiUsers = Array.isArray(usersResponse?.data?.users) ? usersResponse.data.users : [];
-  const apiFirmen = Array.isArray(firmenResponse?.data?.firmen) ? firmenResponse.data.firmen : [];
+  // Später geladene Legacy-Dateien definieren teilweise dieselben globalen
+  // Angebotsfunktionen. Im Cockpit gilt ausschließlich die serverfähige
+  // Implementierung aus `views/angebote-view.js`.
+  const angebotHandlers = window.__CCINTERN_CANONICAL_ANGEBOTE_HANDLERS__;
+  if (angebotHandlers && typeof angebotHandlers === 'object') {
+    Object.keys(angebotHandlers).forEach(function(name) {
+      if (typeof angebotHandlers[name] === 'function') window[name] = angebotHandlers[name];
+    });
+  }
+
+  // `apiFetch` liefert im Cockpit bereits das entpackte `data`-Objekt. Ältere
+  // Aufrufer reichen dagegen noch den kompletten API-Envelope weiter. Beide
+  // Formen unterstützen, damit die Stammdaten nicht unbemerkt leer bleiben.
+  const apiUsers = Array.isArray(usersResponse?.users)
+    ? usersResponse.users
+    : Array.isArray(usersResponse?.data?.users)
+      ? usersResponse.data.users
+      : [];
+  const apiFirmen = Array.isArray(firmenResponse?.firmen)
+    ? firmenResponse.firmen
+    : Array.isArray(firmenResponse?.data?.firmen)
+      ? firmenResponse.data.firmen
+      : [];
 
   // Firmen → COCKPIT_FIRMEN + CRM_KUNDEN
   if (apiFirmen.length > 0) {
